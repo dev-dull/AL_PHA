@@ -6,7 +6,10 @@ import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/migration/presentation/migration_wizard.dart';
 import 'package:alpha/features/task/domain/task.dart';
+import 'package:alpha/features/task/domain/task_state.dart';
+import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
 
 /// The core screen of AlPHA: a 2D matrix with tasks as rows,
@@ -75,6 +78,91 @@ class _BoardDetailScreenState
   }
 
   // ----------------------------------------------------------
+  // Task actions
+  // ----------------------------------------------------------
+
+  Future<void> _completeTask(Task task) async {
+    final previousState = task.state;
+    await ref.read(taskActionsProvider).complete(task.id);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${task.title}" completed'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => _restoreTaskState(
+            task,
+            previousState,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _cancelTask(Task task) async {
+    final previousState = task.state;
+    await ref.read(taskActionsProvider).cancel(task.id);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${task.title}" cancelled'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => _restoreTaskState(
+            task,
+            previousState,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _restoreTaskState(
+    Task task,
+    TaskState previousState,
+  ) async {
+    final updated = task.copyWith(
+      state: previousState,
+      completedAt: null,
+    );
+    await ref.read(taskActionsProvider).update(updated);
+  }
+
+  void _openTaskDetailSheet(Task task) {
+    TaskDetailSheet.show(
+      context: context,
+      task: task,
+      onSave: (updated) async {
+        await ref.read(taskActionsProvider).update(updated);
+      },
+      onDelete: () async {
+        await ref.read(taskActionsProvider).delete(task.id);
+      },
+    );
+  }
+
+  Future<void> _onReorder(
+    List<Task> tasks,
+    int oldIndex,
+    int newIndex,
+  ) async {
+    // ReorderableListView passes newIndex that accounts for
+    // removal, so adjust when moving downward.
+    if (newIndex > oldIndex) newIndex--;
+
+    final reordered = List<Task>.from(tasks);
+    final item = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, item);
+
+    final ids = reordered.map((t) => t.id).toList();
+    await ref
+        .read(taskActionsProvider)
+        .reorder(widget.boardId, ids);
+  }
+
+  // ----------------------------------------------------------
   // Build
   // ----------------------------------------------------------
 
@@ -94,19 +182,60 @@ class _BoardDetailScreenState
       error: (_, _) => 'Board',
     );
 
+    final board = boardAsync.valueOrNull;
+    final showBanner =
+        board != null && isBoardPeriodEnded(board);
+
     return Scaffold(
-      appBar: AppBar(title: Text(boardName)),
-      body: tasksAsync.when(
-        data: (tasks) => columnsAsync.when(
-          data: (columns) =>
-              _buildGrid(context, tasks, columns),
-          loading: () =>
-              const Center(child: CircularProgressIndicator()),
-          error: (e, st) => Center(child: Text('Error: $e')),
-        ),
-        loading: () =>
-            const Center(child: CircularProgressIndicator()),
-        error: (e, st) => Center(child: Text('Error: $e')),
+      appBar: AppBar(
+        title: Text(boardName),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'migrate') {
+                showMigrationWizard(
+                  context,
+                  sourceBoardId: widget.boardId,
+                );
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'migrate',
+                child: Text('Migrate tasks...'),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (showBanner)
+            MigrationBanner(
+              onMigrate: () => showMigrationWizard(
+                context,
+                sourceBoardId: widget.boardId,
+              ),
+            ),
+          Expanded(
+            child: tasksAsync.when(
+              data: (tasks) => columnsAsync.when(
+                data: (columns) =>
+                    _buildGrid(context, tasks, columns),
+                loading: () => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                error: (e, st) =>
+                    Center(child: Text('Error: $e')),
+              ),
+              loading: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+              error: (e, st) =>
+                  Center(child: Text('Error: $e')),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddTaskDialog(context),
@@ -165,17 +294,10 @@ class _BoardDetailScreenState
               : Row(
                   children: [
                     // Fixed task name column (scrolls
-                    // vertically only).
+                    // vertically only) with reorder support.
                     SizedBox(
                       width: _taskColumnWidth,
-                      child: ListView.builder(
-                        controller: _taskScrollController,
-                        itemCount: tasks.length,
-                        itemExtent: _rowHeight,
-                        itemBuilder: (_, i) => _TaskNameCell(
-                          task: tasks[i],
-                        ),
-                      ),
+                      child: _buildTaskColumn(tasks),
                     ),
                     VerticalDivider(
                       width: 1,
@@ -193,8 +315,7 @@ class _BoardDetailScreenState
                             controller: _gridScrollController,
                             itemCount: tasks.length,
                             itemExtent: _rowHeight,
-                            itemBuilder: (_, i) =>
-                                _MarkerRow(
+                            itemBuilder: (_, i) => _MarkerRow(
                               boardId: widget.boardId,
                               task: tasks[i],
                               columns: columns,
@@ -207,6 +328,41 @@ class _BoardDetailScreenState
                 ),
         ),
       ],
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Task column with reorder + swipe
+  // ----------------------------------------------------------
+
+  Widget _buildTaskColumn(List<Task> tasks) {
+    return ReorderableListView.builder(
+      scrollController: _taskScrollController,
+      itemCount: tasks.length,
+      buildDefaultDragHandles: false,
+      proxyDecorator: (child, index, animation) {
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) => Material(
+            elevation: 4,
+            child: child,
+          ),
+          child: child,
+        );
+      },
+      onReorder: (oldIndex, newIndex) =>
+          _onReorder(tasks, oldIndex, newIndex),
+      itemBuilder: (context, i) {
+        final task = tasks[i];
+        return _SwipeableTaskCell(
+          key: ValueKey(task.id),
+          task: task,
+          index: i,
+          onComplete: () => _completeTask(task),
+          onCancel: () => _cancelTask(task),
+          onTap: () => _openTaskDetailSheet(task),
+        );
+      },
     );
   }
 
@@ -358,39 +514,106 @@ class _ColumnHeader extends StatelessWidget {
   }
 }
 
-/// A task name cell in the fixed left column.
-class _TaskNameCell extends StatelessWidget {
+/// A task name cell wrapped with [Dismissible] for swipe
+/// gestures, a [GestureDetector] for tap-to-edit, and a
+/// [ReorderableDragStartListener] for drag-to-reorder.
+class _SwipeableTaskCell extends StatelessWidget {
   final Task task;
+  final int index;
+  final VoidCallback onComplete;
+  final VoidCallback onCancel;
+  final VoidCallback onTap;
 
-  const _TaskNameCell({required this.task});
+  const _SwipeableTaskCell({
+    super.key,
+    required this.task,
+    required this.index,
+    required this.onComplete,
+    required this.onCancel,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isTerminal = task.state.isTerminal;
     final theme = Theme.of(context);
 
-    return SizedBox(
-      height: MarkerCell.cellSize,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            task.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              decoration: isTerminal
-                  ? TextDecoration.lineThrough
-                  : null,
-              color: isTerminal
-                  ? theme.colorScheme.onSurface
-                      .withValues(alpha: 0.4)
-                  : null,
+    Widget cell = GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        height: MarkerCell.cellSize,
+        child: Row(
+          children: [
+            // Drag handle for reorder
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(
+                  Icons.drag_indicator,
+                  size: 16,
+                  color: theme.colorScheme.onSurface
+                      .withValues(alpha: 0.3),
+                ),
+              ),
             ),
-          ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  left: 4,
+                  right: 8,
+                ),
+                child: Text(
+                  task.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    decoration: isTerminal
+                        ? TextDecoration.lineThrough
+                        : null,
+                    color: isTerminal
+                        ? theme.colorScheme.onSurface
+                            .withValues(alpha: 0.4)
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
+    );
+
+    // Terminal tasks cannot be swiped.
+    if (isTerminal) return cell;
+
+    return Dismissible(
+      key: ValueKey('dismiss_${task.id}'),
+      // Swipe right to complete.
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 16),
+        color: Colors.green,
+        child: const Icon(Icons.check, color: Colors.white),
+      ),
+      // Swipe left to cancel.
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        color: Colors.red,
+        child: const Icon(Icons.close, color: Colors.white),
+      ),
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.startToEnd) {
+          onComplete();
+        } else {
+          onCancel();
+        }
+        // Return false so the widget is not removed from the
+        // tree — the provider stream will rebuild the list.
+        return false;
+      },
+      child: cell,
     );
   }
 }
