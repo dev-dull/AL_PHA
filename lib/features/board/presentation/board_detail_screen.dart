@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import 'package:alpha/design_system/widgets/dot_grid_background.dart';
 import 'package:alpha/features/board/providers/board_providers.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
@@ -231,29 +232,31 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
     // Alastair Method layout: day columns on the left,
     // task names on the right. Since there are only 8 fixed
     // columns, no horizontal scrolling is needed.
-    return Column(
-      children: [
-        // ---------- Header row ----------
-        SizedBox(
-          height: _headerHeight,
-          child: Row(
-            children: [
-              // Day column headers on the left.
-              ...columns.map((col) => _ColumnHeader(column: col)),
-              VerticalDivider(width: 1, color: theme.dividerColor),
-              // Task label on the right.
-              const Expanded(child: _HeaderCorner()),
-            ],
+    return DotGridBackground(
+      child: Column(
+        children: [
+          // ---------- Header row ----------
+          SizedBox(
+            height: _headerHeight,
+            child: Row(
+              children: [
+                // Day column headers on the left.
+                ...columns.map((col) => _ColumnHeader(column: col)),
+                VerticalDivider(width: 1, color: theme.dividerColor),
+                // Task label on the right.
+                const Expanded(child: _HeaderCorner()),
+              ],
+            ),
           ),
-        ),
-        Divider(height: 1, color: theme.dividerColor),
-        // ---------- Body rows ----------
-        Expanded(
-          child: sortedTasks.isEmpty
-              ? _buildEmptyState(context)
-              : _buildTaskList(sortedTasks, columns, markerColumnsWidth),
-        ),
-      ],
+          Divider(height: 1, color: theme.dividerColor),
+          // ---------- Body rows ----------
+          Expanded(
+            child: sortedTasks.isEmpty
+                ? _buildEmptyState(context)
+                : _buildTaskList(sortedTasks, columns, markerColumnsWidth),
+          ),
+        ],
+      ),
     );
   }
 
