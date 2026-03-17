@@ -12,9 +12,9 @@ import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
 
-/// The core screen of AlPHA: a 2D matrix with tasks as rows,
-/// columns (dates/contexts) as headers, and tappable markers
-/// at each intersection.
+/// The core screen of AlPHA: a 2D matrix with day columns on
+/// the left (M T W T F S S >) and task names on the right,
+/// following the Alastair Method bullet journal layout.
 class BoardDetailScreen extends ConsumerStatefulWidget {
   final String boardId;
 
@@ -27,53 +27,8 @@ class BoardDetailScreen extends ConsumerStatefulWidget {
 class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
   static const _uuid = Uuid();
 
-  /// Width of the fixed task-name column.
-  static const double _taskColumnWidth = 140;
-
-  /// Height of each row (matches MarkerCell.cellSize).
-  static const double _rowHeight = MarkerCell.cellSize;
-
   /// Height of the column header row.
   static const double _headerHeight = 44;
-
-  /// Vertical scroll controllers kept in sync.
-  final _taskScrollController = ScrollController();
-  final _gridScrollController = ScrollController();
-
-  /// Whether we are currently syncing scroll positions.
-  bool _isSyncingScroll = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _taskScrollController.addListener(_syncTaskToGrid);
-    _gridScrollController.addListener(_syncGridToTask);
-  }
-
-  @override
-  void dispose() {
-    _taskScrollController
-      ..removeListener(_syncTaskToGrid)
-      ..dispose();
-    _gridScrollController
-      ..removeListener(_syncGridToTask)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _syncTaskToGrid() {
-    if (_isSyncingScroll) return;
-    _isSyncingScroll = true;
-    _gridScrollController.jumpTo(_taskScrollController.offset);
-    _isSyncingScroll = false;
-  }
-
-  void _syncGridToTask() {
-    if (_isSyncingScroll) return;
-    _isSyncingScroll = true;
-    _taskScrollController.jumpTo(_gridScrollController.offset);
-    _isSyncingScroll = false;
-  }
 
   // ----------------------------------------------------------
   // Task actions
@@ -221,10 +176,11 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
     }
 
     final theme = Theme.of(context);
+    final markerColumnsWidth = columns.length * MarkerCell.cellSize;
 
-    // The grid is split into a fixed left task column and a
-    // horizontally scrollable right marker area. Both share
-    // synchronised vertical scroll controllers.
+    // Alastair Method layout: day columns on the left,
+    // task names on the right. Since there are only 8 fixed
+    // columns, no horizontal scrolling is needed.
     return Column(
       children: [
         // ---------- Header row ----------
@@ -232,19 +188,11 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
           height: _headerHeight,
           child: Row(
             children: [
-              // Top-left corner (task column header).
-              const _HeaderCorner(width: _taskColumnWidth),
-              // Column headers scroll horizontally.
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: columns
-                        .map((col) => _ColumnHeader(column: col))
-                        .toList(),
-                  ),
-                ),
-              ),
+              // Day column headers on the left.
+              ...columns.map((col) => _ColumnHeader(column: col)),
+              VerticalDivider(width: 1, color: theme.dividerColor),
+              // Task label on the right.
+              const Expanded(child: _HeaderCorner()),
             ],
           ),
         ),
@@ -253,49 +201,22 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
         Expanded(
           child: tasks.isEmpty
               ? _buildEmptyState(context)
-              : Row(
-                  children: [
-                    // Fixed task name column (scrolls
-                    // vertically only) with reorder support.
-                    SizedBox(
-                      width: _taskColumnWidth,
-                      child: _buildTaskColumn(tasks),
-                    ),
-                    VerticalDivider(width: 1, color: theme.dividerColor),
-                    // Scrollable marker grid (scrolls both
-                    // horizontally and vertically).
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: SizedBox(
-                          width: columns.length * MarkerCell.cellSize,
-                          child: ListView.builder(
-                            controller: _gridScrollController,
-                            itemCount: tasks.length,
-                            itemExtent: _rowHeight,
-                            itemBuilder: (_, i) => _MarkerRow(
-                              boardId: widget.boardId,
-                              task: tasks[i],
-                              columns: columns,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              : _buildTaskList(tasks, columns, markerColumnsWidth),
         ),
       ],
     );
   }
 
   // ----------------------------------------------------------
-  // Task column with reorder + swipe
+  // Task list with markers + reorder + swipe
   // ----------------------------------------------------------
 
-  Widget _buildTaskColumn(List<Task> tasks) {
+  Widget _buildTaskList(
+    List<Task> tasks,
+    List<BoardColumn> columns,
+    double markerColumnsWidth,
+  ) {
     return ReorderableListView.builder(
-      scrollController: _taskScrollController,
       itemCount: tasks.length,
       buildDefaultDragHandles: false,
       proxyDecorator: (child, index, animation) {
@@ -308,9 +229,11 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
       onReorder: (oldIndex, newIndex) => _onReorder(tasks, oldIndex, newIndex),
       itemBuilder: (context, i) {
         final task = tasks[i];
-        return _SwipeableTaskCell(
+        return _BoardRow(
           key: ValueKey(task.id),
+          boardId: widget.boardId,
           task: task,
+          columns: columns,
           index: i,
           onComplete: () => _completeTask(task),
           onCancel: () => _cancelTask(task),
@@ -414,33 +337,28 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
 // Private sub-widgets
 // ============================================================
 
-/// Top-left corner cell above the task column.
+/// Header label for the task name column.
 class _HeaderCorner extends StatelessWidget {
-  final double width;
-
-  const _HeaderCorner({required this.width});
+  const _HeaderCorner();
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Tasks',
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-          ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Tasks',
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
     );
   }
 }
 
-/// A single column header label.
+/// A single day-column header label (e.g. "M", "T", ">").
 class _ColumnHeader extends StatelessWidget {
   final BoardColumn column;
 
@@ -464,19 +382,22 @@ class _ColumnHeader extends StatelessWidget {
   }
 }
 
-/// A task name cell wrapped with [Dismissible] for swipe
-/// gestures, a [GestureDetector] for tap-to-edit, and a
-/// [ReorderableDragStartListener] for drag-to-reorder.
-class _SwipeableTaskCell extends StatelessWidget {
+/// A full board row: marker cells on the left, task name on
+/// the right with drag-to-reorder and swipe gestures.
+class _BoardRow extends StatelessWidget {
+  final String boardId;
   final Task task;
+  final List<BoardColumn> columns;
   final int index;
   final VoidCallback onComplete;
   final VoidCallback onCancel;
   final VoidCallback onTap;
 
-  const _SwipeableTaskCell({
+  const _BoardRow({
     super.key,
+    required this.boardId,
     required this.task,
+    required this.columns,
     required this.index,
     required this.onComplete,
     required this.onCancel,
@@ -488,13 +409,22 @@ class _SwipeableTaskCell extends StatelessWidget {
     final isTerminal = task.state.isTerminal;
     final theme = Theme.of(context);
 
-    Widget cell = GestureDetector(
+    Widget row = GestureDetector(
       onTap: onTap,
       child: SizedBox(
         height: MarkerCell.cellSize,
         child: Row(
           children: [
-            // Drag handle for reorder
+            // Marker cells for each day column.
+            ...columns.map(
+              (col) => MarkerCell(
+                boardId: boardId,
+                taskId: task.id,
+                columnId: col.id,
+              ),
+            ),
+            VerticalDivider(width: 1, color: theme.dividerColor),
+            // Drag handle for reorder.
             ReorderableDragStartListener(
               index: index,
               child: Padding(
@@ -506,6 +436,7 @@ class _SwipeableTaskCell extends StatelessWidget {
                 ),
               ),
             ),
+            // Task name.
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 4, right: 8),
@@ -528,7 +459,7 @@ class _SwipeableTaskCell extends StatelessWidget {
     );
 
     // Terminal tasks cannot be swiped.
-    if (isTerminal) return cell;
+    if (isTerminal) return row;
 
     return Dismissible(
       key: ValueKey('dismiss_${task.id}'),
@@ -556,32 +487,7 @@ class _SwipeableTaskCell extends StatelessWidget {
         // tree — the provider stream will rebuild the list.
         return false;
       },
-      child: cell,
-    );
-  }
-}
-
-/// A horizontal row of MarkerCells for a single task.
-class _MarkerRow extends StatelessWidget {
-  final String boardId;
-  final Task task;
-  final List<BoardColumn> columns;
-
-  const _MarkerRow({
-    required this.boardId,
-    required this.task,
-    required this.columns,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: columns
-          .map(
-            (col) =>
-                MarkerCell(boardId: boardId, taskId: task.id, columnId: col.id),
-          )
-          .toList(),
+      child: row,
     );
   }
 }
