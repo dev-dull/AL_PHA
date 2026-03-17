@@ -36,9 +36,9 @@ class MarkerCell extends ConsumerWidget {
     );
 
     final symbol = marker?.symbol;
+    final brightness = Theme.of(context).brightness;
     final color = symbol != null
-        ? AlphaTheme.markerColors[symbol.name] ??
-            Theme.of(context).colorScheme.onSurface
+        ? AlphaTheme.markerColor(symbol, brightness)
         : null;
 
     return SizedBox(
@@ -138,8 +138,8 @@ class _MarkerPickerSheet extends StatelessWidget {
           ),
           const Divider(height: 1),
           ...MarkerSymbol.values.map((symbol) {
-            final color = AlphaTheme.markerColors[symbol.name] ??
-                theme.colorScheme.onSurface;
+            final color =
+                AlphaTheme.markerColor(symbol, theme.brightness);
             final isSelected = symbol == currentSymbol;
             return ListTile(
               leading: Text(
