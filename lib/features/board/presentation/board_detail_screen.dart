@@ -8,6 +8,7 @@ import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
 import 'package:alpha/features/migration/presentation/migration_wizard.dart';
 import 'package:alpha/features/task/domain/task.dart';
+import 'package:alpha/features/task/domain/task_sort.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
@@ -29,6 +30,8 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
 
   /// Height of the column header row.
   static const double _headerHeight = 44;
+
+  TaskSortMode _sortMode = TaskSortMode.manual;
 
   @override
   void initState() {
@@ -133,6 +136,31 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
       appBar: AppBar(
         title: Text(boardName),
         actions: [
+          PopupMenuButton<TaskSortMode>(
+            icon: const Icon(Icons.sort),
+            tooltip: 'Sort tasks',
+            onSelected: (mode) => setState(() => _sortMode = mode),
+            itemBuilder: (_) => [
+              for (final mode in TaskSortMode.values)
+                PopupMenuItem(
+                  value: mode,
+                  child: Row(
+                    children: [
+                      if (_sortMode == mode)
+                        Icon(
+                          Icons.check,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      else
+                        const SizedBox(width: 18),
+                      const SizedBox(width: 8),
+                      Text(mode.displayName),
+                    ],
+                  ),
+                ),
+            ],
+          ),
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'migrate') {
@@ -189,6 +217,17 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
     final theme = Theme.of(context);
     final markerColumnsWidth = columns.length * MarkerCell.cellSize;
 
+    // Apply sorting.
+    final sortedTasks = sortTasks(
+      tasks,
+      _sortMode,
+      getPosition: (t) => t.position,
+      getCreatedAt: (t) => t.createdAt,
+      getDeadline: (t) => t.deadline,
+      getTitle: (t) => t.title,
+      getPriority: (t) => t.priority,
+    );
+
     // Alastair Method layout: day columns on the left,
     // task names on the right. Since there are only 8 fixed
     // columns, no horizontal scrolling is needed.
@@ -210,9 +249,9 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
         Divider(height: 1, color: theme.dividerColor),
         // ---------- Body rows ----------
         Expanded(
-          child: tasks.isEmpty
+          child: sortedTasks.isEmpty
               ? _buildEmptyState(context)
-              : _buildTaskList(tasks, columns, markerColumnsWidth),
+              : _buildTaskList(sortedTasks, columns, markerColumnsWidth),
         ),
       ],
     );
@@ -227,6 +266,8 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
     List<BoardColumn> columns,
     double markerColumnsWidth,
   ) {
+    final canReorder = _sortMode == TaskSortMode.manual;
+
     return ReorderableListView.builder(
       itemCount: tasks.length,
       buildDefaultDragHandles: false,
@@ -237,7 +278,9 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
           child: child,
         );
       },
-      onReorder: (oldIndex, newIndex) => _onReorder(tasks, oldIndex, newIndex),
+      onReorder: canReorder
+          ? (oldIndex, newIndex) => _onReorder(tasks, oldIndex, newIndex)
+          : (_, _) {},
       itemBuilder: (context, i) {
         final task = tasks[i];
         return _BoardRow(
@@ -246,6 +289,7 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
           task: task,
           columns: columns,
           index: i,
+          canReorder: canReorder,
           onComplete: () => _completeTask(task),
           onCancel: () => _cancelTask(task),
           onTap: () => _openTaskDetailSheet(task),
@@ -400,6 +444,7 @@ class _BoardRow extends StatelessWidget {
   final Task task;
   final List<BoardColumn> columns;
   final int index;
+  final bool canReorder;
   final VoidCallback onComplete;
   final VoidCallback onCancel;
   final VoidCallback onTap;
@@ -410,6 +455,7 @@ class _BoardRow extends StatelessWidget {
     required this.task,
     required this.columns,
     required this.index,
+    this.canReorder = true,
     required this.onComplete,
     required this.onCancel,
     required this.onTap,
@@ -435,18 +481,21 @@ class _BoardRow extends StatelessWidget {
               ),
             ),
             VerticalDivider(width: 1, color: theme.dividerColor),
-            // Drag handle for reorder.
-            ReorderableDragStartListener(
-              index: index,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Icon(
-                  Icons.drag_indicator,
-                  size: 16,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            // Drag handle (only shown in manual sort mode).
+            if (canReorder)
+              ReorderableDragStartListener(
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: Icon(
+                    Icons.drag_indicator,
+                    size: 16,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                  ),
                 ),
-              ),
-            ),
+              )
+            else
+              const SizedBox(width: 8),
             // Task name.
             Expanded(
               child: Padding(
