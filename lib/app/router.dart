@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:alpha/features/board/presentation/board_list_screen.dart';
+import 'package:alpha/app/home_shell.dart';
 import 'package:alpha/features/board/presentation/board_detail_screen.dart';
 import 'package:alpha/features/board/presentation/board_create_screen.dart';
 
@@ -9,7 +9,7 @@ final router = GoRouter(
     GoRoute(
       path: '/',
       name: 'boardList',
-      builder: (context, state) => const BoardListScreen(),
+      builder: (context, state) => const HomeShell(),
     ),
     GoRoute(
       path: '/board/create',
