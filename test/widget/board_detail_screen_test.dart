@@ -110,11 +110,7 @@ void main() {
       await seedBoard(container, board: makeBoard(id: boardId));
       await seedColumn(
         container,
-        column: makeColumn(
-          id: 'c1',
-          boardId: boardId,
-          label: 'Mon',
-        ),
+        column: makeColumn(id: 'c1', boardId: boardId, label: 'Mon'),
       );
       await seedTask(
         container,
@@ -191,8 +187,9 @@ void main() {
       expect(find.text('No tasks yet'), findsOneWidget);
     });
 
-    testWidgets('popup menu shows manage columns and migrate options',
-        (tester) async {
+    testWidgets('popup menu shows manage columns and migrate options', (
+      tester,
+    ) async {
       final container = createTestContainer();
       await seedBoard(container, board: makeBoard(id: boardId));
       await tester.pumpWithContainer(
@@ -208,8 +205,9 @@ void main() {
       expect(find.text('Migrate tasks...'), findsOneWidget);
     });
 
-    testWidgets('migration banner appears for expired daily board',
-        (tester) async {
+    testWidgets('migration banner appears for expired daily board', (
+      tester,
+    ) async {
       final container = createTestContainer();
       await seedBoard(
         container,
@@ -232,8 +230,9 @@ void main() {
       );
     });
 
-    testWidgets('migration banner does NOT appear for current board',
-        (tester) async {
+    testWidgets('migration banner does NOT appear for current board', (
+      tester,
+    ) async {
       final container = createTestContainer();
       await seedBoard(
         container,

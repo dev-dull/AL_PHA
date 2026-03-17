@@ -16,9 +16,7 @@ class BoardListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('AlPHA')),
       body: boardListAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => _ErrorView(
           message: error.toString(),
           onRetry: () => ref.invalidate(boardListProvider),
@@ -26,15 +24,11 @@ class BoardListScreen extends ConsumerWidget {
         data: (boards) {
           if (boards.isEmpty) {
             return _EmptyState(
-              onCreatePressed: () =>
-                  context.pushNamed('boardCreate'),
+              onCreatePressed: () => context.pushNamed('boardCreate'),
             );
           }
           return ListView.builder(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             itemCount: boards.length,
             itemBuilder: (context, index) {
               final board = boards[index];
@@ -44,11 +38,7 @@ class BoardListScreen extends ConsumerWidget {
                   'boardDetail',
                   pathParameters: {'id': board.id},
                 ),
-                onLongPress: () => _showBoardOptions(
-                  context,
-                  ref,
-                  board,
-                ),
+                onLongPress: () => _showBoardOptions(context, ref, board),
               );
             },
           );
@@ -61,11 +51,7 @@ class BoardListScreen extends ConsumerWidget {
     );
   }
 
-  void _showBoardOptions(
-    BuildContext context,
-    WidgetRef ref,
-    Board board,
-  ) {
+  void _showBoardOptions(BuildContext context, WidgetRef ref, Board board) {
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -78,25 +64,17 @@ class BoardListScreen extends ConsumerWidget {
                 title: const Text('Archive'),
                 onTap: () {
                   Navigator.pop(sheetContext);
-                  ref
-                      .read(boardActionsProvider)
-                      .archive(board.id);
+                  ref.read(boardActionsProvider).archive(board.id);
                 },
               ),
               ListTile(
                 leading: Icon(
                   Icons.delete_outline,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .error,
+                  color: Theme.of(context).colorScheme.error,
                 ),
                 title: Text(
                   'Delete',
-                  style: TextStyle(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () {
                   Navigator.pop(sheetContext);
@@ -110,11 +88,7 @@ class BoardListScreen extends ConsumerWidget {
     );
   }
 
-  void _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    Board board,
-  ) {
+  void _confirmDelete(BuildContext context, WidgetRef ref, Board board) {
     showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -126,24 +100,17 @@ class BoardListScreen extends ConsumerWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(dialogContext);
-                ref
-                    .read(boardActionsProvider)
-                    .delete(board.id);
+                ref.read(boardActionsProvider).delete(board.id);
               },
               child: Text(
                 'Delete',
-                style: TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .error,
-                ),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
           ],
@@ -181,22 +148,14 @@ class _BoardCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      board.name,
-                      style:
-                          theme.textTheme.titleMedium,
-                    ),
+                    Text(board.name, style: theme.textTheme.titleMedium),
                     const SizedBox(height: 4),
                     Text(
                       'Created ${dateFormat.format(board.createdAt)}',
-                      style: theme
-                          .textTheme.bodySmall
-                          ?.copyWith(
-                        color: theme
-                            .colorScheme.onSurfaceVariant,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
@@ -208,17 +167,13 @@ class _BoardCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      theme.colorScheme.secondaryContainer,
-                  borderRadius:
-                      BorderRadius.circular(12),
+                  color: theme.colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   board.type.displayName,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(
-                    color: theme.colorScheme
-                        .onSecondaryContainer,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSecondaryContainer,
                   ),
                 ),
               ),
@@ -248,31 +203,24 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.dashboard_outlined,
               size: 80,
-              color: theme.colorScheme.onSurfaceVariant
-                  .withValues(alpha: 0.4),
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 24),
-            Text(
-              'No boards yet',
-              style: theme.textTheme.headlineSmall,
-            ),
+            Text('No boards yet', style: theme.textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(
               'Create a board to start organising\n'
               'your tasks with the Alastair Method.',
               textAlign: TextAlign.center,
-              style:
-                  theme.textTheme.bodyMedium?.copyWith(
-                color: theme
-                    .colorScheme.onSurfaceVariant,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: onCreatePressed,
               icon: const Icon(Icons.add),
-              label:
-                  const Text('Create your first board'),
+              label: const Text('Create your first board'),
             ),
           ],
         ),
@@ -282,10 +230,7 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -300,24 +245,15 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 16),
-            Text(
-              'Something went wrong',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('Something went wrong', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style:
-                  theme.textTheme.bodySmall?.copyWith(
-                color: theme
-                    .colorScheme.onSurfaceVariant,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),

@@ -67,8 +67,8 @@ class Markers extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {taskId, columnId},
-      ];
+    {taskId, columnId},
+  ];
 }
 
 @DriftDatabase(tables: [Boards, BoardColumns, Tasks, Markers])

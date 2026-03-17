@@ -88,9 +88,7 @@ void main() {
     });
 
     testWidgets('manage columns title is shown', (tester) async {
-      await tester.pumpApp(
-        const ColumnManagerSheet(boardId: boardId),
-      );
+      await tester.pumpApp(const ColumnManagerSheet(boardId: boardId));
       await tester.pumpAndSettle();
 
       expect(find.text('Manage Columns'), findsOneWidget);

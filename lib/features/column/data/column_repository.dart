@@ -19,13 +19,17 @@ class ColumnRepository {
   }
 
   Future<BoardColumn> create(BoardColumn column) async {
-    await _db.into(_db.boardColumns).insert(BoardColumnsCompanion.insert(
-          id: column.id,
-          boardId: column.boardId,
-          label: column.label,
-          position: column.position,
-          type: Value(column.type.name),
-        ));
+    await _db
+        .into(_db.boardColumns)
+        .insert(
+          BoardColumnsCompanion.insert(
+            id: column.id,
+            boardId: column.boardId,
+            label: column.label,
+            position: column.position,
+            type: Value(column.type.name),
+          ),
+        );
     return column;
   }
 
@@ -37,13 +41,15 @@ class ColumnRepository {
   }
 
   Future<BoardColumn> update(BoardColumn column) async {
-    await (_db.update(_db.boardColumns)
-          ..where((c) => c.id.equals(column.id)))
-        .write(BoardColumnsCompanion(
-      label: Value(column.label),
-      position: Value(column.position),
-      type: Value(column.type.name),
-    ));
+    await (_db.update(
+      _db.boardColumns,
+    )..where((c) => c.id.equals(column.id))).write(
+      BoardColumnsCompanion(
+        label: Value(column.label),
+        position: Value(column.position),
+        type: Value(column.type.name),
+      ),
+    );
     return column;
   }
 
@@ -75,6 +81,7 @@ class ColumnRepository {
       ..where((c) => c.boardId.equals(boardId))
       ..orderBy([(c) => OrderingTerm.asc(c.position)]);
     return query.watch().map(
-        (rows) => rows.map((r) => _rowToColumn(r)).toList());
+      (rows) => rows.map((r) => _rowToColumn(r)).toList(),
+    );
   }
 }

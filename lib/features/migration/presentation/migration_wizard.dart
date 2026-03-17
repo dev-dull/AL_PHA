@@ -25,11 +25,7 @@ bool isBoardPeriodEnded(Board board) {
 
   switch (board.type) {
     case BoardType.daily:
-      final boardDay = DateTime(
-        created.year,
-        created.month,
-        created.day,
-      );
+      final boardDay = DateTime(created.year, created.month, created.day);
       return today.isAfter(boardDay);
 
     case BoardType.weekly:
@@ -72,23 +68,14 @@ class MigrationBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return MaterialBanner(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       content: Text(
         'This period has ended. Migrate incomplete tasks?',
         style: theme.textTheme.bodyMedium,
       ),
-      leading: Icon(
-        Icons.move_down_rounded,
-        color: theme.colorScheme.primary,
-      ),
+      leading: Icon(Icons.move_down_rounded, color: theme.colorScheme.primary),
       actions: [
-        FilledButton.tonal(
-          onPressed: onMigrate,
-          child: const Text('Migrate'),
-        ),
+        FilledButton.tonal(onPressed: onMigrate, child: const Text('Migrate')),
       ],
     );
   }
@@ -102,9 +89,7 @@ Future<void> showMigrationWizard(
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
       fullscreenDialog: true,
-      builder: (_) => _MigrationWizard(
-        sourceBoardId: sourceBoardId,
-      ),
+      builder: (_) => _MigrationWizard(sourceBoardId: sourceBoardId),
     ),
   );
 }
@@ -115,12 +100,10 @@ class _MigrationWizard extends ConsumerStatefulWidget {
   const _MigrationWizard({required this.sourceBoardId});
 
   @override
-  ConsumerState<_MigrationWizard> createState() =>
-      _MigrationWizardState();
+  ConsumerState<_MigrationWizard> createState() => _MigrationWizardState();
 }
 
-class _MigrationWizardState
-    extends ConsumerState<_MigrationWizard> {
+class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
   static const _uuid = Uuid();
 
   int _step = 0; // 0=target, 1=tasks, 2=confirm
@@ -190,14 +173,12 @@ class _MigrationWizardState
         const _StepHeader(
           step: 1,
           title: 'Select target board',
-          subtitle:
-              'Choose which board to migrate tasks to.',
+          subtitle: 'Choose which board to migrate tasks to.',
         ),
         const SizedBox(height: 8),
         // Create new board option.
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: OutlinedButton.icon(
             onPressed: () {
               setState(() => _creatingNewBoard = true);
@@ -205,8 +186,7 @@ class _MigrationWizardState
             icon: const Icon(Icons.add),
             label: const Text('Create new board'),
             style: OutlinedButton.styleFrom(
-              minimumSize:
-                  const Size(double.infinity, 48),
+              minimumSize: const Size(double.infinity, 48),
             ),
           ),
         ),
@@ -215,11 +195,7 @@ class _MigrationWizardState
           child: boardsAsync.when(
             data: (boards) {
               final available = boards
-                  .where(
-                    (b) =>
-                        b.id != widget.sourceBoardId &&
-                        !b.archived,
-                  )
+                  .where((b) => b.id != widget.sourceBoardId && !b.archived)
                   .toList();
               if (available.isEmpty) {
                 return Center(
@@ -228,10 +204,8 @@ class _MigrationWizardState
                     child: Text(
                       'No other boards available. '
                       'Create a new board to migrate to.',
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(
-                        color: theme
-                            .colorScheme.onSurfaceVariant,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -239,25 +213,19 @@ class _MigrationWizardState
                 );
               }
               return ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: available.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: 1),
+                separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (_, i) {
                   final board = available[i];
-                  final isSelected =
-                      _targetBoardId == board.id;
+                  final isSelected = _targetBoardId == board.id;
                   return ListTile(
                     title: Text(board.name),
-                    subtitle:
-                        Text(board.type.displayName),
+                    subtitle: Text(board.type.displayName),
                     trailing: isSelected
                         ? Icon(
                             Icons.check_circle,
-                            color:
-                                theme.colorScheme.primary,
+                            color: theme.colorScheme.primary,
                           )
                         : null,
                     selected: isSelected,
@@ -271,17 +239,12 @@ class _MigrationWizardState
                 },
               );
             },
-            loading: () => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            error: (e, _) =>
-                Center(child: Text('Error: $e')),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error: $e')),
           ),
         ),
         _BottomBar(
-          onNext: _targetBoardId != null
-              ? _goToTaskSelection
-              : null,
+          onNext: _targetBoardId != null ? _goToTaskSelection : null,
           onBack: null,
           nextLabel: 'Next',
         ),
@@ -314,37 +277,26 @@ class _MigrationWizardState
                   labelText: 'Board name',
                   hintText: 'e.g. Week of March 23',
                 ),
-                textCapitalization:
-                    TextCapitalization.sentences,
+                textCapitalization: TextCapitalization.sentences,
                 autofocus: true,
               ),
               const SizedBox(height: 24),
-              Text(
-                'Template',
-                style: theme.textTheme.titleSmall,
-              ),
+              Text('Template', style: theme.textTheme.titleSmall),
               const SizedBox(height: 8),
               RadioGroup<int>(
                 groupValue: _selectedTemplateIndex,
                 onChanged: (v) {
-                  setState(
-                    () => _selectedTemplateIndex =
-                        v ?? 0,
-                  );
+                  setState(() => _selectedTemplateIndex = v ?? 0);
                 },
                 child: Column(
-                  children: List.generate(
-                    defaultTemplates.length,
-                    (i) {
-                      final t = defaultTemplates[i];
-                      return RadioListTile<int>(
-                        title: Text(t.name),
-                        subtitle:
-                            Text(t.description),
-                        value: i,
-                      );
-                    },
-                  ),
+                  children: List.generate(defaultTemplates.length, (i) {
+                    final t = defaultTemplates[i];
+                    return RadioListTile<int>(
+                      title: Text(t.name),
+                      subtitle: Text(t.description),
+                      value: i,
+                    );
+                  }),
                 ),
               ),
             ],
@@ -362,20 +314,15 @@ class _MigrationWizardState
   }
 
   Future<void> _createNewBoardAndProceed() async {
-    final name =
-        _newBoardNameController.text.trim();
+    final name = _newBoardNameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('Please enter a board name'),
-        ),
+        const SnackBar(content: Text('Please enter a board name')),
       );
       return;
     }
 
-    final template =
-        defaultTemplates[_selectedTemplateIndex];
+    final template = defaultTemplates[_selectedTemplateIndex];
     final now = DateTime.now();
     final boardId = _uuid.v4();
 
@@ -389,8 +336,7 @@ class _MigrationWizardState
 
     await ref.read(boardActionsProvider).create(board);
 
-    final columnActions =
-        ref.read(columnActionsProvider);
+    final columnActions = ref.read(columnActionsProvider);
     for (final col in template.columns) {
       await columnActions.create(
         BoardColumn(
@@ -417,19 +363,15 @@ class _MigrationWizardState
   // --------------------------------------------------------
 
   void _goToTaskSelection() {
-    final tasksAsync = ref.read(
-      taskListProvider(widget.sourceBoardId),
-    );
+    final tasksAsync = ref.read(taskListProvider(widget.sourceBoardId));
     final tasks = tasksAsync.valueOrNull ?? [];
     final migratable = tasks.where((t) {
-      return t.state == TaskState.open ||
-          t.state == TaskState.inProgress;
+      return t.state == TaskState.open || t.state == TaskState.inProgress;
     }).toList();
 
     setState(() {
       _migratableTasks = migratable;
-      _selectedTaskIds =
-          migratable.map((t) => t.id).toSet();
+      _selectedTaskIds = migratable.map((t) => t.id).toSet();
       _step = 1;
     });
   }
@@ -445,12 +387,10 @@ class _MigrationWizardState
         _StepHeader(
           step: 2,
           title: 'Select tasks to migrate',
-          subtitle:
-              '$selectedCount of $totalCount tasks selected',
+          subtitle: '$selectedCount of $totalCount tasks selected',
         ),
         Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
               TextButton(
@@ -466,9 +406,7 @@ class _MigrationWizardState
               const SizedBox(width: 8),
               TextButton(
                 onPressed: () {
-                  setState(
-                    () => _selectedTaskIds = {},
-                  );
+                  setState(() => _selectedTaskIds = {});
                 },
                 child: const Text('Deselect All'),
               ),
@@ -481,37 +419,27 @@ class _MigrationWizardState
               ? Center(
                   child: Text(
                     'No incomplete tasks to migrate.',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(
-                      color: theme
-                          .colorScheme.onSurfaceVariant,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _migratableTasks.length,
                   itemBuilder: (_, i) {
                     final task = _migratableTasks[i];
-                    final isSelected =
-                        _selectedTaskIds
-                            .contains(task.id);
+                    final isSelected = _selectedTaskIds.contains(task.id);
                     return CheckboxListTile(
                       title: Text(task.title),
-                      subtitle: Text(
-                        task.state.displayName,
-                      ),
+                      subtitle: Text(task.state.displayName),
                       value: isSelected,
                       onChanged: (v) {
                         setState(() {
                           if (v == true) {
-                            _selectedTaskIds
-                                .add(task.id);
+                            _selectedTaskIds.add(task.id);
                           } else {
-                            _selectedTaskIds
-                                .remove(task.id);
+                            _selectedTaskIds.remove(task.id);
                           }
                         });
                       },
@@ -535,9 +463,7 @@ class _MigrationWizardState
   // --------------------------------------------------------
 
   Widget _buildConfirmation(BuildContext context) {
-    final boardAsync = ref.watch(
-      boardProvider(widget.sourceBoardId),
-    );
+    final boardAsync = ref.watch(boardProvider(widget.sourceBoardId));
     final sourceName = boardAsync.when(
       data: (b) => b?.name ?? 'Source Board',
       loading: () => 'Loading...',
@@ -559,112 +485,72 @@ class _MigrationWizardState
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           'Migrate $count '
                           '${count == 1 ? 'task' : 'tasks'}',
-                          style: theme
-                              .textTheme.titleMedium,
+                          style: theme.textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     'From',
-                                    style: theme
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                      color: theme
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                   Text(sourceName),
                                 ],
                               ),
                             ),
-                            const Icon(
-                              Icons.arrow_forward,
-                            ),
+                            const Icon(Icons.arrow_forward),
                             Expanded(
                               child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment
-                                        .end,
+                                crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
                                     'To',
-                                    style: theme
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                      color: theme
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.onSurfaceVariant,
                                     ),
                                   ),
-                                  Text(
-                                    _targetBoardName ??
-                                        '',
-                                  ),
+                                  Text(_targetBoardName ?? ''),
                                 ],
                               ),
                             ),
                           ],
                         ),
                         const Divider(height: 24),
-                        Text(
-                          'Tasks:',
-                          style: theme
-                              .textTheme.labelMedium,
-                        ),
+                        Text('Tasks:', style: theme.textTheme.labelMedium),
                         const SizedBox(height: 4),
                         ..._migratableTasks
-                            .where(
-                              (t) => _selectedTaskIds
-                                  .contains(t.id),
-                            )
+                            .where((t) => _selectedTaskIds.contains(t.id))
                             .map(
                               (t) => Padding(
-                                padding:
-                                    const EdgeInsets
-                                        .symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   vertical: 2,
                                 ),
                                 child: Row(
                                   children: [
                                     Icon(
-                                      Icons
-                                          .arrow_right,
+                                      Icons.arrow_right,
                                       size: 16,
-                                      color: theme
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: theme.colorScheme.onSurfaceVariant,
                                     ),
-                                    const SizedBox(
-                                      width: 4,
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        t.title,
-                                      ),
-                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(child: Text(t.title)),
                                   ],
                                 ),
                               ),
@@ -678,11 +564,8 @@ class _MigrationWizardState
           ),
         ),
         _BottomBar(
-          onBack: _isExecuting
-              ? null
-              : () => setState(() => _step = 1),
-          onNext:
-              _isExecuting ? null : _executeMigration,
+          onBack: _isExecuting ? null : () => setState(() => _step = 1),
+          onNext: _isExecuting ? null : _executeMigration,
           nextLabel: 'Confirm',
           isLoading: _isExecuting,
         ),
@@ -698,23 +581,15 @@ class _MigrationWizardState
     setState(() => _isExecuting = true);
 
     try {
-      final taskActions =
-          ref.read(taskActionsProvider);
-      final markerRepo =
-          ref.read(markerRepositoryProvider);
-      final columnsAsync = ref.read(
-        columnListProvider(widget.sourceBoardId),
-      );
-      final sourceColumns =
-          columnsAsync.valueOrNull ?? [];
+      final taskActions = ref.read(taskActionsProvider);
+      final markerRepo = ref.read(markerRepositoryProvider);
+      final columnsAsync = ref.read(columnListProvider(widget.sourceBoardId));
+      final sourceColumns = columnsAsync.valueOrNull ?? [];
       final targetBoardId = _targetBoardId!;
 
       // Get the next position in the target board.
-      final targetTasksAsync = ref.read(
-        taskListProvider(targetBoardId),
-      );
-      final existingTargetTasks =
-          targetTasksAsync.valueOrNull ?? [];
+      final targetTasksAsync = ref.read(taskListProvider(targetBoardId));
+      final existingTargetTasks = targetTasksAsync.valueOrNull ?? [];
       var nextPosition = existingTargetTasks.length;
 
       for (final task in _migratableTasks) {
@@ -723,9 +598,7 @@ class _MigrationWizardState
         }
 
         // 1. Mark source task as MIGRATED.
-        await taskActions.update(
-          task.copyWith(state: TaskState.migrated),
-        );
+        await taskActions.update(task.copyWith(state: TaskState.migrated));
 
         // 2. Create MIGRATED markers on all source
         //    board columns for this task.
@@ -755,8 +628,7 @@ class _MigrationWizardState
             position: nextPosition,
             createdAt: DateTime.now(),
             deadline: task.deadline,
-            migratedFromBoardId:
-                widget.sourceBoardId,
+            migratedFromBoardId: widget.sourceBoardId,
             migratedFromTaskId: task.id,
           ),
         );
@@ -779,17 +651,12 @@ class _MigrationWizardState
 
       // 5. Navigate to the target board.
       Navigator.of(context).pop();
-      context.goNamed(
-        'boardDetail',
-        pathParameters: {'id': targetBoardId},
-      );
+      context.goNamed('boardDetail', pathParameters: {'id': targetBoardId});
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Migration failed: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Migration failed: $e')));
       setState(() => _isExecuting = false);
     }
   }
@@ -820,24 +687,17 @@ class _StepHeader extends StatelessWidget {
         children: [
           Text(
             'Step $step of 3',
-            style:
-                theme.textTheme.labelSmall?.copyWith(
-              color:
-                  theme.colorScheme.onSurfaceVariant,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: theme.textTheme.titleLarge,
-          ),
+          Text(title, style: theme.textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style:
-                theme.textTheme.bodyMedium?.copyWith(
-              color:
-                  theme.colorScheme.onSurfaceVariant,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],
@@ -867,10 +727,7 @@ class _BottomBar extends StatelessWidget {
         child: Row(
           children: [
             if (onBack != null)
-              OutlinedButton(
-                onPressed: onBack,
-                child: const Text('Back'),
-              ),
+              OutlinedButton(onPressed: onBack, child: const Text('Back')),
             const Spacer(),
             FilledButton(
               onPressed: onNext,

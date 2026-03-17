@@ -14,12 +14,10 @@ class BoardCreateScreen extends ConsumerStatefulWidget {
   const BoardCreateScreen({super.key});
 
   @override
-  ConsumerState<BoardCreateScreen> createState() =>
-      _BoardCreateScreenState();
+  ConsumerState<BoardCreateScreen> createState() => _BoardCreateScreenState();
 }
 
-class _BoardCreateScreenState
-    extends ConsumerState<BoardCreateScreen> {
+class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   int _selectedTemplateIndex = 0;
@@ -56,8 +54,7 @@ class _BoardCreateScreenState
       await ref.read(boardActionsProvider).create(board);
 
       // Create columns from the template
-      final columnActions =
-          ref.read(columnActionsProvider);
+      final columnActions = ref.read(columnActionsProvider);
       for (final col in template.columns) {
         await columnActions.create(
           BoardColumn(
@@ -71,18 +68,13 @@ class _BoardCreateScreenState
       }
 
       if (mounted) {
-        context.goNamed(
-          'boardDetail',
-          pathParameters: {'id': boardId},
-        );
+        context.goNamed('boardDetail', pathParameters: {'id': boardId});
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to create board: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to create board: $e')));
         setState(() => _isCreating = false);
       }
     }
@@ -105,30 +97,23 @@ class _BoardCreateScreenState
                 labelText: 'Board name',
                 hintText: 'e.g. Week of March 16',
               ),
-              textCapitalization:
-                  TextCapitalization.sentences,
+              textCapitalization: TextCapitalization.sentences,
               autofocus: true,
               validator: (value) {
-                if (value == null ||
-                    value.trim().isEmpty) {
+                if (value == null || value.trim().isEmpty) {
                   return 'Please enter a board name';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 24),
-            Text(
-              'Choose a template',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('Choose a template', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             _TemplateGrid(
               templates: defaultTemplates,
               selectedIndex: _selectedTemplateIndex,
               onSelected: (index) {
-                setState(
-                  () => _selectedTemplateIndex = index,
-                );
+                setState(() => _selectedTemplateIndex = index);
               },
             ),
             const SizedBox(height: 32),
@@ -138,9 +123,7 @@ class _BoardCreateScreenState
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('Create'),
             ),
@@ -167,8 +150,7 @@ class _TemplateGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate:
-          const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
@@ -209,10 +191,7 @@ class _TemplateCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: isSelected
-            ? BorderSide(
-                color: colorScheme.primary,
-                width: 2,
-              )
+            ? BorderSide(color: colorScheme.primary, width: 2)
             : BorderSide.none,
       ),
       child: InkWell(
@@ -221,26 +200,20 @@ class _TemplateCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 template.name,
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(
-                  color: isSelected
-                      ? colorScheme.primary
-                      : null,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: isSelected ? colorScheme.primary : null,
                 ),
               ),
               const SizedBox(height: 4),
               Expanded(
                 child: Text(
                   template.description,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(
-                    color:
-                        colorScheme.onSurfaceVariant,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -248,8 +221,7 @@ class _TemplateCard extends StatelessWidget {
               ),
               Text(
                 '${template.columns.length} columns',
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(
+                style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
                 ),
               ),

@@ -16,10 +16,7 @@ Future<Board> seedBoard(
   return container.read(boardActionsProvider).create(board);
 }
 
-Future<Task> seedTask(
-  ProviderContainer container, {
-  required Task task,
-}) async {
+Future<Task> seedTask(ProviderContainer container, {required Task task}) async {
   return container.read(taskActionsProvider).create(task);
 }
 

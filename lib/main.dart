@@ -11,9 +11,7 @@ void main() {
 
   runApp(
     ProviderScope(
-      overrides: [
-        alphaDatabaseProvider.overrideWithValue(database),
-      ],
+      overrides: [alphaDatabaseProvider.overrideWithValue(database)],
       child: const AlphaApp(),
     ),
   );

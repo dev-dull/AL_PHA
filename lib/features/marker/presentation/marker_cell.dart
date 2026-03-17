@@ -66,11 +66,9 @@ class MarkerCell extends ConsumerWidget {
   }
 
   void _onTap(WidgetRef ref) {
-    ref.read(markerActionsProvider).cycleMarker(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: columnId,
-        );
+    ref
+        .read(markerActionsProvider)
+        .cycleMarker(boardId: boardId, taskId: taskId, columnId: columnId);
   }
 
   void _onLongPress(
@@ -91,19 +89,23 @@ class MarkerCell extends ConsumerWidget {
             await repo.remove(taskId, columnId);
           } else {
             if (currentMarker != null) {
-              await repo.set(currentMarker.copyWith(
-                symbol: symbol,
-                updatedAt: DateTime.now(),
-              ));
+              await repo.set(
+                currentMarker.copyWith(
+                  symbol: symbol,
+                  updatedAt: DateTime.now(),
+                ),
+              );
             } else {
-              await repo.set(Marker(
-                id: _uuid.v4(),
-                taskId: taskId,
-                columnId: columnId,
-                boardId: boardId,
-                symbol: symbol,
-                updatedAt: DateTime.now(),
-              ));
+              await repo.set(
+                Marker(
+                  id: _uuid.v4(),
+                  taskId: taskId,
+                  columnId: columnId,
+                  boardId: boardId,
+                  symbol: symbol,
+                  updatedAt: DateTime.now(),
+                ),
+              );
             }
           }
         },
@@ -131,15 +133,11 @@ class _MarkerPickerSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              'Set Marker',
-              style: theme.textTheme.titleMedium,
-            ),
+            child: Text('Set Marker', style: theme.textTheme.titleMedium),
           ),
           const Divider(height: 1),
           ...MarkerSymbol.values.map((symbol) {
-            final color =
-                AlphaTheme.markerColor(symbol, theme.brightness);
+            final color = AlphaTheme.markerColor(symbol, theme.brightness);
             final isSelected = symbol == currentSymbol;
             return ListTile(
               leading: Text(
@@ -152,20 +150,14 @@ class _MarkerPickerSheet extends StatelessWidget {
               ),
               title: Text(symbol.displayName),
               trailing: isSelected
-                  ? Icon(
-                      Icons.check,
-                      color: theme.colorScheme.primary,
-                    )
+                  ? Icon(Icons.check, color: theme.colorScheme.primary)
                   : null,
               onTap: () => onSelected(symbol),
             );
           }),
           const Divider(height: 1),
           ListTile(
-            leading: Icon(
-              Icons.clear,
-              color: theme.colorScheme.error,
-            ),
+            leading: Icon(Icons.clear, color: theme.colorScheme.error),
             title: const Text('Clear'),
             onTap: () => onSelected(null),
           ),

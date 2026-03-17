@@ -20,20 +20,23 @@ class BoardRepository {
   }
 
   Future<Board> create(Board board) async {
-    await _db.into(_db.boards).insert(BoardsCompanion.insert(
-          id: board.id,
-          name: board.name,
-          type: board.type.name,
-          createdAt: board.createdAt,
-          updatedAt: board.updatedAt,
-          archived: Value(board.archived),
-        ));
+    await _db
+        .into(_db.boards)
+        .insert(
+          BoardsCompanion.insert(
+            id: board.id,
+            name: board.name,
+            type: board.type.name,
+            createdAt: board.createdAt,
+            updatedAt: board.updatedAt,
+            archived: Value(board.archived),
+          ),
+        );
     return board;
   }
 
   Future<Board?> getById(String id) async {
-    final query = _db.select(_db.boards)
-      ..where((b) => b.id.equals(id));
+    final query = _db.select(_db.boards)..where((b) => b.id.equals(id));
     final row = await query.getSingleOrNull();
     if (row == null) return null;
     return _boardDataToBoard(row);
@@ -49,13 +52,14 @@ class BoardRepository {
   }
 
   Future<Board> update(Board board) async {
-    await (_db.update(_db.boards)..where((b) => b.id.equals(board.id)))
-        .write(BoardsCompanion(
-      name: Value(board.name),
-      type: Value(board.type.name),
-      updatedAt: Value(board.updatedAt),
-      archived: Value(board.archived),
-    ));
+    await (_db.update(_db.boards)..where((b) => b.id.equals(board.id))).write(
+      BoardsCompanion(
+        name: Value(board.name),
+        type: Value(board.type.name),
+        updatedAt: Value(board.updatedAt),
+        archived: Value(board.archived),
+      ),
+    );
     return board;
   }
 
@@ -78,6 +82,7 @@ class BoardRepository {
       query.where((b) => b.archived.equals(false));
     }
     return query.watch().map(
-        (rows) => rows.map((r) => _boardDataToBoard(r)).toList());
+      (rows) => rows.map((r) => _boardDataToBoard(r)).toList(),
+    );
   }
 }

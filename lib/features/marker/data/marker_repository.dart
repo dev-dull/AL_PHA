@@ -20,7 +20,9 @@ class MarkerRepository {
   }
 
   Future<Marker> set(Marker marker) async {
-    await _db.into(_db.markers).insertOnConflictUpdate(
+    await _db
+        .into(_db.markers)
+        .insertOnConflictUpdate(
           MarkersCompanion.insert(
             id: marker.id,
             taskId: marker.taskId,
@@ -35,15 +37,13 @@ class MarkerRepository {
 
   Future<void> remove(String taskId, String columnId) async {
     await (_db.delete(_db.markers)
-          ..where(
-              (m) => m.taskId.equals(taskId) & m.columnId.equals(columnId)))
+          ..where((m) => m.taskId.equals(taskId) & m.columnId.equals(columnId)))
         .go();
   }
 
   Future<Marker?> get(String taskId, String columnId) async {
     final query = _db.select(_db.markers)
-      ..where(
-          (m) => m.taskId.equals(taskId) & m.columnId.equals(columnId));
+      ..where((m) => m.taskId.equals(taskId) & m.columnId.equals(columnId));
     final row = await query.getSingleOrNull();
     return row != null ? _rowToMarker(row) : null;
   }
@@ -63,8 +63,8 @@ class MarkerRepository {
   Stream<List<Marker>> watchByBoard(String boardId) {
     final query = _db.select(_db.markers)
       ..where((m) => m.boardId.equals(boardId));
-    return query
-        .watch()
-        .map((rows) => rows.map((r) => _rowToMarker(r)).toList());
+    return query.watch().map(
+      (rows) => rows.map((r) => _rowToMarker(r)).toList(),
+    );
   }
 }

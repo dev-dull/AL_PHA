@@ -19,10 +19,7 @@ void main() {
       );
     });
 
-    Widget buildSubject({
-      ValueChanged<Task>? onSave,
-      VoidCallback? onDelete,
-    }) {
+    Widget buildSubject({ValueChanged<Task>? onSave, VoidCallback? onDelete}) {
       return MaterialApp(
         home: Scaffold(
           body: TaskDetailSheet(
@@ -93,9 +90,7 @@ void main() {
 
     testWidgets('confirming delete calls onDelete', (tester) async {
       bool deleted = false;
-      await tester.pumpWidget(
-        buildSubject(onDelete: () => deleted = true),
-      );
+      await tester.pumpWidget(buildSubject(onDelete: () => deleted = true));
 
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
@@ -109,9 +104,7 @@ void main() {
 
     testWidgets('cancelling delete does not call onDelete', (tester) async {
       bool deleted = false;
-      await tester.pumpWidget(
-        buildSubject(onDelete: () => deleted = true),
-      );
+      await tester.pumpWidget(buildSubject(onDelete: () => deleted = true));
 
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
@@ -140,8 +133,9 @@ void main() {
       expect(saved!.priority, 3);
     });
 
-    testWidgets('renders no deadline text when deadline is null',
-        (tester) async {
+    testWidgets('renders no deadline text when deadline is null', (
+      tester,
+    ) async {
       task = makeTask(title: 'No deadline task');
       await tester.pumpWidget(buildSubject());
 

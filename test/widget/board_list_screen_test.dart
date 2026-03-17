@@ -29,11 +29,7 @@ void main() {
       );
       await seedBoard(
         container,
-        board: makeBoard(
-          id: 'b2',
-          name: 'GTD Board',
-          type: BoardType.custom,
-        ),
+        board: makeBoard(id: 'b2', name: 'GTD Board', type: BoardType.custom),
       );
       await tester.pumpAndSettle();
 

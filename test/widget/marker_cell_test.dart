@@ -14,18 +14,11 @@ void main() {
 
     testWidgets('renders empty when no marker exists', (tester) async {
       final container = await tester.pumpApp(
-        const MarkerCell(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: colId,
-        ),
+        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
 
       // Seed board, task, column (required for foreign keys) but no marker
-      await seedBoard(
-        container,
-        board: makeBoard(id: boardId),
-      );
+      await seedBoard(container, board: makeBoard(id: boardId));
       await seedTask(
         container,
         task: makeTask(id: taskId, boardId: boardId),
@@ -46,14 +39,9 @@ void main() {
       }
     });
 
-    testWidgets('renders display character when marker exists',
-        (tester) async {
+    testWidgets('renders display character when marker exists', (tester) async {
       final container = await tester.pumpApp(
-        const MarkerCell(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: colId,
-        ),
+        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
 
       await seedBoard(container, board: makeBoard(id: boardId));
@@ -81,11 +69,7 @@ void main() {
 
     testWidgets('tap cycles empty to dot', (tester) async {
       final container = await tester.pumpApp(
-        const MarkerCell(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: colId,
-        ),
+        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
 
       await seedBoard(container, board: makeBoard(id: boardId));
@@ -108,11 +92,7 @@ void main() {
 
     testWidgets('tap cycles dot to circle to x to empty', (tester) async {
       final container = await tester.pumpApp(
-        const MarkerCell(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: colId,
-        ),
+        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
 
       await seedBoard(container, board: makeBoard(id: boardId));
@@ -162,11 +142,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final container = await tester.pumpApp(
-        const MarkerCell(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: colId,
-        ),
+        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
 
       await seedBoard(container, board: makeBoard(id: boardId));
@@ -200,11 +176,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
 
       final container = await tester.pumpApp(
-        const MarkerCell(
-          boardId: boardId,
-          taskId: taskId,
-          columnId: colId,
-        ),
+        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
 
       await seedBoard(container, board: makeBoard(id: boardId));

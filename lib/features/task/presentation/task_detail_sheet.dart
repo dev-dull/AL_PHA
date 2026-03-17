@@ -30,11 +30,8 @@ class TaskDetailSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => TaskDetailSheet(
-        task: task,
-        onSave: onSave,
-        onDelete: onDelete,
-      ),
+      builder: (_) =>
+          TaskDetailSheet(task: task, onSave: onSave, onDelete: onDelete),
     );
   }
 
@@ -48,19 +45,13 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late int _priority;
   late DateTime? _deadline;
 
-  static const _priorityLabels = [
-    'None',
-    'Low',
-    'Medium',
-    'High',
-  ];
+  static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
   @override
   void initState() {
     super.initState();
     _titleCtrl = TextEditingController(text: widget.task.title);
-    _descCtrl =
-        TextEditingController(text: widget.task.description);
+    _descCtrl = TextEditingController(text: widget.task.description);
     _priority = widget.task.priority;
     _deadline = widget.task.deadline;
   }
@@ -103,8 +94,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  Theme.of(context).colorScheme.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
             child: const Text('Delete'),
           ),
@@ -154,8 +144,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.onSurface
-                      .withValues(alpha: 0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -222,21 +211,21 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                   suffixIcon: _deadline != null
                       ? IconButton(
                           icon: const Icon(Icons.clear),
-                          onPressed: () =>
-                              setState(() => _deadline = null),
+                          onPressed: () => setState(() => _deadline = null),
                         )
                       : const Icon(Icons.calendar_today),
                 ),
                 child: Text(
                   _deadline != null
                       ? '${_deadline!.year}-'
-                          '${_deadline!.month.toString().padLeft(2, '0')}-'
-                          '${_deadline!.day.toString().padLeft(2, '0')}'
+                            '${_deadline!.month.toString().padLeft(2, '0')}-'
+                            '${_deadline!.day.toString().padLeft(2, '0')}'
                       : 'No deadline',
                   style: _deadline == null
                       ? theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.5),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.5,
+                          ),
                         )
                       : null,
                 ),
@@ -258,10 +247,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 ),
                 const Spacer(),
                 // Save button
-                FilledButton(
-                  onPressed: _save,
-                  child: const Text('Save'),
-                ),
+                FilledButton(onPressed: _save, child: const Text('Save')),
               ],
             ),
             const SizedBox(height: 8),

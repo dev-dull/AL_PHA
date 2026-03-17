@@ -15,9 +15,7 @@ ProviderContainer createTestContainer() {
   final db = AlphaDatabase.forTesting(NativeDatabase.memory());
 
   final container = ProviderContainer(
-    overrides: [
-      alphaDatabaseProvider.overrideWithValue(db),
-    ],
+    overrides: [alphaDatabaseProvider.overrideWithValue(db)],
   );
 
   addTearDown(() {

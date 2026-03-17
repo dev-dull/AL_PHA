@@ -22,12 +22,10 @@ class BoardDetailScreen extends ConsumerStatefulWidget {
   const BoardDetailScreen({super.key, required this.boardId});
 
   @override
-  ConsumerState<BoardDetailScreen> createState() =>
-      _BoardDetailScreenState();
+  ConsumerState<BoardDetailScreen> createState() => _BoardDetailScreenState();
 }
 
-class _BoardDetailScreenState
-    extends ConsumerState<BoardDetailScreen> {
+class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
   static const _uuid = Uuid();
 
   /// Width of the fixed task-name column.
@@ -92,10 +90,7 @@ class _BoardDetailScreenState
         content: Text('"${task.title}" completed'),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () => _restoreTaskState(
-            task,
-            previousState,
-          ),
+          onPressed: () => _restoreTaskState(task, previousState),
         ),
       ),
     );
@@ -111,23 +106,14 @@ class _BoardDetailScreenState
         content: Text('"${task.title}" cancelled'),
         action: SnackBarAction(
           label: 'Undo',
-          onPressed: () => _restoreTaskState(
-            task,
-            previousState,
-          ),
+          onPressed: () => _restoreTaskState(task, previousState),
         ),
       ),
     );
   }
 
-  Future<void> _restoreTaskState(
-    Task task,
-    TaskState previousState,
-  ) async {
-    final updated = task.copyWith(
-      state: previousState,
-      completedAt: null,
-    );
+  Future<void> _restoreTaskState(Task task, TaskState previousState) async {
+    final updated = task.copyWith(state: previousState, completedAt: null);
     await ref.read(taskActionsProvider).update(updated);
   }
 
@@ -144,11 +130,7 @@ class _BoardDetailScreenState
     );
   }
 
-  Future<void> _onReorder(
-    List<Task> tasks,
-    int oldIndex,
-    int newIndex,
-  ) async {
+  Future<void> _onReorder(List<Task> tasks, int oldIndex, int newIndex) async {
     // ReorderableListView passes newIndex that accounts for
     // removal, so adjust when moving downward.
     if (newIndex > oldIndex) newIndex--;
@@ -158,9 +140,7 @@ class _BoardDetailScreenState
     reordered.insert(newIndex, item);
 
     final ids = reordered.map((t) => t.id).toList();
-    await ref
-        .read(taskActionsProvider)
-        .reorder(widget.boardId, ids);
+    await ref.read(taskActionsProvider).reorder(widget.boardId, ids);
   }
 
   // ----------------------------------------------------------
@@ -170,10 +150,8 @@ class _BoardDetailScreenState
   @override
   Widget build(BuildContext context) {
     final boardAsync = ref.watch(boardProvider(widget.boardId));
-    final tasksAsync =
-        ref.watch(taskListProvider(widget.boardId));
-    final columnsAsync =
-        ref.watch(columnListProvider(widget.boardId));
+    final tasksAsync = ref.watch(taskListProvider(widget.boardId));
+    final columnsAsync = ref.watch(columnListProvider(widget.boardId));
     // Pre-warm the markers map so MarkerCell reads are instant.
     ref.watch(markersByBoardProvider(widget.boardId));
 
@@ -184,8 +162,7 @@ class _BoardDetailScreenState
     );
 
     final board = boardAsync.valueOrNull;
-    final showBanner =
-        board != null && isBoardPeriodEnded(board);
+    final showBanner = board != null && isBoardPeriodEnded(board);
 
     return Scaffold(
       appBar: AppBar(
@@ -194,10 +171,7 @@ class _BoardDetailScreenState
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'migrate') {
-                showMigrationWizard(
-                  context,
-                  sourceBoardId: widget.boardId,
-                );
+                showMigrationWizard(context, sourceBoardId: widget.boardId);
               } else if (value == 'manage_columns') {
                 ColumnManagerSheet.show(
                   context: context,
@@ -210,10 +184,7 @@ class _BoardDetailScreenState
                 value: 'manage_columns',
                 child: Text('Manage columns'),
               ),
-              PopupMenuItem(
-                value: 'migrate',
-                child: Text('Migrate tasks...'),
-              ),
+              PopupMenuItem(value: 'migrate', child: Text('Migrate tasks...')),
             ],
           ),
         ],
@@ -222,27 +193,18 @@ class _BoardDetailScreenState
         children: [
           if (showBanner)
             MigrationBanner(
-              onMigrate: () => showMigrationWizard(
-                context,
-                sourceBoardId: widget.boardId,
-              ),
+              onMigrate: () =>
+                  showMigrationWizard(context, sourceBoardId: widget.boardId),
             ),
           Expanded(
             child: tasksAsync.when(
               data: (tasks) => columnsAsync.when(
-                data: (columns) =>
-                    _buildGrid(context, tasks, columns),
-                loading: () => const Center(
-                  child: CircularProgressIndicator(),
-                ),
-                error: (e, st) =>
-                    Center(child: Text('Error: $e')),
+                data: (columns) => _buildGrid(context, tasks, columns),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Center(child: Text('Error: $e')),
               ),
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              error: (e, st) =>
-                  Center(child: Text('Error: $e')),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, st) => Center(child: Text('Error: $e')),
             ),
           ),
         ],
@@ -309,18 +271,14 @@ class _BoardDetailScreenState
                       width: _taskColumnWidth,
                       child: _buildTaskColumn(tasks),
                     ),
-                    VerticalDivider(
-                      width: 1,
-                      color: theme.dividerColor,
-                    ),
+                    VerticalDivider(width: 1, color: theme.dividerColor),
                     // Scrollable marker grid (scrolls both
                     // horizontally and vertically).
                     Expanded(
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: SizedBox(
-                          width: columns.length *
-                              MarkerCell.cellSize,
+                          width: columns.length * MarkerCell.cellSize,
                           child: ListView.builder(
                             controller: _gridScrollController,
                             itemCount: tasks.length,
@@ -353,15 +311,11 @@ class _BoardDetailScreenState
       proxyDecorator: (child, index, animation) {
         return AnimatedBuilder(
           animation: animation,
-          builder: (context, child) => Material(
-            elevation: 4,
-            child: child,
-          ),
+          builder: (context, child) => Material(elevation: 4, child: child),
           child: child,
         );
       },
-      onReorder: (oldIndex, newIndex) =>
-          _onReorder(tasks, oldIndex, newIndex),
+      onReorder: (oldIndex, newIndex) => _onReorder(tasks, oldIndex, newIndex),
       itemBuilder: (context, i) {
         final task = tasks[i];
         return _SwipeableTaskCell(
@@ -391,24 +345,20 @@ class _BoardDetailScreenState
             Icon(
               Icons.grid_on_rounded,
               size: 64,
-              color: theme.colorScheme.onSurface.withValues(
-                alpha: 0.3,
-              ),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
               'No tasks yet',
               style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.6),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Tap + to add your first task.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ),
           ],
@@ -431,9 +381,7 @@ class _BoardDetailScreenState
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            hintText: 'Task title',
-          ),
+          decoration: const InputDecoration(hintText: 'Task title'),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
         actions: [
@@ -442,8 +390,7 @@ class _BoardDetailScreenState
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () =>
-                Navigator.of(ctx).pop(controller.text),
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
             child: const Text('Add'),
           ),
         ],
@@ -459,7 +406,9 @@ class _BoardDetailScreenState
     final tasks = ref.read(taskListProvider(widget.boardId));
     final currentCount = tasks.valueOrNull?.length ?? 0;
 
-    await ref.read(taskActionsProvider).create(
+    await ref
+        .read(taskActionsProvider)
+        .create(
           Task(
             id: _uuid.v4(),
             boardId: widget.boardId,
@@ -491,10 +440,9 @@ class _HeaderCorner extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: Text(
             'Tasks',
-            style:
-                Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -517,10 +465,9 @@ class _ColumnHeader extends StatelessWidget {
           column.label,
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
-          style:
-              Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -565,28 +512,21 @@ class _SwipeableTaskCell extends StatelessWidget {
                 child: Icon(
                   Icons.drag_indicator,
                   size: 16,
-                  color: theme.colorScheme.onSurface
-                      .withValues(alpha: 0.3),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 ),
               ),
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 4,
-                  right: 8,
-                ),
+                padding: const EdgeInsets.only(left: 4, right: 8),
                 child: Text(
                   task.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    decoration: isTerminal
-                        ? TextDecoration.lineThrough
-                        : null,
+                    decoration: isTerminal ? TextDecoration.lineThrough : null,
                     color: isTerminal
-                        ? theme.colorScheme.onSurface
-                            .withValues(alpha: 0.4)
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                         : null,
                   ),
                 ),
@@ -648,11 +588,8 @@ class _MarkerRow extends StatelessWidget {
     return Row(
       children: columns
           .map(
-            (col) => MarkerCell(
-              boardId: boardId,
-              taskId: task.id,
-              columnId: col.id,
-            ),
+            (col) =>
+                MarkerCell(boardId: boardId, taskId: task.id, columnId: col.id),
           )
           .toList(),
     );

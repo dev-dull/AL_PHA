@@ -5,10 +5,7 @@ import 'package:alpha/shared/providers.dart';
 part 'column_providers.g.dart';
 
 @riverpod
-Stream<List<BoardColumn>> columnList(
-  ColumnListRef ref,
-  String boardId,
-) {
+Stream<List<BoardColumn>> columnList(ColumnListRef ref, String boardId) {
   final repo = ref.watch(columnRepositoryProvider);
   return repo.watchByBoard(boardId);
 }
@@ -34,10 +31,7 @@ class ColumnActions {
     return repo.update(column);
   }
 
-  Future<void> reorder(
-    String boardId,
-    List<String> columnIds,
-  ) async {
+  Future<void> reorder(String boardId, List<String> columnIds) async {
     final repo = _ref.read(columnRepositoryProvider);
     await repo.reorder(boardId, columnIds);
   }

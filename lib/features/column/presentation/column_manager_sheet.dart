@@ -25,12 +25,10 @@ class ColumnManagerSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<ColumnManagerSheet> createState() =>
-      _ColumnManagerSheetState();
+  ConsumerState<ColumnManagerSheet> createState() => _ColumnManagerSheetState();
 }
 
-class _ColumnManagerSheetState
-    extends ConsumerState<ColumnManagerSheet> {
+class _ColumnManagerSheetState extends ConsumerState<ColumnManagerSheet> {
   static const _uuid = Uuid();
 
   final _addController = TextEditingController();
@@ -49,12 +47,12 @@ class _ColumnManagerSheetState
     final label = _addController.text.trim();
     if (label.isEmpty) return;
 
-    final columns = ref
-        .read(columnListProvider(widget.boardId))
-        .valueOrNull;
+    final columns = ref.read(columnListProvider(widget.boardId)).valueOrNull;
     final position = columns?.length ?? 0;
 
-    await ref.read(columnActionsProvider).create(
+    await ref
+        .read(columnActionsProvider)
+        .create(
           BoardColumn(
             id: _uuid.v4(),
             boardId: widget.boardId,
@@ -67,8 +65,7 @@ class _ColumnManagerSheetState
   }
 
   Future<void> _renameColumn(BoardColumn column) async {
-    final controller =
-        TextEditingController(text: column.label);
+    final controller = TextEditingController(text: column.label);
 
     final newLabel = await showDialog<String>(
       context: context,
@@ -78,9 +75,7 @@ class _ColumnManagerSheetState
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            hintText: 'Column label',
-          ),
+          decoration: const InputDecoration(hintText: 'Column label'),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
         actions: [
@@ -89,8 +84,7 @@ class _ColumnManagerSheetState
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () =>
-                Navigator.of(ctx).pop(controller.text),
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
             child: const Text('Rename'),
           ),
         ],
@@ -101,9 +95,9 @@ class _ColumnManagerSheetState
     if (newLabel == null || newLabel.trim().isEmpty) return;
     if (newLabel.trim() == column.label) return;
 
-    await ref.read(columnActionsProvider).update(
-          column.copyWith(label: newLabel.trim()),
-        );
+    await ref
+        .read(columnActionsProvider)
+        .update(column.copyWith(label: newLabel.trim()));
   }
 
   Future<void> _deleteColumn(BoardColumn column) async {
@@ -123,8 +117,7 @@ class _ColumnManagerSheetState
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: FilledButton.styleFrom(
-              backgroundColor:
-                  Theme.of(context).colorScheme.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
             child: const Text('Delete'),
           ),
@@ -149,9 +142,7 @@ class _ColumnManagerSheetState
     reordered.insert(newIndex, item);
 
     final ids = reordered.map((c) => c.id).toList();
-    await ref
-        .read(columnActionsProvider)
-        .reorder(widget.boardId, ids);
+    await ref.read(columnActionsProvider).reorder(widget.boardId, ids);
   }
 
   // --------------------------------------------------------
@@ -161,8 +152,7 @@ class _ColumnManagerSheetState
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final columnsAsync =
-        ref.watch(columnListProvider(widget.boardId));
+    final columnsAsync = ref.watch(columnListProvider(widget.boardId));
 
     return Padding(
       padding: EdgeInsets.only(
@@ -182,8 +172,7 @@ class _ColumnManagerSheetState
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -203,18 +192,14 @@ class _ColumnManagerSheetState
             child: columnsAsync.when(
               data: (columns) => columns.isEmpty
                   ? Padding(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        vertical: 24,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
                       child: Center(
                         child: Text(
                           'No columns yet. Add one below.',
-                          style: theme.textTheme.bodyMedium
-                              ?.copyWith(
-                            color: theme
-                                .colorScheme.onSurface
-                                .withValues(alpha: 0.5),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -222,12 +207,10 @@ class _ColumnManagerSheetState
                   : _buildColumnList(columns),
               loading: () => const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
-                child:
-                    Center(child: CircularProgressIndicator()),
+                child: Center(child: CircularProgressIndicator()),
               ),
               error: (e, _) => Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(child: Text('Error: $e')),
               ),
             ),
@@ -243,8 +226,7 @@ class _ColumnManagerSheetState
               Expanded(
                 child: TextField(
                   controller: _addController,
-                  textCapitalization:
-                      TextCapitalization.sentences,
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: const InputDecoration(
                     hintText: 'New column label',
                     border: OutlineInputBorder(),
@@ -254,10 +236,7 @@ class _ColumnManagerSheetState
                 ),
               ),
               const SizedBox(width: 8),
-              FilledButton(
-                onPressed: _addColumn,
-                child: const Text('Add'),
-              ),
+              FilledButton(onPressed: _addColumn, child: const Text('Add')),
             ],
           ),
           const SizedBox(height: 8),
@@ -276,10 +255,7 @@ class _ColumnManagerSheetState
       proxyDecorator: (child, index, animation) {
         return AnimatedBuilder(
           animation: animation,
-          builder: (context, child) => Material(
-            elevation: 4,
-            child: child,
-          ),
+          builder: (context, child) => Material(elevation: 4, child: child),
           child: child,
         );
       },
@@ -294,10 +270,7 @@ class _ColumnManagerSheetState
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 16),
             color: theme.colorScheme.error,
-            child: const Icon(
-              Icons.delete,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.delete, color: Colors.white),
           ),
           confirmDismiss: (_) async {
             await _deleteColumn(column);
@@ -310,16 +283,14 @@ class _ColumnManagerSheetState
               index: i,
               child: Icon(
                 Icons.drag_handle,
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.4),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
             ),
             title: Text(column.label),
             subtitle: Text(
               column.type.displayName,
               style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.5),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
             trailing: IconButton(

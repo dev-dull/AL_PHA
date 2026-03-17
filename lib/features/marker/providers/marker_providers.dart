@@ -13,9 +13,7 @@ Stream<Map<String, Marker>> markersByBoard(
 ) {
   final repo = ref.watch(markerRepositoryProvider);
   return repo.watchByBoard(boardId).map((markers) {
-    return {
-      for (final m in markers) '${m.taskId}_${m.columnId}': m,
-    };
+    return {for (final m in markers) '${m.taskId}_${m.columnId}': m};
   });
 }
 
@@ -65,24 +63,25 @@ class MarkerActions {
 
     if (existing == null) {
       // Empty -> DOT
-      await repo.set(Marker(
-        id: _uuid.v4(),
-        taskId: taskId,
-        columnId: columnId,
-        boardId: boardId,
-        symbol: MarkerSymbol.cycleStart,
-        updatedAt: DateTime.now(),
-      ));
+      await repo.set(
+        Marker(
+          id: _uuid.v4(),
+          taskId: taskId,
+          columnId: columnId,
+          boardId: boardId,
+          symbol: MarkerSymbol.cycleStart,
+          updatedAt: DateTime.now(),
+        ),
+      );
     } else {
       final next = existing.symbol.nextInCycle;
       if (next == null) {
         // Back to empty
         await repo.remove(taskId, columnId);
       } else {
-        await repo.set(existing.copyWith(
-          symbol: next,
-          updatedAt: DateTime.now(),
-        ));
+        await repo.set(
+          existing.copyWith(symbol: next, updatedAt: DateTime.now()),
+        );
       }
     }
   }

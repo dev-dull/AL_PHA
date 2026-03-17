@@ -8,8 +8,9 @@ import '../helpers/helpers.dart';
 
 void main() {
   group('BoardCreateScreen', () {
-    testWidgets('renders form with name field and template section',
-        (tester) async {
+    testWidgets('renders form with name field and template section', (
+      tester,
+    ) async {
       await tester.pumpApp(const BoardCreateScreen());
       await tester.pumpAndSettle();
 

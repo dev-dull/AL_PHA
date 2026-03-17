@@ -26,20 +26,24 @@ class TaskRepository {
   }
 
   Future<Task> create(Task task) async {
-    await _db.into(_db.tasks).insert(TasksCompanion.insert(
-          id: task.id,
-          boardId: task.boardId,
-          title: task.title,
-          description: Value(task.description),
-          state: Value(task.state.name),
-          priority: Value(task.priority),
-          position: task.position,
-          createdAt: task.createdAt,
-          completedAt: Value(task.completedAt),
-          deadline: Value(task.deadline),
-          migratedFromBoardId: Value(task.migratedFromBoardId),
-          migratedFromTaskId: Value(task.migratedFromTaskId),
-        ));
+    await _db
+        .into(_db.tasks)
+        .insert(
+          TasksCompanion.insert(
+            id: task.id,
+            boardId: task.boardId,
+            title: task.title,
+            description: Value(task.description),
+            state: Value(task.state.name),
+            priority: Value(task.priority),
+            position: task.position,
+            createdAt: task.createdAt,
+            completedAt: Value(task.completedAt),
+            deadline: Value(task.deadline),
+            migratedFromBoardId: Value(task.migratedFromBoardId),
+            migratedFromTaskId: Value(task.migratedFromTaskId),
+          ),
+        );
     return task;
   }
 
@@ -94,8 +98,7 @@ class TaskRepository {
   Future<void> reorder(String boardId, List<String> taskIds) async {
     await _db.transaction(() async {
       for (var i = 0; i < taskIds.length; i++) {
-        await (_db.update(_db.tasks)
-              ..where((t) => t.id.equals(taskIds[i])))
+        await (_db.update(_db.tasks)..where((t) => t.id.equals(taskIds[i])))
             .write(TasksCompanion(position: Value(i)));
       }
     });
@@ -118,8 +121,6 @@ class TaskRepository {
     final query = _db.select(_db.tasks)
       ..where((t) => t.boardId.equals(boardId))
       ..orderBy([(t) => OrderingTerm.asc(t.position)]);
-    return query
-        .watch()
-        .map((rows) => rows.map((r) => _rowToTask(r)).toList());
+    return query.watch().map((rows) => rows.map((r) => _rowToTask(r)).toList());
   }
 }

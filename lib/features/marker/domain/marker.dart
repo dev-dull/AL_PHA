@@ -15,6 +15,5 @@ abstract class Marker with _$Marker {
     required DateTime updatedAt,
   }) = _Marker;
 
-  factory Marker.fromJson(Map<String, dynamic> json) =>
-      _$MarkerFromJson(json);
+  factory Marker.fromJson(Map<String, dynamic> json) => _$MarkerFromJson(json);
 }
