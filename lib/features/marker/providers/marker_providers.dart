@@ -54,7 +54,8 @@ class MarkerActions {
   MarkerActions(this._ref);
 
   /// Cycles a marker: empty → DOT → SLASH → X → empty.
-  /// When cycling to X (done), auto-fills `<` on later scheduled days.
+  /// When cycling to X, auto-fills `<` on later scheduled days.
+  /// When cycling away from X, reverts `<` back to dots.
   Future<void> cycleMarker({
     required String boardId,
     required String taskId,
@@ -76,6 +77,7 @@ class MarkerActions {
         ),
       );
     } else {
+      final wasX = existing.symbol == MarkerSymbol.x;
       final next = existing.symbol.nextInCycle;
       if (next == null) {
         // Back to empty
@@ -92,11 +94,19 @@ class MarkerActions {
           );
         }
       }
+      // If we just left X, revert any < back to dots.
+      if (wasX) {
+        await _revertDoneEarly(
+          boardId: boardId,
+          taskId: taskId,
+          changedColumnId: columnId,
+        );
+      }
     }
   }
 
   /// Sets a marker to a specific symbol (used by the picker).
-  /// When setting to X (done), auto-fills `<` on later scheduled days.
+  /// Handles auto-fill `<` and revert logic.
   Future<void> setMarker({
     required String boardId,
     required String taskId,
@@ -104,14 +114,12 @@ class MarkerActions {
     required MarkerSymbol? symbol,
   }) async {
     final repo = _ref.read(markerRepositoryProvider);
+    final existing = await repo.get(taskId, columnId);
+    final wasX = existing?.symbol == MarkerSymbol.x;
 
     if (symbol == null) {
       await repo.remove(taskId, columnId);
-      return;
-    }
-
-    final existing = await repo.get(taskId, columnId);
-    if (existing != null) {
+    } else if (existing != null) {
       await repo.set(
         existing.copyWith(symbol: symbol, updatedAt: DateTime.now()),
       );
@@ -133,6 +141,12 @@ class MarkerActions {
         boardId: boardId,
         taskId: taskId,
         completedColumnId: columnId,
+      );
+    } else if (wasX) {
+      await _revertDoneEarly(
+        boardId: boardId,
+        taskId: taskId,
+        changedColumnId: columnId,
       );
     }
   }
@@ -161,6 +175,34 @@ class MarkerActions {
       if (marker != null && marker.symbol == MarkerSymbol.dot) {
         await markerRepo.set(
           marker.copyWith(symbol: MarkerSymbol.doneEarly, updatedAt: now),
+        );
+      }
+    }
+  }
+
+  /// When a marker leaves X, any `<` (done early) on later day
+  /// columns revert back to dots.
+  Future<void> _revertDoneEarly({
+    required String boardId,
+    required String taskId,
+    required String changedColumnId,
+  }) async {
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final markerRepo = _ref.read(markerRepositoryProvider);
+
+    final columns = await columnRepo.getByBoard(boardId);
+    final changedCol = columns.firstWhere((c) => c.id == changedColumnId);
+
+    final laterDayColumns = columns.where(
+      (c) => c.position > changedCol.position && c.type == ColumnType.date,
+    );
+
+    final now = DateTime.now();
+    for (final col in laterDayColumns) {
+      final marker = await markerRepo.get(taskId, col.id);
+      if (marker != null && marker.symbol == MarkerSymbol.doneEarly) {
+        await markerRepo.set(
+          marker.copyWith(symbol: MarkerSymbol.dot, updatedAt: now),
         );
       }
     }

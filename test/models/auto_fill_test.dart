@@ -135,6 +135,108 @@ void main() {
       expect(fri!.symbol, MarkerSymbol.doneEarly);
     });
 
+    test('cycling X to empty reverts < back to dots', () async {
+      const boardId = 'board-1';
+      const taskId = 'task-1';
+      final colIds = await seedWeeklyBoard(boardId: boardId);
+
+      // Dots on Mon, Wed, Fri
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[2],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[4],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      // Cycle Mon: dot → slash → x (auto-fills < on Wed, Fri)
+      await actions.cycleMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+      );
+      await actions.cycleMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+      );
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      expect(
+        (await markerRepo.get(taskId, colIds[2]))!.symbol,
+        MarkerSymbol.doneEarly,
+      );
+
+      // Now cycle Mon: x → empty (should revert < to dots)
+      await actions.cycleMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+      );
+
+      final wedAfter = await markerRepo.get(taskId, colIds[2]);
+      final friAfter = await markerRepo.get(taskId, colIds[4]);
+      expect(wedAfter!.symbol, MarkerSymbol.dot);
+      expect(friAfter!.symbol, MarkerSymbol.dot);
+    });
+
+    test('setMarker clearing X reverts < back to dots', () async {
+      const boardId = 'board-1';
+      const taskId = 'task-1';
+      final colIds = await seedWeeklyBoard(boardId: boardId);
+
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[4],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      // Set Mon to X (auto-fills < on Fri)
+      await actions.setMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        symbol: MarkerSymbol.x,
+      );
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      expect(
+        (await markerRepo.get(taskId, colIds[4]))!.symbol,
+        MarkerSymbol.doneEarly,
+      );
+
+      // Clear Mon via picker (should revert < to dot)
+      await actions.setMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        symbol: null,
+      );
+
+      final friAfter = await markerRepo.get(taskId, colIds[4]);
+      expect(friAfter!.symbol, MarkerSymbol.dot);
+    });
+
     test('marking X does not affect earlier day columns', () async {
       const boardId = 'board-1';
       const taskId = 'task-1';
