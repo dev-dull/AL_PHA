@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:alpha/features/board/domain/board.dart';
+import 'package:alpha/features/board/domain/board_type.dart';
 import 'package:alpha/features/board/providers/board_providers.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
-import 'package:alpha/features/template/data/templates.dart';
-import 'package:alpha/features/template/domain/board_template.dart';
 
 class BoardCreateScreen extends ConsumerStatefulWidget {
   const BoardCreateScreen({super.key});
@@ -19,9 +20,16 @@ class BoardCreateScreen extends ConsumerStatefulWidget {
 
 class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  int _selectedTemplateIndex = 0;
+  late final TextEditingController _nameController;
   bool _isCreating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    final formatted = DateFormat('MMMM d').format(now);
+    _nameController = TextEditingController(text: 'Week of $formatted');
+  }
 
   @override
   void dispose() {
@@ -29,8 +37,17 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
     super.dispose();
   }
 
-  BoardTemplate get _selectedTemplate =>
-      defaultTemplates[_selectedTemplateIndex];
+  /// The fixed weekly columns: M T W T F S S >
+  static const _weeklyColumns = [
+    (label: 'M', position: 0, type: ColumnType.date),
+    (label: 'T', position: 1, type: ColumnType.date),
+    (label: 'W', position: 2, type: ColumnType.date),
+    (label: 'T', position: 3, type: ColumnType.date),
+    (label: 'F', position: 4, type: ColumnType.date),
+    (label: 'S', position: 5, type: ColumnType.date),
+    (label: 'S', position: 6, type: ColumnType.date),
+    (label: '>', position: 7, type: ColumnType.custom),
+  ];
 
   Future<void> _createBoard() async {
     if (!_formKey.currentState!.validate()) return;
@@ -39,23 +56,22 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
 
     try {
       const uuid = Uuid();
-      final template = _selectedTemplate;
       final now = DateTime.now();
       final boardId = uuid.v4();
 
       final board = Board(
         id: boardId,
         name: _nameController.text.trim(),
-        type: template.boardType,
+        type: BoardType.weekly,
         createdAt: now,
         updatedAt: now,
       );
 
       await ref.read(boardActionsProvider).create(board);
 
-      // Create columns from the template
+      // Create fixed weekly columns.
       final columnActions = ref.read(columnActionsProvider);
-      for (final col in template.columns) {
+      for (final col in _weeklyColumns) {
         await columnActions.create(
           BoardColumn(
             id: uuid.v4(),
@@ -82,8 +98,6 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: const Text('Create Board')),
       body: Form(
@@ -93,10 +107,7 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
           children: [
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Board name',
-                hintText: 'e.g. Week of March 16',
-              ),
+              decoration: const InputDecoration(labelText: 'Board name'),
               textCapitalization: TextCapitalization.sentences,
               autofocus: true,
               validator: (value) {
@@ -104,16 +115,6 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
                   return 'Please enter a board name';
                 }
                 return null;
-              },
-            ),
-            const SizedBox(height: 24),
-            Text('Choose a template', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 12),
-            _TemplateGrid(
-              templates: defaultTemplates,
-              selectedIndex: _selectedTemplateIndex,
-              onSelected: (index) {
-                setState(() => _selectedTemplateIndex = index);
               },
             ),
             const SizedBox(height: 32),
@@ -128,105 +129,6 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
                   : const Text('Create'),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TemplateGrid extends StatelessWidget {
-  const _TemplateGrid({
-    required this.templates,
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final List<BoardTemplate> templates;
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.3,
-      ),
-      itemCount: templates.length,
-      itemBuilder: (context, index) {
-        final template = templates[index];
-        final isSelected = index == selectedIndex;
-        return _TemplateCard(
-          template: template,
-          isSelected: isSelected,
-          onTap: () => onSelected(index),
-        );
-      },
-    );
-  }
-}
-
-class _TemplateCard extends StatelessWidget {
-  const _TemplateCard({
-    required this.template,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final BoardTemplate template;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Card(
-      elevation: isSelected ? 3 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSelected
-            ? BorderSide(color: colorScheme.primary, width: 2)
-            : BorderSide.none,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                template.name,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: isSelected ? colorScheme.primary : null,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: Text(
-                  template.description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Text(
-                '${template.columns.length} columns',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );

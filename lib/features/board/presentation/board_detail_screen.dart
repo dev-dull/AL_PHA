@@ -6,7 +6,6 @@ import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/column/presentation/column_manager_sheet.dart';
 import 'package:alpha/features/migration/presentation/migration_wizard.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
@@ -172,18 +171,9 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
             onSelected: (value) {
               if (value == 'migrate') {
                 showMigrationWizard(context, sourceBoardId: widget.boardId);
-              } else if (value == 'manage_columns') {
-                ColumnManagerSheet.show(
-                  context: context,
-                  boardId: widget.boardId,
-                );
               }
             },
             itemBuilder: (_) => const [
-              PopupMenuItem(
-                value: 'manage_columns',
-                child: Text('Manage columns'),
-              ),
               PopupMenuItem(value: 'migrate', child: Text('Migrate tasks...')),
             ],
           ),

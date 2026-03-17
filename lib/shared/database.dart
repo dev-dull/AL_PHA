@@ -78,7 +78,28 @@ class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        // Rename old symbol values to new ones
+        await customStatement(
+          "UPDATE markers SET symbol = 'event' WHERE symbol = 'circle'",
+        );
+        await customStatement(
+          "UPDATE markers SET symbol = 'slash' WHERE symbol = 'tilde'",
+        );
+        await customStatement(
+          "UPDATE markers SET symbol = 'migratedForward' WHERE symbol = 'migrated'",
+        );
+        await customStatement(
+          "UPDATE markers SET symbol = 'dot' WHERE symbol = 'star'",
+        );
+      }
+    },
+  );
 }
 
 LazyDatabase _openConnection() {

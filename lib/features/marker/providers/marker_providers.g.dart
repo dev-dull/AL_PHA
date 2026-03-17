@@ -274,7 +274,7 @@ class _MarkerProviderElement extends AutoDisposeProviderElement<Marker?>
   String get columnId => (origin as MarkerProvider).columnId;
 }
 
-String _$markerFromBoardHash() => r'7d1582c3a03d4689ba16a7bc3fb656a7a9833017';
+String _$markerFromBoardHash() => r'c377e6bf92d1dc419ce1850bceeee5c1e757604f';
 
 /// Derived provider for a single cell marker, keyed off the
 /// board-level markers map for granular rebuilds.

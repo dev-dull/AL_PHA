@@ -13,7 +13,7 @@ import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
-import 'package:alpha/features/template/data/templates.dart';
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/shared/providers.dart';
 
 /// Returns true if the board's time period has ended and
@@ -116,7 +116,18 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
   // For inline board creation.
   bool _creatingNewBoard = false;
   final _newBoardNameController = TextEditingController();
-  int _selectedTemplateIndex = 0;
+
+  /// The fixed weekly columns: M T W T F S S >
+  static const _weeklyColumns = [
+    (label: 'M', position: 0, type: ColumnType.date),
+    (label: 'T', position: 1, type: ColumnType.date),
+    (label: 'W', position: 2, type: ColumnType.date),
+    (label: 'T', position: 3, type: ColumnType.date),
+    (label: 'F', position: 4, type: ColumnType.date),
+    (label: 'S', position: 5, type: ColumnType.date),
+    (label: 'S', position: 6, type: ColumnType.date),
+    (label: '>', position: 7, type: ColumnType.custom),
+  ];
 
   @override
   void dispose() {
@@ -257,15 +268,13 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
   // --------------------------------------------------------
 
   Widget _buildNewBoardForm(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const _StepHeader(
           step: 1,
           title: 'Create new board',
-          subtitle: 'Set up a board to migrate tasks to.',
+          subtitle: 'Set up a weekly board to migrate tasks to.',
         ),
         Expanded(
           child: ListView(
@@ -279,25 +288,6 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
                 ),
                 textCapitalization: TextCapitalization.sentences,
                 autofocus: true,
-              ),
-              const SizedBox(height: 24),
-              Text('Template', style: theme.textTheme.titleSmall),
-              const SizedBox(height: 8),
-              RadioGroup<int>(
-                groupValue: _selectedTemplateIndex,
-                onChanged: (v) {
-                  setState(() => _selectedTemplateIndex = v ?? 0);
-                },
-                child: Column(
-                  children: List.generate(defaultTemplates.length, (i) {
-                    final t = defaultTemplates[i];
-                    return RadioListTile<int>(
-                      title: Text(t.name),
-                      subtitle: Text(t.description),
-                      value: i,
-                    );
-                  }),
-                ),
               ),
             ],
           ),
@@ -322,14 +312,13 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
       return;
     }
 
-    final template = defaultTemplates[_selectedTemplateIndex];
     final now = DateTime.now();
     final boardId = _uuid.v4();
 
     final board = Board(
       id: boardId,
       name: name,
-      type: template.boardType,
+      type: BoardType.weekly,
       createdAt: now,
       updatedAt: now,
     );
@@ -337,7 +326,7 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
     await ref.read(boardActionsProvider).create(board);
 
     final columnActions = ref.read(columnActionsProvider);
-    for (final col in template.columns) {
+    for (final col in _weeklyColumns) {
       await columnActions.create(
         BoardColumn(
           id: _uuid.v4(),
@@ -609,7 +598,7 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
               taskId: task.id,
               columnId: col.id,
               boardId: widget.sourceBoardId,
-              symbol: MarkerSymbol.migrated,
+              symbol: MarkerSymbol.migratedForward,
               updatedAt: DateTime.now(),
             ),
           );

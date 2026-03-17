@@ -52,7 +52,7 @@ class MarkerActions {
 
   MarkerActions(this._ref);
 
-  /// Cycles a marker: empty -> DOT -> CIRCLE -> X -> empty.
+  /// Cycles a marker: empty → DOT → SLASH → X → empty.
   Future<void> cycleMarker({
     required String boardId,
     required String taskId,

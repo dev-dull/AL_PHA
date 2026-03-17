@@ -26,9 +26,9 @@ Map<String, dynamic> _$MarkerToJson(_Marker instance) => <String, dynamic>{
 
 const _$MarkerSymbolEnumMap = {
   MarkerSymbol.dot: 'dot',
-  MarkerSymbol.circle: 'circle',
+  MarkerSymbol.slash: 'slash',
   MarkerSymbol.x: 'x',
-  MarkerSymbol.star: 'star',
-  MarkerSymbol.tilde: 'tilde',
-  MarkerSymbol.migrated: 'migrated',
+  MarkerSymbol.migratedForward: 'migratedForward',
+  MarkerSymbol.doneEarly: 'doneEarly',
+  MarkerSymbol.event: 'event',
 };

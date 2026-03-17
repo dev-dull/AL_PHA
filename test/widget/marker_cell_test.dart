@@ -90,7 +90,7 @@ void main() {
       expect(find.text('•'), findsOneWidget);
     });
 
-    testWidgets('tap cycles dot to circle to x to empty', (tester) async {
+    testWidgets('tap cycles dot to slash to x to empty', (tester) async {
       final container = await tester.pumpApp(
         const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
@@ -115,15 +115,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // dot -> circle
+      // dot -> slash
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
-      expect(find.text('○'), findsOneWidget);
+      expect(find.text('/'), findsOneWidget);
 
-      // circle -> x
+      // slash -> x
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
-      expect(find.text('✕'), findsOneWidget);
+      expect(find.text('X'), findsOneWidget);
 
       // x -> empty
       await tester.tap(find.byType(MarkerCell));
@@ -160,12 +160,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Set Marker'), findsOneWidget);
-      expect(find.text('Dot'), findsOneWidget);
-      expect(find.text('Circle'), findsOneWidget);
-      expect(find.text('X'), findsOneWidget);
-      expect(find.text('Star'), findsOneWidget);
-      expect(find.text('Tilde'), findsOneWidget);
+      expect(find.text('Scheduled'), findsOneWidget);
+      expect(find.text('In Progress'), findsOneWidget);
+      expect(find.text('Done'), findsOneWidget);
       expect(find.text('Migrated'), findsOneWidget);
+      expect(find.text('Done Early'), findsOneWidget);
+      expect(find.text('Event'), findsOneWidget);
       expect(find.text('Clear'), findsOneWidget);
     });
 
@@ -194,11 +194,11 @@ void main() {
       await tester.longPress(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Select Star
-      await tester.tap(find.text('Star'));
+      // Select Event
+      await tester.tap(find.text('Event'));
       await tester.pumpAndSettle();
 
-      expect(find.text('★'), findsOneWidget);
+      expect(find.text('○'), findsOneWidget);
     });
   });
 }

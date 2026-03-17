@@ -7,33 +7,33 @@ void main() {
       expect(MarkerSymbol.cycleStart, MarkerSymbol.dot);
     });
 
-    test('tap cycle should follow empty -> dot -> circle -> x -> empty', () {
+    test('tap cycle should follow empty -> dot -> slash -> x -> empty', () {
       // empty -> dot (handled by cycleStart)
       expect(MarkerSymbol.cycleStart, MarkerSymbol.dot);
 
-      // dot -> circle
-      expect(MarkerSymbol.dot.nextInCycle, MarkerSymbol.circle);
+      // dot -> slash
+      expect(MarkerSymbol.dot.nextInCycle, MarkerSymbol.slash);
 
-      // circle -> x
-      expect(MarkerSymbol.circle.nextInCycle, MarkerSymbol.x);
+      // slash -> x
+      expect(MarkerSymbol.slash.nextInCycle, MarkerSymbol.x);
 
       // x -> empty (null)
       expect(MarkerSymbol.x.nextInCycle, isNull);
     });
 
     test('special symbols should exit to empty', () {
-      expect(MarkerSymbol.star.nextInCycle, isNull);
-      expect(MarkerSymbol.tilde.nextInCycle, isNull);
-      expect(MarkerSymbol.migrated.nextInCycle, isNull);
+      expect(MarkerSymbol.migratedForward.nextInCycle, isNull);
+      expect(MarkerSymbol.doneEarly.nextInCycle, isNull);
+      expect(MarkerSymbol.event.nextInCycle, isNull);
     });
 
     test('displayChar should return correct characters', () {
       expect(MarkerSymbol.dot.displayChar, '•');
-      expect(MarkerSymbol.circle.displayChar, '○');
-      expect(MarkerSymbol.x.displayChar, '✕');
-      expect(MarkerSymbol.star.displayChar, '★');
-      expect(MarkerSymbol.tilde.displayChar, '~');
-      expect(MarkerSymbol.migrated.displayChar, '>');
+      expect(MarkerSymbol.slash.displayChar, '/');
+      expect(MarkerSymbol.x.displayChar, 'X');
+      expect(MarkerSymbol.migratedForward.displayChar, '>');
+      expect(MarkerSymbol.doneEarly.displayChar, '<');
+      expect(MarkerSymbol.event.displayChar, '○');
     });
 
     test('all symbols should have a display name', () {

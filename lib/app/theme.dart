@@ -70,21 +70,21 @@ class AlphaTheme {
   /// Light-theme marker colors — WCAG AA on white/light surfaces.
   static const _lightMarkerColors = {
     MarkerSymbol.dot: Color(0xFF1565C0), // blue 800
-    MarkerSymbol.circle: Color(0xFF2E7D32), // green 800
-    MarkerSymbol.x: Color(0xFFC62828), // red 800
-    MarkerSymbol.star: Color(0xFFE65100), // orange 900
-    MarkerSymbol.tilde: Color(0xFF6A1B9A), // purple 800
-    MarkerSymbol.migrated: Color(0xFF546E7A), // blue-grey 600
+    MarkerSymbol.slash: Color(0xFFEF6C00), // orange 800
+    MarkerSymbol.x: Color(0xFF2E7D32), // green 800
+    MarkerSymbol.migratedForward: Color(0xFF546E7A), // blue-grey 600
+    MarkerSymbol.doneEarly: Color(0xFF43A047), // green 600
+    MarkerSymbol.event: Color(0xFF6A1B9A), // purple 800
   };
 
   /// Dark-theme marker colors — lighter variants, WCAG AA on dark surfaces.
   static const _darkMarkerColors = {
     MarkerSymbol.dot: Color(0xFF64B5F6), // blue 300
-    MarkerSymbol.circle: Color(0xFF81C784), // green 300
-    MarkerSymbol.x: Color(0xFFEF5350), // red 400
-    MarkerSymbol.star: Color(0xFFFFB74D), // orange 300
-    MarkerSymbol.tilde: Color(0xFFCE93D8), // purple 200
-    MarkerSymbol.migrated: Color(0xFF90A4AE), // blue-grey 300
+    MarkerSymbol.slash: Color(0xFFFFB74D), // orange 300
+    MarkerSymbol.x: Color(0xFF81C784), // green 300
+    MarkerSymbol.migratedForward: Color(0xFF90A4AE), // blue-grey 300
+    MarkerSymbol.doneEarly: Color(0xFF81C784), // green 300
+    MarkerSymbol.event: Color(0xFFCE93D8), // purple 200
   };
 
   /// Returns the correct marker color for the given [symbol] and
@@ -95,15 +95,4 @@ class AlphaTheme {
         : _lightMarkerColors;
     return palette[symbol]!;
   }
-
-  /// Legacy convenience map kept for backward compatibility.
-  @Deprecated('Use markerColor(symbol, brightness) instead')
-  static const markerColors = {
-    'dot': Color(0xFF2196F3),
-    'circle': Color(0xFF4CAF50),
-    'x': Color(0xFFF44336),
-    'star': Color(0xFFFF9800),
-    'tilde': Color(0xFF9C27B0),
-    'migrated': Color(0xFF607D8B),
-  };
 }

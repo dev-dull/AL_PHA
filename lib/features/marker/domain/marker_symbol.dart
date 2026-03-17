@@ -1,58 +1,58 @@
 enum MarkerSymbol {
   dot,
-  circle,
+  slash,
   x,
-  star,
-  tilde,
-  migrated;
+  migratedForward,
+  doneEarly,
+  event;
 
   String get displayChar {
     switch (this) {
       case MarkerSymbol.dot:
         return '•';
-      case MarkerSymbol.circle:
-        return '○';
+      case MarkerSymbol.slash:
+        return '/';
       case MarkerSymbol.x:
-        return '✕';
-      case MarkerSymbol.star:
-        return '★';
-      case MarkerSymbol.tilde:
-        return '~';
-      case MarkerSymbol.migrated:
+        return 'X';
+      case MarkerSymbol.migratedForward:
         return '>';
+      case MarkerSymbol.doneEarly:
+        return '<';
+      case MarkerSymbol.event:
+        return '○';
     }
   }
 
   String get displayName {
     switch (this) {
       case MarkerSymbol.dot:
-        return 'Dot';
-      case MarkerSymbol.circle:
-        return 'Circle';
+        return 'Scheduled';
+      case MarkerSymbol.slash:
+        return 'In Progress';
       case MarkerSymbol.x:
-        return 'X';
-      case MarkerSymbol.star:
-        return 'Star';
-      case MarkerSymbol.tilde:
-        return 'Tilde';
-      case MarkerSymbol.migrated:
+        return 'Done';
+      case MarkerSymbol.migratedForward:
         return 'Migrated';
+      case MarkerSymbol.doneEarly:
+        return 'Done Early';
+      case MarkerSymbol.event:
+        return 'Event';
     }
   }
 
   /// Returns the next symbol in the tap cycle, or null for empty.
-  /// Cycle: empty → dot → circle → x → empty
+  /// Cycle: empty → dot → slash → x → empty
   MarkerSymbol? get nextInCycle {
     switch (this) {
       case MarkerSymbol.dot:
-        return MarkerSymbol.circle;
-      case MarkerSymbol.circle:
+        return MarkerSymbol.slash;
+      case MarkerSymbol.slash:
         return MarkerSymbol.x;
       case MarkerSymbol.x:
         return null; // back to empty
-      case MarkerSymbol.star:
-      case MarkerSymbol.tilde:
-      case MarkerSymbol.migrated:
+      case MarkerSymbol.migratedForward:
+      case MarkerSymbol.doneEarly:
+      case MarkerSymbol.event:
         return null; // special symbols exit to empty
     }
   }
