@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 import 'package:alpha/app/theme.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/shared/providers.dart';
 
 /// A single cell in the board grid matrix.
 ///
@@ -19,8 +17,6 @@ class MarkerCell extends ConsumerWidget {
 
   /// Cell dimensions in logical pixels.
   static const double cellSize = 48;
-
-  static const _uuid = Uuid();
 
   const MarkerCell({
     super.key,
@@ -80,34 +76,16 @@ class MarkerCell extends ConsumerWidget {
       context: context,
       builder: (ctx) => _MarkerPickerSheet(
         currentSymbol: currentMarker?.symbol,
-        onSelected: (symbol) async {
+        onSelected: (symbol) {
           Navigator.of(ctx).pop();
-          final repo = ref.read(markerRepositoryProvider);
-
-          if (symbol == null) {
-            // Clear
-            await repo.remove(taskId, columnId);
-          } else {
-            if (currentMarker != null) {
-              await repo.set(
-                currentMarker.copyWith(
-                  symbol: symbol,
-                  updatedAt: DateTime.now(),
-                ),
+          ref
+              .read(markerActionsProvider)
+              .setMarker(
+                boardId: boardId,
+                taskId: taskId,
+                columnId: columnId,
+                symbol: symbol,
               );
-            } else {
-              await repo.set(
-                Marker(
-                  id: _uuid.v4(),
-                  taskId: taskId,
-                  columnId: columnId,
-                  boardId: boardId,
-                  symbol: symbol,
-                  updatedAt: DateTime.now(),
-                ),
-              );
-            }
-          }
         },
       ),
     );

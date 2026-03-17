@@ -30,6 +30,17 @@ class _BoardDetailScreenState extends ConsumerState<BoardDetailScreen> {
   /// Height of the column header row.
   static const double _headerHeight = 44;
 
+  @override
+  void initState() {
+    super.initState();
+    // Auto-fill `>` on past days with remaining dots.
+    Future.microtask(() {
+      ref
+          .read(markerActionsProvider)
+          .autoFillMissedDays(boardId: widget.boardId);
+    });
+  }
+
   // ----------------------------------------------------------
   // Task actions
   // ----------------------------------------------------------

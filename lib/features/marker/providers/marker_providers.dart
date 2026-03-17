@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/shared/providers.dart';
@@ -53,6 +54,7 @@ class MarkerActions {
   MarkerActions(this._ref);
 
   /// Cycles a marker: empty → DOT → SLASH → X → empty.
+  /// When cycling to X (done), auto-fills `<` on later scheduled days.
   Future<void> cycleMarker({
     required String boardId,
     required String taskId,
@@ -81,6 +83,144 @@ class MarkerActions {
       } else {
         await repo.set(
           existing.copyWith(symbol: next, updatedAt: DateTime.now()),
+        );
+        if (next == MarkerSymbol.x) {
+          await _autoFillDoneEarly(
+            boardId: boardId,
+            taskId: taskId,
+            completedColumnId: columnId,
+          );
+        }
+      }
+    }
+  }
+
+  /// Sets a marker to a specific symbol (used by the picker).
+  /// When setting to X (done), auto-fills `<` on later scheduled days.
+  Future<void> setMarker({
+    required String boardId,
+    required String taskId,
+    required String columnId,
+    required MarkerSymbol? symbol,
+  }) async {
+    final repo = _ref.read(markerRepositoryProvider);
+
+    if (symbol == null) {
+      await repo.remove(taskId, columnId);
+      return;
+    }
+
+    final existing = await repo.get(taskId, columnId);
+    if (existing != null) {
+      await repo.set(
+        existing.copyWith(symbol: symbol, updatedAt: DateTime.now()),
+      );
+    } else {
+      await repo.set(
+        Marker(
+          id: _uuid.v4(),
+          taskId: taskId,
+          columnId: columnId,
+          boardId: boardId,
+          symbol: symbol,
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+
+    if (symbol == MarkerSymbol.x) {
+      await _autoFillDoneEarly(
+        boardId: boardId,
+        taskId: taskId,
+        completedColumnId: columnId,
+      );
+    }
+  }
+
+  /// When a task is marked X on a day, any dots on later day
+  /// columns become `<` (done early).
+  Future<void> _autoFillDoneEarly({
+    required String boardId,
+    required String taskId,
+    required String completedColumnId,
+  }) async {
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final markerRepo = _ref.read(markerRepositoryProvider);
+
+    final columns = await columnRepo.getByBoard(boardId);
+    final completedCol = columns.firstWhere((c) => c.id == completedColumnId);
+
+    // Only auto-fill day columns after the completed one.
+    final laterDayColumns = columns.where(
+      (c) => c.position > completedCol.position && c.type == ColumnType.date,
+    );
+
+    final now = DateTime.now();
+    for (final col in laterDayColumns) {
+      final marker = await markerRepo.get(taskId, col.id);
+      if (marker != null && marker.symbol == MarkerSymbol.dot) {
+        await markerRepo.set(
+          marker.copyWith(symbol: MarkerSymbol.doneEarly, updatedAt: now),
+        );
+      }
+    }
+  }
+
+  /// Auto-fills `>` (migrated) on past day columns where a task
+  /// still has a dot (scheduled but not acted on).
+  /// Call this when opening a board to catch up missed days.
+  Future<void> autoFillMissedDays({required String boardId}) async {
+    final boardRepo = _ref.read(boardRepositoryProvider);
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final markerRepo = _ref.read(markerRepositoryProvider);
+
+    final board = await boardRepo.getById(boardId);
+    if (board == null) return;
+
+    final columns = await columnRepo.getByBoard(boardId);
+    final dayColumns = columns.where((c) => c.type == ColumnType.date);
+    if (dayColumns.isEmpty) return;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Determine which day columns are in the past.
+    // Column positions 0–6 map to Mon–Sun.
+    // Compare the board's week to the current week.
+    final boardCreatedAt = board.createdAt;
+    final boardMonday = boardCreatedAt.subtract(
+      Duration(days: boardCreatedAt.weekday - 1),
+    );
+    final boardWeekStart = DateTime(
+      boardMonday.year,
+      boardMonday.month,
+      boardMonday.day,
+    );
+    final currentMonday = today.subtract(Duration(days: today.weekday - 1));
+
+    Iterable<dynamic> pastDayColumns;
+    if (boardWeekStart.isBefore(currentMonday)) {
+      // Past week: all day columns are past.
+      pastDayColumns = dayColumns;
+    } else if (boardWeekStart == currentMonday) {
+      // Current week: columns before today are past.
+      // position 0=Mon → weekday 1, so past if position < (weekday - 1).
+      pastDayColumns = dayColumns.where((c) => c.position < (now.weekday - 1));
+    } else {
+      // Future week: nothing is past.
+      return;
+    }
+
+    if (pastDayColumns.isEmpty) return;
+
+    final allMarkers = await markerRepo.getByBoard(boardId);
+    for (final col in pastDayColumns) {
+      final dotsInCol = allMarkers.where(
+        (m) => m.columnId == col.id && m.symbol == MarkerSymbol.dot,
+      );
+      for (final marker in dotsInCol) {
+        await markerRepo.set(
+          marker.copyWith(symbol: MarkerSymbol.migratedForward, updatedAt: now),
         );
       }
     }
