@@ -449,7 +449,10 @@ class _BoardDetailScreenState
         ],
       ),
     );
-    controller.dispose();
+
+    // Delay dispose until after the dialog exit animation completes
+    // to prevent "TextEditingController used after being disposed" errors.
+    Future.delayed(const Duration(milliseconds: 300), controller.dispose);
 
     if (title == null || title.trim().isEmpty) return;
 
