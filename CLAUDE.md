@@ -10,16 +10,24 @@ AlPHA (Alastair Planner & Habit App) is a cross-platform productivity app implem
 - **Owner:** dev-dull (Alastair)
 - **Visibility:** Private
 
-## Current Phase: MVP (Offline-First, No Backend)
+## Current Phase: MVP Redesign (Offline-First, No Backend)
+
+The app is mid-redesign to align with the authentic Alastair Method. Phases 1-4 are complete:
+- **Phase 1:** New Alastair Method symbols — dot (•), slash (/), x (X), migratedForward (>), doneEarly (<), event (○)
+- **Phase 2:** Fixed weekly columns (M T W T F S S >), removed templates and column management
+- **Phase 3:** Grid layout flip — day columns on left, task names on right
+- **Phase 4:** Auto-fill logic — < for done early, > for missed days
+
+Phases 5-8 remaining: task sorting, bullet journal theme, migration simplification, future view stubs.
 
 The MVP includes:
-- Flutter project scaffold (feature-first, Riverpod, GoRouter, Freezed, Isar)
-- Board CRUD (create from template, list, archive)
-- Board grid/matrix view (fixed task column + scrollable marker columns)
-- Tap-to-cycle markers (empty → DOT → CIRCLE → X → empty)
+- Flutter project scaffold (feature-first, Riverpod, GoRouter, Freezed, Drift)
+- Board CRUD (create, list, archive)
+- Board grid/matrix view with fixed weekly columns (M T W T F S S >) and task names on right
+- Tap-to-cycle markers (empty → dot → slash → x → empty)
+- Auto-fill markers: < (done early) and > (missed days)
 - Add/edit/delete tasks, drag-to-reorder, swipe-to-complete/cancel
 - Migration wizard (move incomplete tasks to a new board)
-- 5 board templates (Weekly, Monthly, GTD Contexts, Daily Hourly, Project Tracker)
 - Local persistence with Drift (SQLite)
 - Dark mode
 - Basic CI pipeline (lint, test, build verification)
@@ -32,6 +40,7 @@ The MVP includes:
 - Use `@riverpod` annotation (code generation) for all providers
 - Granular providers: `markerProvider(taskId, colId)` for per-cell rebuilds
 - Repository pattern: providers → repositories → data sources (Drift/SQLite)
+- MarkerActions handles auto-fill logic (done-early `<` and missed `>` markers)
 
 ### Navigation: GoRouter
 - Declarative routes in `lib/app/router.dart`
@@ -41,12 +50,46 @@ The MVP includes:
 - Immutable models in `lib/features/<feature>/domain/`
 - JSON serialization for DB and future API compatibility
 
-### Local DB: Drift (SQLite)
+### Local DB: Drift (SQLite) — Schema v2
 - Isar was planned but has incompatible dependencies with Freezed v3 (source_gen conflict)
 - Tables defined in `lib/shared/database.dart` with `@DataClassName('...Row')` to avoid name collisions
 - Drift data classes use `*Row` suffix (BoardRow, TaskRow, etc.), domain models are Freezed
 - Repository classes in `lib/features/<feature>/data/` convert between Row ↔ domain
 - After code changes, run: `dart run build_runner build --delete-conflicting-outputs`
+
+## Build & Run
+
+### Prerequisites
+- Flutter SDK (stable channel, 3.41+)
+- Dart SDK 3.11+
+- CocoaPods (for macOS/iOS): `brew install cocoapods`
+- Java 17 (for Android builds)
+
+### Quick Start
+```bash
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter run -d macos    # or: flutter run -d chrome, flutter run -d <device>
+```
+
+### Code Generation
+After modifying Freezed models, Drift tables, or Riverpod providers:
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
+
+### Running Tests
+```bash
+flutter test                    # all tests
+flutter test test/models/       # unit tests only
+flutter test test/widget/       # widget tests only
+```
+
+### Linting
+```bash
+dart format .
+flutter analyze --fatal-infos
+```
 
 ### Project Structure (Feature-First)
 ```
@@ -60,15 +103,14 @@ lib/
 │   └── widgets/
 ├── features/
 │   ├── board/
-│   │   ├── data/           # Isar schemas, repositories
+│   │   ├── data/           # Drift repositories
 │   │   ├── domain/         # Freezed models, enums
 │   │   ├── presentation/   # Screens, widgets
 │   │   └── providers/      # Riverpod providers
 │   ├── task/
 │   ├── marker/
 │   ├── column/
-│   ├── migration/
-│   └── template/
+│   └── migration/
 ├── shared/                 # Cross-feature utilities
 test/
 ├── models/
@@ -95,7 +137,7 @@ test/
 ### Testing
 - Test naming: `[unit] [condition] [expected behavior]`
 - Fixtures in `test/fixtures/`
-- Coverage target: 80% (MVP phase)
+- Coverage target: 80% (MVP phase) — currently 69 tests (unit + widget)
 
 ### GitHub Issues
 - Issues prefixed with `ALP-` in titles where applicable
