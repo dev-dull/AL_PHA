@@ -475,12 +475,13 @@ class _BoardRow extends StatelessWidget {
         height: MarkerCell.cellSize,
         child: Row(
           children: [
-            // Marker cells for each day column.
+            // Marker cells for each column.
             ...columns.map(
               (col) => MarkerCell(
                 boardId: boardId,
                 taskId: task.id,
                 columnId: col.id,
+                columnType: col.type,
               ),
             ),
             VerticalDivider(width: 1, color: theme.dividerColor),

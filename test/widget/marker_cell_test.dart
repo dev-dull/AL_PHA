@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 
@@ -25,7 +26,7 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId),
+        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
       );
       await tester.pumpAndSettle();
 
@@ -51,7 +52,7 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId),
+        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
       );
       await seedMarker(
         container,
@@ -79,7 +80,7 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId),
+        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
       );
       await tester.pumpAndSettle();
 
@@ -102,7 +103,7 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId),
+        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
       );
       await seedMarker(
         container,
@@ -152,7 +153,7 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId),
+        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
       );
       await tester.pumpAndSettle();
 
@@ -186,7 +187,7 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId),
+        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
       );
       await tester.pumpAndSettle();
 

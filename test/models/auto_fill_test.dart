@@ -449,4 +449,74 @@ void main() {
       expect(wed!.symbol, MarkerSymbol.slash);
     });
   });
+
+  group('migration column constraint', () {
+    test('cycleMarker on > column toggles empty ↔ migratedForward', () async {
+      const boardId = 'board-1';
+      const taskId = 'task-1';
+      final colIds = await seedWeeklyBoard(boardId: boardId);
+      final migrationColId = colIds[7]; // > column
+
+      final actions = container.read(markerActionsProvider);
+      final markerRepo = container.read(markerRepositoryProvider);
+
+      // Empty → >
+      await actions.cycleMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: migrationColId,
+      );
+      final after1 = await markerRepo.get(taskId, migrationColId);
+      expect(after1!.symbol, MarkerSymbol.migratedForward);
+
+      // > → empty
+      await actions.cycleMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: migrationColId,
+      );
+      final after2 = await markerRepo.get(taskId, migrationColId);
+      expect(after2, isNull);
+    });
+
+    test('setMarker rejects non-> symbols on migration column', () async {
+      const boardId = 'board-1';
+      const taskId = 'task-1';
+      final colIds = await seedWeeklyBoard(boardId: boardId);
+      final migrationColId = colIds[7];
+
+      final actions = container.read(markerActionsProvider);
+      final markerRepo = container.read(markerRepositoryProvider);
+
+      // Try to set a dot — should be silently rejected.
+      await actions.setMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: migrationColId,
+        symbol: MarkerSymbol.dot,
+      );
+      final after = await markerRepo.get(taskId, migrationColId);
+      expect(after, isNull);
+
+      // Setting > should work.
+      await actions.setMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: migrationColId,
+        symbol: MarkerSymbol.migratedForward,
+      );
+      final afterSet = await markerRepo.get(taskId, migrationColId);
+      expect(afterSet!.symbol, MarkerSymbol.migratedForward);
+
+      // Clearing should work.
+      await actions.setMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: migrationColId,
+        symbol: null,
+      );
+      final afterClear = await markerRepo.get(taskId, migrationColId);
+      expect(afterClear, isNull);
+    });
+  });
 }

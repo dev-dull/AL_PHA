@@ -54,6 +54,7 @@ class MarkerActions {
   MarkerActions(this._ref);
 
   /// Cycles a marker: empty → DOT → SLASH → X → empty.
+  /// Migration column: empty → > → empty.
   /// When cycling to X, auto-fills `<` on later scheduled days.
   /// When cycling away from X, reverts `<` back to dots.
   Future<void> cycleMarker({
@@ -63,6 +64,25 @@ class MarkerActions {
   }) async {
     final repo = _ref.read(markerRepositoryProvider);
     final existing = await repo.get(taskId, columnId);
+
+    // Migration column only allows > toggle.
+    if (await _isMigrationColumn(boardId, columnId)) {
+      if (existing == null) {
+        await repo.set(
+          Marker(
+            id: _uuid.v4(),
+            taskId: taskId,
+            columnId: columnId,
+            boardId: boardId,
+            symbol: MarkerSymbol.migratedForward,
+            updatedAt: DateTime.now(),
+          ),
+        );
+      } else {
+        await repo.remove(taskId, columnId);
+      }
+      return;
+    }
 
     if (existing == null) {
       // Empty -> DOT
@@ -107,12 +127,21 @@ class MarkerActions {
 
   /// Sets a marker to a specific symbol (used by the picker).
   /// Handles auto-fill `<` and revert logic.
+  /// Migration column only accepts [MarkerSymbol.migratedForward]
+  /// or null (clear).
   Future<void> setMarker({
     required String boardId,
     required String taskId,
     required String columnId,
     required MarkerSymbol? symbol,
   }) async {
+    // Enforce migration column constraint.
+    if (symbol != null &&
+        symbol != MarkerSymbol.migratedForward &&
+        await _isMigrationColumn(boardId, columnId)) {
+      return;
+    }
+
     final repo = _ref.read(markerRepositoryProvider);
     final existing = await repo.get(taskId, columnId);
     final wasX = existing?.symbol == MarkerSymbol.x;
@@ -206,6 +235,14 @@ class MarkerActions {
         );
       }
     }
+  }
+
+  /// Returns true if the column is a migration column (not a day).
+  Future<bool> _isMigrationColumn(String boardId, String columnId) async {
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final columns = await columnRepo.getByBoard(boardId);
+    final col = columns.firstWhere((c) => c.id == columnId);
+    return col.type != ColumnType.date;
   }
 
   /// Auto-fills `>` (migrated) on past day columns where a task

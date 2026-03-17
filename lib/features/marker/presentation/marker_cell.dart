@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/app/theme.dart';
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
@@ -14,6 +15,7 @@ class MarkerCell extends ConsumerWidget {
   final String boardId;
   final String taskId;
   final String columnId;
+  final ColumnType columnType;
 
   /// Cell dimensions in logical pixels.
   static const double cellSize = 48;
@@ -23,6 +25,7 @@ class MarkerCell extends ConsumerWidget {
     required this.boardId,
     required this.taskId,
     required this.columnId,
+    this.columnType = ColumnType.date,
   });
 
   @override
@@ -72,10 +75,12 @@ class MarkerCell extends ConsumerWidget {
     WidgetRef ref,
     Marker? currentMarker,
   ) {
+    final isMigrationColumn = columnType != ColumnType.date;
     showModalBottomSheet<void>(
       context: context,
       builder: (ctx) => _MarkerPickerSheet(
         currentSymbol: currentMarker?.symbol,
+        isMigrationColumn: isMigrationColumn,
         onSelected: (symbol) {
           Navigator.of(ctx).pop();
           ref
@@ -92,19 +97,25 @@ class MarkerCell extends ConsumerWidget {
   }
 }
 
-/// Bottom sheet listing all marker symbols plus a Clear option.
+/// Bottom sheet listing marker symbols plus a Clear option.
+/// Migration columns only show the > symbol.
 class _MarkerPickerSheet extends StatelessWidget {
   final MarkerSymbol? currentSymbol;
+  final bool isMigrationColumn;
   final ValueChanged<MarkerSymbol?> onSelected;
 
   const _MarkerPickerSheet({
     required this.currentSymbol,
     required this.onSelected,
+    this.isMigrationColumn = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final symbols = isMigrationColumn
+        ? [MarkerSymbol.migratedForward]
+        : MarkerSymbol.values;
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -114,7 +125,7 @@ class _MarkerPickerSheet extends StatelessWidget {
             child: Text('Set Marker', style: theme.textTheme.titleMedium),
           ),
           const Divider(height: 1),
-          ...MarkerSymbol.values.map((symbol) {
+          ...symbols.map((symbol) {
             final color = AlphaTheme.markerColor(symbol, theme.brightness);
             final isSelected = symbol == currentSymbol;
             return ListTile(
