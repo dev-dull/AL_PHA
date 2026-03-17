@@ -39,13 +39,15 @@ void main() {
   }) async {
     final now = createdAt ?? DateTime.now();
     final boardRepo = container.read(boardRepositoryProvider);
-    await boardRepo.create(Board(
-      id: boardId,
-      name: 'Test Week',
-      type: BoardType.weekly,
-      createdAt: now,
-      updatedAt: now,
-    ));
+    await boardRepo.create(
+      Board(
+        id: boardId,
+        name: 'Test Week',
+        type: BoardType.weekly,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
 
     final columnRepo = container.read(columnRepositoryProvider);
     final labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S', '>'];
@@ -53,13 +55,15 @@ void main() {
     for (var i = 0; i < labels.length; i++) {
       final id = 'col-$i';
       columnIds.add(id);
-      await columnRepo.create(BoardColumn(
-        id: id,
-        boardId: boardId,
-        label: labels[i],
-        position: i,
-        type: i < 7 ? ColumnType.date : ColumnType.custom,
-      ));
+      await columnRepo.create(
+        BoardColumn(
+          id: id,
+          boardId: boardId,
+          label: labels[i],
+          position: i,
+          type: i < 7 ? ColumnType.date : ColumnType.custom,
+        ),
+      );
     }
     return columnIds;
   }
@@ -71,14 +75,16 @@ void main() {
     required MarkerSymbol symbol,
   }) async {
     final repo = container.read(markerRepositoryProvider);
-    await repo.set(Marker(
-      id: _uuid.v4(),
-      taskId: taskId,
-      columnId: columnId,
-      boardId: boardId,
-      symbol: symbol,
-      updatedAt: DateTime.now(),
-    ));
+    await repo.set(
+      Marker(
+        id: _uuid.v4(),
+        taskId: taskId,
+        columnId: columnId,
+        boardId: boardId,
+        symbol: symbol,
+        updatedAt: DateTime.now(),
+      ),
+    );
   }
 
   group('auto-fill done early (<)', () {
@@ -89,25 +95,35 @@ void main() {
 
       // Schedule task for Mon, Wed, Fri (dots)
       await seedMarker(
-        taskId: taskId, columnId: colIds[0], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
         symbol: MarkerSymbol.dot, // Mon
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[2], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[2],
+        boardId: boardId,
         symbol: MarkerSymbol.dot, // Wed
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[4], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[4],
+        boardId: boardId,
         symbol: MarkerSymbol.dot, // Fri
       );
 
       // Mark Monday as done (cycle dot→slash→x)
       final actions = container.read(markerActionsProvider);
       await actions.cycleMarker(
-        boardId: boardId, taskId: taskId, columnId: colIds[0],
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
       ); // dot → slash
       await actions.cycleMarker(
-        boardId: boardId, taskId: taskId, columnId: colIds[0],
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
       ); // slash → x
 
       // Wed and Fri should now be < (done early)
@@ -126,18 +142,24 @@ void main() {
 
       // Dot on Mon and Wed
       await seedMarker(
-        taskId: taskId, columnId: colIds[0], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[2], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[2],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
 
       // Mark Wed as done via setMarker
       final actions = container.read(markerActionsProvider);
       await actions.setMarker(
-        boardId: boardId, taskId: taskId, columnId: colIds[2],
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[2],
         symbol: MarkerSymbol.x,
       );
 
@@ -154,18 +176,24 @@ void main() {
 
       // Dot on Fri and > column
       await seedMarker(
-        taskId: taskId, columnId: colIds[4], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[4],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[7], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[7],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
 
       // Mark Fri as done
       final actions = container.read(markerActionsProvider);
       await actions.setMarker(
-        boardId: boardId, taskId: taskId, columnId: colIds[4],
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[4],
         symbol: MarkerSymbol.x,
       );
 
@@ -182,22 +210,30 @@ void main() {
 
       // Mon=dot, Wed=slash (in progress), Fri=dot
       await seedMarker(
-        taskId: taskId, columnId: colIds[0], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[2], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[2],
+        boardId: boardId,
         symbol: MarkerSymbol.slash,
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[4], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[4],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
 
       // Mark Mon as X
       final actions = container.read(markerActionsProvider);
       await actions.setMarker(
-        boardId: boardId, taskId: taskId, columnId: colIds[0],
+        boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
         symbol: MarkerSymbol.x,
       );
 
@@ -219,16 +255,15 @@ void main() {
       // Create board for the current week (Monday of this week)
       final now = DateTime.now();
       final monday = now.subtract(Duration(days: now.weekday - 1));
-      final colIds = await seedWeeklyBoard(
-        boardId: boardId,
-        createdAt: monday,
-      );
+      final colIds = await seedWeeklyBoard(boardId: boardId, createdAt: monday);
 
       // Only test if today is not Monday (otherwise no past days)
       if (now.weekday > 1) {
         // Put a dot on Monday (position 0, which is in the past)
         await seedMarker(
-          taskId: taskId, columnId: colIds[0], boardId: boardId,
+          taskId: taskId,
+          columnId: colIds[0],
+          boardId: boardId,
           symbol: MarkerSymbol.dot,
         );
 
@@ -254,11 +289,15 @@ void main() {
 
       // Put dots on Mon and Fri
       await seedMarker(
-        taskId: taskId, columnId: colIds[0], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[4], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[4],
+        boardId: boardId,
         symbol: MarkerSymbol.dot,
       );
 
@@ -285,11 +324,15 @@ void main() {
 
       // Mon=x (done), Wed=slash (in progress)
       await seedMarker(
-        taskId: taskId, columnId: colIds[0], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
         symbol: MarkerSymbol.x,
       );
       await seedMarker(
-        taskId: taskId, columnId: colIds[2], boardId: boardId,
+        taskId: taskId,
+        columnId: colIds[2],
+        boardId: boardId,
         symbol: MarkerSymbol.slash,
       );
 
