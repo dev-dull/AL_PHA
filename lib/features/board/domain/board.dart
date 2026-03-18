@@ -13,6 +13,7 @@ abstract class Board with _$Board {
     required DateTime createdAt,
     required DateTime updatedAt,
     @Default(false) bool archived,
+    DateTime? weekStart,
   }) = _Board;
 
   factory Board.fromJson(Map<String, dynamic> json) => _$BoardFromJson(json);

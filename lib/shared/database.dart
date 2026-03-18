@@ -17,6 +17,7 @@ class Boards extends Table {
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get weekStart => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -78,13 +79,12 @@ class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
-        // Rename old symbol values to new ones
         await customStatement(
           "UPDATE markers SET symbol = 'event' WHERE symbol = 'circle'",
         );
@@ -96,6 +96,19 @@ class AlphaDatabase extends _$AlphaDatabase {
         );
         await customStatement(
           "UPDATE markers SET symbol = 'dot' WHERE symbol = 'star'",
+        );
+      }
+      if (from < 3) {
+        await customStatement(
+          'ALTER TABLE boards ADD COLUMN week_start INTEGER',
+        );
+        // Backfill weekly boards: compute Monday from createdAt.
+        // SQLite: strftime('%w') gives 0=Sun..6=Sat.
+        // Monday offset: (weekday + 6) % 7 days before createdAt.
+        await customStatement(
+          'UPDATE boards SET week_start = '
+          "created_at - ((CAST(strftime('%w', created_at / 1000, 'unixepoch') AS INTEGER) + 6) % 7) * 86400000 "
+          "WHERE type = 'weekly'",
         );
       }
     },

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/features/board/presentation/board_list_screen.dart';
+import 'package:alpha/features/board/presentation/weekly_view_screen.dart';
 import 'package:alpha/features/views/presentation/future_view_stub.dart';
 
 /// Root shell with bottom navigation for weekly, monthly,
@@ -17,7 +17,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildBody() {
     switch (_currentIndex) {
       case 0:
-        return const BoardListScreen();
+        return const WeeklyViewScreen();
       case 1:
         return const _StubScaffold(
           title: 'Monthly',
@@ -28,7 +28,7 @@ class _HomeShellState extends State<HomeShell> {
       case 3:
         return const _StubScaffold(title: 'Yearly', icon: Icons.calendar_today);
       default:
-        return const BoardListScreen();
+        return const WeeklyViewScreen();
     }
   }
 

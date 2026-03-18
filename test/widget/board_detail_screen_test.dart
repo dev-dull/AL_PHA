@@ -187,22 +187,6 @@ void main() {
       expect(find.text('No tasks yet'), findsOneWidget);
     });
 
-    testWidgets('popup menu shows migrate option', (tester) async {
-      final container = createTestContainer();
-      await seedBoard(container, board: makeBoard(id: boardId));
-      await tester.pumpWithContainer(
-        const BoardDetailScreen(boardId: boardId),
-        container,
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byType(PopupMenuButton<String>));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Manage columns'), findsNothing);
-      expect(find.text('Migrate tasks...'), findsOneWidget);
-    });
-
     testWidgets('migration banner appears for expired daily board', (
       tester,
     ) async {

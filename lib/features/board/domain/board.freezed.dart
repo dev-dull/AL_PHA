@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Board {
 
- String get id; String get name; BoardType get type; DateTime get createdAt; DateTime get updatedAt; bool get archived;
+ String get id; String get name; BoardType get type; DateTime get createdAt; DateTime get updatedAt; bool get archived; DateTime? get weekStart;
 /// Create a copy of Board
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $BoardCopyWith<Board> get copyWith => _$BoardCopyWithImpl<Board>(this as Board, 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Board&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archived, archived) || other.archived == archived));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Board&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.weekStart, weekStart) || other.weekStart == weekStart));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,createdAt,updatedAt,archived);
+int get hashCode => Object.hash(runtimeType,id,name,type,createdAt,updatedAt,archived,weekStart);
 
 @override
 String toString() {
-  return 'Board(id: $id, name: $name, type: $type, createdAt: $createdAt, updatedAt: $updatedAt, archived: $archived)';
+  return 'Board(id: $id, name: $name, type: $type, createdAt: $createdAt, updatedAt: $updatedAt, archived: $archived, weekStart: $weekStart)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $BoardCopyWith<$Res>  {
   factory $BoardCopyWith(Board value, $Res Function(Board) _then) = _$BoardCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, BoardType type, DateTime createdAt, DateTime updatedAt, bool archived
+ String id, String name, BoardType type, DateTime createdAt, DateTime updatedAt, bool archived, DateTime? weekStart
 });
 
 
@@ -65,7 +65,7 @@ class _$BoardCopyWithImpl<$Res>
 
 /// Create a copy of Board
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? createdAt = null,Object? updatedAt = null,Object? archived = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? createdAt = null,Object? updatedAt = null,Object? archived = null,Object? weekStart = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -73,7 +73,8 @@ as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non
 as BoardType,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,archived: null == archived ? _self.archived : archived // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,weekStart: freezed == weekStart ? _self.weekStart : weekStart // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -158,10 +159,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  BoardType type,  DateTime createdAt,  DateTime updatedAt,  bool archived)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  BoardType type,  DateTime createdAt,  DateTime updatedAt,  bool archived,  DateTime? weekStart)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Board() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_that.archived);case _:
+return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_that.archived,_that.weekStart);case _:
   return orElse();
 
 }
@@ -179,10 +180,10 @@ return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  BoardType type,  DateTime createdAt,  DateTime updatedAt,  bool archived)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  BoardType type,  DateTime createdAt,  DateTime updatedAt,  bool archived,  DateTime? weekStart)  $default,) {final _that = this;
 switch (_that) {
 case _Board():
-return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_that.archived);case _:
+return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_that.archived,_that.weekStart);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +200,10 @@ return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  BoardType type,  DateTime createdAt,  DateTime updatedAt,  bool archived)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  BoardType type,  DateTime createdAt,  DateTime updatedAt,  bool archived,  DateTime? weekStart)?  $default,) {final _that = this;
 switch (_that) {
 case _Board() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_that.archived);case _:
+return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_that.archived,_that.weekStart);case _:
   return null;
 
 }
@@ -214,7 +215,7 @@ return $default(_that.id,_that.name,_that.type,_that.createdAt,_that.updatedAt,_
 @JsonSerializable()
 
 class _Board implements Board {
-  const _Board({required this.id, required this.name, required this.type, required this.createdAt, required this.updatedAt, this.archived = false});
+  const _Board({required this.id, required this.name, required this.type, required this.createdAt, required this.updatedAt, this.archived = false, this.weekStart});
   factory _Board.fromJson(Map<String, dynamic> json) => _$BoardFromJson(json);
 
 @override final  String id;
@@ -223,6 +224,7 @@ class _Board implements Board {
 @override final  DateTime createdAt;
 @override final  DateTime updatedAt;
 @override@JsonKey() final  bool archived;
+@override final  DateTime? weekStart;
 
 /// Create a copy of Board
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +239,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Board&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archived, archived) || other.archived == archived));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Board&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.archived, archived) || other.archived == archived)&&(identical(other.weekStart, weekStart) || other.weekStart == weekStart));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,createdAt,updatedAt,archived);
+int get hashCode => Object.hash(runtimeType,id,name,type,createdAt,updatedAt,archived,weekStart);
 
 @override
 String toString() {
-  return 'Board(id: $id, name: $name, type: $type, createdAt: $createdAt, updatedAt: $updatedAt, archived: $archived)';
+  return 'Board(id: $id, name: $name, type: $type, createdAt: $createdAt, updatedAt: $updatedAt, archived: $archived, weekStart: $weekStart)';
 }
 
 
@@ -257,7 +259,7 @@ abstract mixin class _$BoardCopyWith<$Res> implements $BoardCopyWith<$Res> {
   factory _$BoardCopyWith(_Board value, $Res Function(_Board) _then) = __$BoardCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, BoardType type, DateTime createdAt, DateTime updatedAt, bool archived
+ String id, String name, BoardType type, DateTime createdAt, DateTime updatedAt, bool archived, DateTime? weekStart
 });
 
 
@@ -274,7 +276,7 @@ class __$BoardCopyWithImpl<$Res>
 
 /// Create a copy of Board
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? createdAt = null,Object? updatedAt = null,Object? archived = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? createdAt = null,Object? updatedAt = null,Object? archived = null,Object? weekStart = freezed,}) {
   return _then(_Board(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -282,7 +284,8 @@ as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non
 as BoardType,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,archived: null == archived ? _self.archived : archived // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,weekStart: freezed == weekStart ? _self.weekStart : weekStart // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

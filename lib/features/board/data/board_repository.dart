@@ -16,6 +16,7 @@ class BoardRepository {
       createdAt: row.createdAt as DateTime,
       updatedAt: row.updatedAt as DateTime,
       archived: row.archived as bool,
+      weekStart: row.weekStart as DateTime?,
     );
   }
 
@@ -30,9 +31,23 @@ class BoardRepository {
             createdAt: board.createdAt,
             updatedAt: board.updatedAt,
             archived: Value(board.archived),
+            weekStart: Value(board.weekStart),
           ),
         );
     return board;
+  }
+
+  Future<Board?> getByWeekStart(DateTime monday) async {
+    final query = _db.select(_db.boards)
+      ..where(
+        (b) =>
+            b.weekStart.equals(monday) &
+            b.type.equals('weekly') &
+            b.archived.equals(false),
+      );
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+    return _boardDataToBoard(row);
   }
 
   Future<Board?> getById(String id) async {

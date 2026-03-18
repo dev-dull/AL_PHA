@@ -76,6 +76,17 @@ class $BoardsTable extends Boards with TableInfo<$BoardsTable, BoardRow> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _weekStartMeta = const VerificationMeta(
+    'weekStart',
+  );
+  @override
+  late final GeneratedColumn<DateTime> weekStart = GeneratedColumn<DateTime>(
+    'week_start',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -84,6 +95,7 @@ class $BoardsTable extends Boards with TableInfo<$BoardsTable, BoardRow> {
     createdAt,
     updatedAt,
     archived,
+    weekStart,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -140,6 +152,12 @@ class $BoardsTable extends Boards with TableInfo<$BoardsTable, BoardRow> {
         archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
       );
     }
+    if (data.containsKey('week_start')) {
+      context.handle(
+        _weekStartMeta,
+        weekStart.isAcceptableOrUnknown(data['week_start']!, _weekStartMeta),
+      );
+    }
     return context;
   }
 
@@ -173,6 +191,10 @@ class $BoardsTable extends Boards with TableInfo<$BoardsTable, BoardRow> {
         DriftSqlType.bool,
         data['${effectivePrefix}archived'],
       )!,
+      weekStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}week_start'],
+      ),
     );
   }
 
@@ -189,6 +211,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool archived;
+  final DateTime? weekStart;
   const BoardRow({
     required this.id,
     required this.name,
@@ -196,6 +219,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
     required this.createdAt,
     required this.updatedAt,
     required this.archived,
+    this.weekStart,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -206,6 +230,9 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['archived'] = Variable<bool>(archived);
+    if (!nullToAbsent || weekStart != null) {
+      map['week_start'] = Variable<DateTime>(weekStart);
+    }
     return map;
   }
 
@@ -217,6 +244,9 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       archived: Value(archived),
+      weekStart: weekStart == null && nullToAbsent
+          ? const Value.absent()
+          : Value(weekStart),
     );
   }
 
@@ -232,6 +262,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       archived: serializer.fromJson<bool>(json['archived']),
+      weekStart: serializer.fromJson<DateTime?>(json['weekStart']),
     );
   }
   @override
@@ -244,6 +275,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'archived': serializer.toJson<bool>(archived),
+      'weekStart': serializer.toJson<DateTime?>(weekStart),
     };
   }
 
@@ -254,6 +286,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? archived,
+    Value<DateTime?> weekStart = const Value.absent(),
   }) => BoardRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -261,6 +294,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     archived: archived ?? this.archived,
+    weekStart: weekStart.present ? weekStart.value : this.weekStart,
   );
   BoardRow copyWithCompanion(BoardsCompanion data) {
     return BoardRow(
@@ -270,6 +304,7 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       archived: data.archived.present ? data.archived.value : this.archived,
+      weekStart: data.weekStart.present ? data.weekStart.value : this.weekStart,
     );
   }
 
@@ -281,14 +316,15 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
           ..write('type: $type, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
-          ..write('archived: $archived')
+          ..write('archived: $archived, ')
+          ..write('weekStart: $weekStart')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, name, type, createdAt, updatedAt, archived);
+      Object.hash(id, name, type, createdAt, updatedAt, archived, weekStart);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -298,7 +334,8 @@ class BoardRow extends DataClass implements Insertable<BoardRow> {
           other.type == this.type &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
-          other.archived == this.archived);
+          other.archived == this.archived &&
+          other.weekStart == this.weekStart);
 }
 
 class BoardsCompanion extends UpdateCompanion<BoardRow> {
@@ -308,6 +345,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> archived;
+  final Value<DateTime?> weekStart;
   final Value<int> rowid;
   const BoardsCompanion({
     this.id = const Value.absent(),
@@ -316,6 +354,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.archived = const Value.absent(),
+    this.weekStart = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BoardsCompanion.insert({
@@ -325,6 +364,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
     required DateTime createdAt,
     required DateTime updatedAt,
     this.archived = const Value.absent(),
+    this.weekStart = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -338,6 +378,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? archived,
+    Expression<DateTime>? weekStart,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -347,6 +388,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (archived != null) 'archived': archived,
+      if (weekStart != null) 'week_start': weekStart,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -358,6 +400,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? archived,
+    Value<DateTime?>? weekStart,
     Value<int>? rowid,
   }) {
     return BoardsCompanion(
@@ -367,6 +410,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archived: archived ?? this.archived,
+      weekStart: weekStart ?? this.weekStart,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -392,6 +436,9 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
     if (archived.present) {
       map['archived'] = Variable<bool>(archived.value);
     }
+    if (weekStart.present) {
+      map['week_start'] = Variable<DateTime>(weekStart.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -407,6 +454,7 @@ class BoardsCompanion extends UpdateCompanion<BoardRow> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('archived: $archived, ')
+          ..write('weekStart: $weekStart, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1943,6 +1991,7 @@ typedef $$BoardsTableCreateCompanionBuilder =
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<bool> archived,
+      Value<DateTime?> weekStart,
       Value<int> rowid,
     });
 typedef $$BoardsTableUpdateCompanionBuilder =
@@ -1953,6 +2002,7 @@ typedef $$BoardsTableUpdateCompanionBuilder =
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> archived,
+      Value<DateTime?> weekStart,
       Value<int> rowid,
     });
 
@@ -2053,6 +2103,11 @@ class $$BoardsTableFilterComposer
 
   ColumnFilters<bool> get archived => $composableBuilder(
     column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get weekStart => $composableBuilder(
+    column: $table.weekStart,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2170,6 +2225,11 @@ class $$BoardsTableOrderingComposer
     column: $table.archived,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get weekStart => $composableBuilder(
+    column: $table.weekStart,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BoardsTableAnnotationComposer
@@ -2198,6 +2258,9 @@ class $$BoardsTableAnnotationComposer
 
   GeneratedColumn<bool> get archived =>
       $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get weekStart =>
+      $composableBuilder(column: $table.weekStart, builder: (column) => column);
 
   Expression<T> boardColumnsRefs<T extends Object>(
     Expression<T> Function($$BoardColumnsTableAnnotationComposer a) f,
@@ -2313,6 +2376,7 @@ class $$BoardsTableTableManager
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
+                Value<DateTime?> weekStart = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BoardsCompanion(
                 id: id,
@@ -2321,6 +2385,7 @@ class $$BoardsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archived: archived,
+                weekStart: weekStart,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2331,6 +2396,7 @@ class $$BoardsTableTableManager
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<bool> archived = const Value.absent(),
+                Value<DateTime?> weekStart = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BoardsCompanion.insert(
                 id: id,
@@ -2339,6 +2405,7 @@ class $$BoardsTableTableManager
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 archived: archived,
+                weekStart: weekStart,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

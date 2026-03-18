@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import 'package:alpha/features/board/domain/board.dart';
 import 'package:alpha/features/board/domain/board_type.dart';
 import 'package:alpha/features/board/providers/board_providers.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
@@ -16,6 +13,7 @@ import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
 import 'package:alpha/shared/providers.dart';
+import 'package:alpha/shared/week_utils.dart';
 
 /// Returns true if the board's time period has ended and
 /// migration should be suggested.
@@ -93,12 +91,11 @@ Future<void> showMigrationWizard(
   );
 }
 
-/// Returns the name for the next week's board, e.g. "Week of Mar 23".
-String _nextWeekBoardName() {
+/// Returns the Monday of next week.
+DateTime _nextMonday() {
   final now = DateTime.now();
-  // Next Monday.
-  final nextMonday = now.add(Duration(days: 8 - now.weekday));
-  return 'Week of ${DateFormat.MMMd().format(nextMonday)}';
+  final next = now.add(Duration(days: 8 - now.weekday));
+  return DateTime(next.year, next.month, next.day);
 }
 
 class _MigrationWizard extends ConsumerStatefulWidget {
@@ -117,18 +114,6 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
   Set<String> _selectedTaskIds = {};
   List<Task> _migratableTasks = [];
   bool _isExecuting = false;
-
-  /// The fixed weekly columns: M T W T F S S >
-  static const _weeklyColumns = [
-    (label: 'M', position: 0, type: ColumnType.date),
-    (label: 'T', position: 1, type: ColumnType.date),
-    (label: 'W', position: 2, type: ColumnType.date),
-    (label: 'T', position: 3, type: ColumnType.date),
-    (label: 'F', position: 4, type: ColumnType.date),
-    (label: 'S', position: 5, type: ColumnType.date),
-    (label: 'S', position: 6, type: ColumnType.date),
-    (label: '>', position: 7, type: ColumnType.custom),
-  ];
 
   @override
   void initState() {
@@ -271,7 +256,7 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
 
     final theme = Theme.of(context);
     final count = _selectedTaskIds.length;
-    final targetName = _nextWeekBoardName();
+    final targetName = weekBoardName(_nextMonday());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,42 +362,21 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
     setState(() => _isExecuting = true);
 
     try {
+      final now = DateTime.now();
       final taskActions = ref.read(taskActionsProvider);
       final markerRepo = ref.read(markerRepositoryProvider);
       final columnsAsync = ref.read(columnListProvider(widget.sourceBoardId));
       final sourceColumns = columnsAsync.valueOrNull ?? [];
 
-      // Create a new weekly board for next week.
-      final now = DateTime.now();
-      final nextMonday = now.add(Duration(days: 8 - now.weekday));
-      final targetBoardId = _uuid.v4();
-      final targetName = _nextWeekBoardName();
+      // Lookup or create the next week's board.
+      final nextMon = _nextMonday();
+      final targetBoardId = await ref.read(weeklyBoardProvider(nextMon).future);
+      final targetName = weekBoardName(nextMon);
 
-      final board = Board(
-        id: targetBoardId,
-        name: targetName,
-        type: BoardType.weekly,
-        createdAt: DateTime(nextMonday.year, nextMonday.month, nextMonday.day),
-        updatedAt: now,
-      );
-
-      await ref.read(boardActionsProvider).create(board);
-
-      final columnActions = ref.read(columnActionsProvider);
-      for (final col in _weeklyColumns) {
-        await columnActions.create(
-          BoardColumn(
-            id: _uuid.v4(),
-            boardId: targetBoardId,
-            label: col.label,
-            position: col.position,
-            type: col.type,
-          ),
-        );
-      }
-
-      // Migrate selected tasks.
-      var nextPosition = 0;
+      // Get existing tasks in target to compute next position.
+      final targetTasksAsync = ref.read(taskListProvider(targetBoardId));
+      final existingCount = targetTasksAsync.valueOrNull?.length ?? 0;
+      var nextPosition = existingCount;
       for (final task in _migratableTasks) {
         if (!_selectedTaskIds.contains(task.id)) continue;
 
@@ -465,7 +429,6 @@ class _MigrationWizardState extends ConsumerState<_MigrationWizard> {
       );
 
       Navigator.of(context).pop();
-      context.goNamed('boardDetail', pathParameters: {'id': targetBoardId});
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(

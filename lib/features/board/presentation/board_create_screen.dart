@@ -8,8 +8,9 @@ import 'package:alpha/features/board/domain/board.dart';
 import 'package:alpha/features/board/domain/board_type.dart';
 import 'package:alpha/features/board/providers/board_providers.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
+import 'package:alpha/shared/week_utils.dart';
 
 class BoardCreateScreen extends ConsumerStatefulWidget {
   const BoardCreateScreen({super.key});
@@ -37,18 +38,6 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
     super.dispose();
   }
 
-  /// The fixed weekly columns: M T W T F S S >
-  static const _weeklyColumns = [
-    (label: 'M', position: 0, type: ColumnType.date),
-    (label: 'T', position: 1, type: ColumnType.date),
-    (label: 'W', position: 2, type: ColumnType.date),
-    (label: 'T', position: 3, type: ColumnType.date),
-    (label: 'F', position: 4, type: ColumnType.date),
-    (label: 'S', position: 5, type: ColumnType.date),
-    (label: 'S', position: 6, type: ColumnType.date),
-    (label: '>', position: 7, type: ColumnType.custom),
-  ];
-
   Future<void> _createBoard() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -58,20 +47,21 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
       const uuid = Uuid();
       final now = DateTime.now();
       final boardId = uuid.v4();
+      final monday = mondayOfWeek(now);
 
       final board = Board(
         id: boardId,
         name: _nameController.text.trim(),
         type: BoardType.weekly,
+        weekStart: monday,
         createdAt: now,
         updatedAt: now,
       );
 
       await ref.read(boardActionsProvider).create(board);
 
-      // Create fixed weekly columns.
       final columnActions = ref.read(columnActionsProvider);
-      for (final col in _weeklyColumns) {
+      for (final col in weeklyColumnDefs) {
         await columnActions.create(
           BoardColumn(
             id: uuid.v4(),

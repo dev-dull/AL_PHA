@@ -13,6 +13,9 @@ _Board _$BoardFromJson(Map<String, dynamic> json) => _Board(
   createdAt: DateTime.parse(json['createdAt'] as String),
   updatedAt: DateTime.parse(json['updatedAt'] as String),
   archived: json['archived'] as bool? ?? false,
+  weekStart: json['weekStart'] == null
+      ? null
+      : DateTime.parse(json['weekStart'] as String),
 );
 
 Map<String, dynamic> _$BoardToJson(_Board instance) => <String, dynamic>{
@@ -22,6 +25,7 @@ Map<String, dynamic> _$BoardToJson(_Board instance) => <String, dynamic>{
   'createdAt': instance.createdAt.toIso8601String(),
   'updatedAt': instance.updatedAt.toIso8601String(),
   'archived': instance.archived,
+  'weekStart': instance.weekStart?.toIso8601String(),
 };
 
 const _$BoardTypeEnumMap = {
