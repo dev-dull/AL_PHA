@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:alpha/features/board/presentation/weekly_view_screen.dart';
 import 'package:alpha/features/board/presentation/monthly_view_screen.dart';
-import 'package:alpha/features/board/presentation/quarterly_view_screen.dart';
 import 'package:alpha/features/board/presentation/yearly_view_screen.dart';
 
+
 /// Root shell with bottom navigation for weekly, monthly,
-/// quarterly, and yearly views.
+/// and yearly views.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -15,17 +15,34 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
+  DateTime? _targetMonday;
+
+  /// Called by monthly/yearly views to jump to a specific week.
+  void _navigateToWeek(DateTime monday) {
+    setState(() {
+      _targetMonday = monday;
+      _currentIndex = 0;
+    });
+  }
 
   Widget _buildBody() {
     switch (_currentIndex) {
       case 0:
-        return const WeeklyViewScreen();
+        final monday = _targetMonday;
+        // Clear the target after using it.
+        if (monday != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _targetMonday = null);
+          });
+        }
+        return WeeklyViewScreen(
+          key: monday != null ? ValueKey(monday) : null,
+          initialMonday: monday,
+        );
       case 1:
-        return const MonthlyViewScreen();
+        return MonthlyViewScreen(onDayTap: _navigateToWeek);
       case 2:
-        return const QuarterlyViewScreen();
-      case 3:
-        return const YearlyViewScreen();
+        return YearlyViewScreen(onDayTap: _navigateToWeek);
       default:
         return const WeeklyViewScreen();
     }
@@ -38,7 +55,8 @@ class _HomeShellState extends State<HomeShell> {
         Expanded(child: _buildBody()),
         NavigationBar(
           selectedIndex: _currentIndex,
-          onDestinationSelected: (i) => setState(() => _currentIndex = i),
+          onDestinationSelected: (i) =>
+              setState(() => _currentIndex = i),
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.view_week_outlined),
@@ -51,11 +69,6 @@ class _HomeShellState extends State<HomeShell> {
               label: 'Monthly',
             ),
             NavigationDestination(
-              icon: Icon(Icons.date_range_outlined),
-              selectedIcon: Icon(Icons.date_range),
-              label: 'Quarterly',
-            ),
-            NavigationDestination(
               icon: Icon(Icons.calendar_today_outlined),
               selectedIcon: Icon(Icons.calendar_today),
               label: 'Yearly',
@@ -66,4 +79,3 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 }
-

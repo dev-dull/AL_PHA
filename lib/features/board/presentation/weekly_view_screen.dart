@@ -8,7 +8,9 @@ import 'package:alpha/shared/week_utils.dart';
 /// The primary weekly view: auto-creates boards per week and
 /// navigates between weeks via chevron buttons.
 class WeeklyViewScreen extends ConsumerStatefulWidget {
-  const WeeklyViewScreen({super.key});
+  final DateTime? initialMonday;
+
+  const WeeklyViewScreen({super.key, this.initialMonday});
 
   @override
   ConsumerState<WeeklyViewScreen> createState() => _WeeklyViewScreenState();
@@ -20,7 +22,7 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   @override
   void initState() {
     super.initState();
-    _currentMonday = mondayOfWeek(DateTime.now());
+    _currentMonday = widget.initialMonday ?? mondayOfWeek(DateTime.now());
   }
 
   /// Runs auto-fill on the board being left, then navigates.

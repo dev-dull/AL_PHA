@@ -45,11 +45,6 @@ bool isBoardPeriodEnded(Board board) {
       );
       return today.isAfter(lastDay);
 
-    case BoardType.quarterly:
-      final qMonth = ((created.month - 1) ~/ 3) * 3 + 1;
-      final lastDay = DateTime(created.year, qMonth + 3, 0);
-      return today.isAfter(lastDay);
-
     case BoardType.yearly:
       final lastDay = DateTime(created.year, 12, 31);
       return today.isAfter(lastDay);

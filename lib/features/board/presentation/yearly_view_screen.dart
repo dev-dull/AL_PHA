@@ -1,52 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:alpha/features/board/presentation/board_grid_body.dart';
-import 'package:alpha/features/board/providers/period_board_provider.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:intl/intl.dart';
+import 'package:alpha/features/board/providers/day_summary_provider.dart';
 import 'package:alpha/shared/period_utils.dart';
+import 'package:alpha/shared/week_utils.dart';
 
+/// Yearly overview showing 12 mini-month calendars.
+/// Each day is a small colored square based on task activity.
+/// Tapping a day jumps to the weekly view for that week.
 class YearlyViewScreen extends ConsumerStatefulWidget {
-  const YearlyViewScreen({super.key});
+  final void Function(DateTime monday) onDayTap;
+
+  const YearlyViewScreen({super.key, required this.onDayTap});
 
   @override
   ConsumerState<YearlyViewScreen> createState() =>
       _YearlyViewScreenState();
 }
 
-class _YearlyViewScreenState extends ConsumerState<YearlyViewScreen> {
-  late DateTime _currentYearStart;
+class _YearlyViewScreenState
+    extends ConsumerState<YearlyViewScreen> {
+  late DateTime _currentYear;
 
   @override
   void initState() {
     super.initState();
-    _currentYearStart = firstOfYear(DateTime.now());
+    _currentYear = firstOfYear(DateTime.now());
   }
 
-  Future<void> _changeYear(DateTime newYearStart) async {
-    final oldStart = _currentYearStart;
-    final oldBoardId = ref
-        .read(yearlyBoardProvider(oldStart))
-        .valueOrNull;
-    if (oldBoardId != null) {
-      await ref
-          .read(markerActionsProvider)
-          .autoFillMissedDays(boardId: oldBoardId);
-    }
-    if (mounted) setState(() => _currentYearStart = newYearStart);
-  }
-
-  void _goPrevious() =>
-      _changeYear(previousYear(_currentYearStart));
-  void _goNext() => _changeYear(nextYear(_currentYearStart));
-
+  void _goToPrevious() =>
+      setState(() => _currentYear = previousYear(_currentYear));
+  void _goToNext() =>
+      setState(() => _currentYear = nextYear(_currentYear));
   void _goToCurrent() =>
-      _changeYear(firstOfYear(DateTime.now()));
+      setState(() => _currentYear = firstOfYear(DateTime.now()));
 
   @override
   Widget build(BuildContext context) {
-    final title = yearBoardName(_currentYearStart);
+    final title = yearBoardName(_currentYear);
     final isCurrent =
-        _currentYearStart == firstOfYear(DateTime.now());
+        _currentYear == firstOfYear(DateTime.now());
+
+    final rangeEnd = nextYear(_currentYear);
+    final summariesAsync = ref.watch(
+      daySummariesProvider(_currentYear, rangeEnd),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -58,7 +56,7 @@ class _YearlyViewScreenState extends ConsumerState<YearlyViewScreen> {
           IconButton(
             icon: const Icon(Icons.chevron_left),
             tooltip: 'Previous year',
-            onPressed: _goPrevious,
+            onPressed: _goToPrevious,
           ),
           IconButton(
             icon: const Icon(Icons.today),
@@ -68,33 +66,196 @@ class _YearlyViewScreenState extends ConsumerState<YearlyViewScreen> {
           IconButton(
             icon: const Icon(Icons.chevron_right),
             tooltip: 'Next year',
-            onPressed: _goNext,
+            onPressed: _goToNext,
           ),
         ],
       ),
-      body: _YearPage(
-        key: ValueKey(_currentYearStart),
-        yearStart: _currentYearStart,
+      body: summariesAsync.when(
+        data: (summaries) => _YearGrid(
+          year: _currentYear,
+          summaries: summaries,
+          onDayTap: widget.onDayTap,
+        ),
+        loading: () =>
+            const Center(child: CircularProgressIndicator()),
+        error: (e, st) => Center(child: Text('Error: $e')),
       ),
     );
   }
 }
 
-class _YearPage extends ConsumerWidget {
-  final DateTime yearStart;
+class _YearGrid extends StatelessWidget {
+  final DateTime year;
+  final Map<DateTime, DaySummary> summaries;
+  final void Function(DateTime monday) onDayTap;
 
-  const _YearPage({super.key, required this.yearStart});
+  const _YearGrid({
+    required this.year,
+    required this.summaries,
+    required this.onDayTap,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final boardIdAsync = ref.watch(yearlyBoardProvider(yearStart));
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8),
+      child: GridView.builder(
+        gridDelegate:
+            const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 0.85,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: 12,
+        itemBuilder: (context, monthIndex) {
+          final monthStart =
+              DateTime(year.year, monthIndex + 1);
+          return _MiniMonth(
+            monthStart: monthStart,
+            summaries: summaries,
+            onDayTap: onDayTap,
+          );
+        },
+      ),
+    );
+  }
+}
 
-    return boardIdAsync.when(
-      data: (boardId) =>
-          BoardGridBody(key: ValueKey(boardId), boardId: boardId),
-      loading: () =>
-          const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text('Error: $e')),
+class _MiniMonth extends StatelessWidget {
+  final DateTime monthStart;
+  final Map<DateTime, DaySummary> summaries;
+  final void Function(DateTime monday) onDayTap;
+
+  const _MiniMonth({
+    required this.monthStart,
+    required this.summaries,
+    required this.onDayTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final brightness = theme.brightness;
+    final numDays = daysInMonth(monthStart);
+    final startOffset = firstWeekdayOfMonth(monthStart) - 1;
+    final today = DateTime.now();
+    final todayKey = DateTime(today.year, today.month, today.day);
+    final monthName = DateFormat.MMM().format(monthStart);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 4),
+          child: Text(
+            monthName,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: GridView.builder(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 1,
+              crossAxisSpacing: 1,
+            ),
+            itemCount: startOffset + numDays,
+            itemBuilder: (context, index) {
+              if (index < startOffset) {
+                return const SizedBox.shrink();
+              }
+              final day = index - startOffset + 1;
+              final date =
+                  DateTime(monthStart.year, monthStart.month, day);
+              final dateKey =
+                  DateTime(date.year, date.month, date.day);
+              final summary = summaries[dateKey];
+              final isToday = dateKey == todayKey;
+
+              return _MiniDayCell(
+                summary: summary,
+                isToday: isToday,
+                isPast: dateKey.isBefore(todayKey),
+                brightness: brightness,
+                onTap: () => onDayTap(mondayOfWeek(date)),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniDayCell extends StatelessWidget {
+  final DaySummary? summary;
+  final bool isToday;
+  final bool isPast;
+  final Brightness brightness;
+  final VoidCallback onTap;
+
+  const _MiniDayCell({
+    this.summary,
+    required this.isToday,
+    required this.isPast,
+    required this.brightness,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final s = summary;
+    final hasData = s != null && !s.isEmpty;
+
+    Color color;
+    if (hasData) {
+      if (s.completed > 0 && s.missed == 0) {
+        color = brightness == Brightness.dark
+            ? const Color(0xFF8FC4A0)
+            : const Color(0xFF3D7A55);
+      } else if (s.missed > 0 && s.completed == 0) {
+        color = brightness == Brightness.dark
+            ? const Color(0xFFE57373)
+            : const Color(0xFFC0392B);
+      } else if (s.missed > 0 && s.completed > 0) {
+        color = brightness == Brightness.dark
+            ? const Color(0xFFFFB74D)
+            : const Color(0xFFE65100);
+      } else if (s.inProgress > 0 || s.scheduled > 0) {
+        color = brightness == Brightness.dark
+            ? const Color(0xFF6CA6E0)
+            : const Color(0xFF2B5E9E);
+      } else {
+        color = brightness == Brightness.dark
+            ? const Color(0xFFC4A0D4)
+            : const Color(0xFF5C3A6E);
+      }
+    } else {
+      color = isPast
+          ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
+          : Colors.transparent;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(2),
+          color: color,
+          border: isToday
+              ? Border.all(
+                  color: theme.colorScheme.primary,
+                  width: 1.5,
+                )
+              : null,
+        ),
+      ),
     );
   }
 }

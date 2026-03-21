@@ -2,7 +2,6 @@ enum BoardType {
   daily,
   weekly,
   monthly,
-  quarterly,
   yearly,
   custom;
 
@@ -14,8 +13,6 @@ enum BoardType {
         return 'Weekly';
       case BoardType.monthly:
         return 'Monthly';
-      case BoardType.quarterly:
-        return 'Quarterly';
       case BoardType.yearly:
         return 'Yearly';
       case BoardType.custom:
