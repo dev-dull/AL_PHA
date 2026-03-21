@@ -295,10 +295,6 @@ class MarkerActions {
 
     final task = await taskRepo.getById(taskId);
     if (task == null) return;
-    if (task.state != TaskState.open &&
-        task.state != TaskState.inProgress) {
-      return;
-    }
 
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
@@ -320,14 +316,10 @@ class MarkerActions {
     final dotPositions = <int>{};
     for (final col in sourceColumns) {
       if (col.type != ColumnType.date) continue;
-      final hasDot = sourceMarkers.any(
-        (m) =>
-            m.taskId == taskId &&
-            m.columnId == col.id &&
-            (m.symbol == MarkerSymbol.dot ||
-                m.symbol == MarkerSymbol.migratedForward),
+      final hasMarker = sourceMarkers.any(
+        (m) => m.taskId == taskId && m.columnId == col.id,
       );
-      if (hasDot) dotPositions.add(col.position);
+      if (hasMarker) dotPositions.add(col.position);
     }
 
     final now = DateTime.now();
