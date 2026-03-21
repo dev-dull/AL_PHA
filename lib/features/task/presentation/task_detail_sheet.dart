@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/recurrence.dart';
 
+enum _SeriesChoice { thisEvent, allEvents }
+
 /// Bottom sheet for editing task details: title, description,
 /// priority, deadline, event settings, and delete.
 class TaskDetailSheet extends StatefulWidget {
@@ -90,7 +92,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) return;
 
@@ -104,11 +106,39 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       recurrenceRule:
           _isEvent ? buildRRule(_recurrence, _scheduledDays) : null,
     );
-    widget.onSave(updated);
-    Navigator.of(context).pop();
+
+    // If the original task is a recurring event, ask whether to
+    // update this single occurrence or the entire series.
+    if (widget.task.isEvent && widget.task.recurrenceRule != null) {
+      final choice = await _showSeriesPrompt('Edit');
+      if (choice == null) return; // cancelled
+      if (choice == _SeriesChoice.thisEvent) {
+        // Strip recurrence so it becomes a standalone event.
+        widget.onSave(updated.copyWith(recurrenceRule: null));
+      } else {
+        widget.onSave(updated);
+      }
+    } else {
+      widget.onSave(updated);
+    }
+
+    if (mounted) Navigator.of(context).pop();
   }
 
   Future<void> _confirmDelete() async {
+    // For recurring events, ask about series scope first.
+    if (widget.task.isEvent && widget.task.recurrenceRule != null) {
+      final choice = await _showSeriesPrompt('Delete');
+      if (choice == null) return;
+      if (choice == _SeriesChoice.thisEvent) {
+        // Strip recurrence so migration won't recreate it, then
+        // delete.
+        widget.onSave(widget.task.copyWith(recurrenceRule: null));
+      }
+      // Both choices ultimately delete from the current board.
+    }
+
+    if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -137,6 +167,35 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       widget.onDelete();
       Navigator.of(context).pop();
     }
+  }
+
+  Future<_SeriesChoice?> _showSeriesPrompt(String action) {
+    return showDialog<_SeriesChoice>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$action Recurring Event'),
+        content: const Text(
+          'This event is part of a series. Do you want to '
+          'update this event only, or all events in the series?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            onPressed: () =>
+                Navigator.of(ctx).pop(_SeriesChoice.thisEvent),
+            child: const Text('This Event'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(ctx).pop(_SeriesChoice.allEvents),
+            child: const Text('All Events'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickDeadline() async {
