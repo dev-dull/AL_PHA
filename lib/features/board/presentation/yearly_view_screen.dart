@@ -215,27 +215,15 @@ class _MiniDayCell extends StatelessWidget {
 
     Color color;
     if (hasData) {
-      if (s.completed > 0 && s.missed == 0) {
-        color = brightness == Brightness.dark
-            ? const Color(0xFF8FC4A0)
-            : const Color(0xFF3D7A55);
-      } else if (s.missed > 0 && s.completed == 0) {
-        color = brightness == Brightness.dark
-            ? const Color(0xFFE57373)
-            : const Color(0xFFC0392B);
-      } else if (s.missed > 0 && s.completed > 0) {
-        color = brightness == Brightness.dark
-            ? const Color(0xFFFFB74D)
-            : const Color(0xFFE65100);
-      } else if (s.inProgress > 0 || s.scheduled > 0) {
-        color = brightness == Brightness.dark
-            ? const Color(0xFF6CA6E0)
-            : const Color(0xFF2B5E9E);
-      } else {
-        color = brightness == Brightness.dark
-            ? const Color(0xFFC4A0D4)
-            : const Color(0xFF5C3A6E);
-      }
+      // Gradient from red (0% completed) to green (100% completed).
+      final rate = s.completionRate;
+      final red = brightness == Brightness.dark
+          ? const Color(0xFFE57373)
+          : const Color(0xFFC0392B);
+      final green = brightness == Brightness.dark
+          ? const Color(0xFF8FC4A0)
+          : const Color(0xFF3D7A55);
+      color = Color.lerp(red, green, rate)!;
     } else {
       color = isPast
           ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
