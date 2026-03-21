@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:alpha/features/column/domain/column_type.dart';
@@ -91,7 +92,14 @@ void main() {
       expect(find.text('•'), findsOneWidget);
     });
 
-    testWidgets('tap cycles dot to slash to x to empty', (tester) async {
+    testWidgets('tap on existing symbol opens radial menu', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final container = await tester.pumpApp(
         const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
@@ -103,7 +111,11 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
+        column: makeColumn(
+          id: colId,
+          boardId: boardId,
+          type: ColumnType.date,
+        ),
       );
       await seedMarker(
         container,
@@ -116,27 +128,20 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // dot -> slash
-      await tester.tap(find.byType(MarkerCell));
-      await tester.pumpAndSettle();
-      expect(find.text('/'), findsOneWidget);
-
-      // slash -> x
-      await tester.tap(find.byType(MarkerCell));
-      await tester.pumpAndSettle();
-      expect(find.text('X'), findsOneWidget);
-
-      // x -> empty
+      // Tap existing dot — should open radial menu with all symbols
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      for (final symbol in MarkerSymbol.values) {
-        expect(find.text(symbol.displayChar), findsNothing);
+      // Radial menu shows symbol characters (plus clear ∅)
+      for (final sym in MarkerSymbol.values) {
+        expect(find.text(sym.displayChar), findsWidgets);
       }
+      expect(find.text('∅'), findsOneWidget);
     });
 
-    testWidgets('long-press opens picker sheet', (tester) async {
-      // Increase surface size to avoid overflow in the picker sheet
+    testWidgets('selecting symbol from radial menu sets marker', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 1200);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -153,53 +158,87 @@ void main() {
       );
       await seedColumn(
         container,
-        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
+        column: makeColumn(
+          id: colId,
+          boardId: boardId,
+          type: ColumnType.date,
+        ),
       );
-      await tester.pumpAndSettle();
-
-      await tester.longPress(find.byType(MarkerCell));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Set Marker'), findsOneWidget);
-      expect(find.text('Scheduled'), findsOneWidget);
-      expect(find.text('In Progress'), findsOneWidget);
-      expect(find.text('Done'), findsOneWidget);
-      expect(find.text('Migrated'), findsOneWidget);
-      expect(find.text('Done Early'), findsOneWidget);
-      expect(find.text('Event'), findsOneWidget);
-      expect(find.text('Clear'), findsOneWidget);
-    });
-
-    testWidgets('selecting symbol from picker sets marker', (tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-
-      final container = await tester.pumpApp(
-        const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
-      );
-
-      await seedBoard(container, board: makeBoard(id: boardId));
-      await seedTask(
+      await seedMarker(
         container,
-        task: makeTask(id: taskId, boardId: boardId),
-      );
-      await seedColumn(
-        container,
-        column: makeColumn(id: colId, boardId: boardId, type: ColumnType.date),
+        marker: makeMarker(
+          taskId: taskId,
+          columnId: colId,
+          boardId: boardId,
+          symbol: MarkerSymbol.dot,
+        ),
       );
       await tester.pumpAndSettle();
 
-      // Long-press to open picker
-      await tester.longPress(find.byType(MarkerCell));
+      // Tap to open radial menu
+      await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Select Event
-      await tester.tap(find.text('Event'));
+      // Tap the ○ (event) symbol in the radial menu
+      await tester.tap(find.text('○'));
       await tester.pumpAndSettle();
 
       expect(find.text('○'), findsOneWidget);
+    });
+
+    testWidgets('clearing via radial menu removes marker', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // Center the widget so radial menu items stay on screen.
+      final container = await tester.pumpApp(
+        const Center(
+          child: MarkerCell(
+            boardId: boardId,
+            taskId: taskId,
+            columnId: colId,
+          ),
+        ),
+      );
+
+      await seedBoard(container, board: makeBoard(id: boardId));
+      await seedTask(
+        container,
+        task: makeTask(id: taskId, boardId: boardId),
+      );
+      await seedColumn(
+        container,
+        column: makeColumn(
+          id: colId,
+          boardId: boardId,
+          type: ColumnType.date,
+        ),
+      );
+      await seedMarker(
+        container,
+        marker: makeMarker(
+          taskId: taskId,
+          columnId: colId,
+          boardId: boardId,
+          symbol: MarkerSymbol.slash,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap to open radial menu
+      await tester.tap(find.byType(MarkerCell));
+      await tester.pumpAndSettle();
+
+      // Tap clear (∅)
+      await tester.tap(find.text('∅'));
+      await tester.pumpAndSettle();
+
+      // After menu dismisses, no symbol should remain in the cell
+      expect(find.text('/'), findsNothing);
     });
   });
 }

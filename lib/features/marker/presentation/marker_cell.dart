@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/app/theme.dart';
@@ -8,9 +10,9 @@ import 'package:alpha/features/marker/providers/marker_providers.dart';
 
 /// A single cell in the board grid matrix.
 ///
-/// Displays the current marker symbol (or empty) at the
-/// intersection of a task row and a column. Supports
-/// tap-to-cycle and long-press to pick any symbol.
+/// Tap an empty cell → sets a dot immediately.
+/// Tap a cell with a symbol → shows a radial menu to pick
+/// any symbol or clear.
 class MarkerCell extends ConsumerWidget {
   final String boardId;
   final String taskId;
@@ -47,8 +49,7 @@ class MarkerCell extends ConsumerWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(4),
-          onTap: () => _onTap(ref),
-          onLongPress: () => _onLongPress(context, ref, marker),
+          onTap: () => _onTap(context, ref, marker),
           child: Center(
             child: Text(
               symbol?.displayChar ?? '',
@@ -64,95 +65,253 @@ class MarkerCell extends ConsumerWidget {
     );
   }
 
-  void _onTap(WidgetRef ref) {
-    ref
-        .read(markerActionsProvider)
-        .cycleMarker(boardId: boardId, taskId: taskId, columnId: columnId);
+  void _onTap(BuildContext context, WidgetRef ref, Marker? marker) {
+    if (marker == null) {
+      // Empty cell — set dot (or > for migration column).
+      final isMigration = columnType != ColumnType.date;
+      ref.read(markerActionsProvider).setMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: columnId,
+        symbol: isMigration
+            ? MarkerSymbol.migratedForward
+            : MarkerSymbol.dot,
+      );
+    } else {
+      // Has a symbol — show radial menu.
+      _showRadialMenu(context, ref, marker);
+    }
   }
 
-  void _onLongPress(
+  void _showRadialMenu(
     BuildContext context,
     WidgetRef ref,
-    Marker? currentMarker,
+    Marker currentMarker,
   ) {
-    final isMigrationColumn = columnType != ColumnType.date;
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => _MarkerPickerSheet(
-        currentSymbol: currentMarker?.symbol,
-        isMigrationColumn: isMigrationColumn,
+    final isMigration = columnType != ColumnType.date;
+    final renderBox = context.findRenderObject() as RenderBox;
+    final cellCenter = renderBox.localToGlobal(
+      Offset(cellSize / 2, cellSize / 2),
+    );
+
+    Navigator.of(context).push(
+      _RadialMenuRoute(
+        center: cellCenter,
+        currentSymbol: currentMarker.symbol,
+        isMigrationColumn: isMigration,
         onSelected: (symbol) {
-          Navigator.of(ctx).pop();
-          ref
-              .read(markerActionsProvider)
-              .setMarker(
-                boardId: boardId,
-                taskId: taskId,
-                columnId: columnId,
-                symbol: symbol,
-              );
+          ref.read(markerActionsProvider).setMarker(
+            boardId: boardId,
+            taskId: taskId,
+            columnId: columnId,
+            symbol: symbol,
+          );
         },
       ),
     );
   }
 }
 
-/// Bottom sheet listing marker symbols plus a Clear option.
-/// Migration columns only show the > symbol.
-class _MarkerPickerSheet extends StatelessWidget {
-  final MarkerSymbol? currentSymbol;
+// ================================================================
+// Radial menu overlay
+// ================================================================
+
+class _RadialMenuRoute extends PopupRoute<void> {
+  final Offset center;
+  final MarkerSymbol currentSymbol;
   final bool isMigrationColumn;
   final ValueChanged<MarkerSymbol?> onSelected;
 
-  const _MarkerPickerSheet({
+  _RadialMenuRoute({
+    required this.center,
     required this.currentSymbol,
+    required this.isMigrationColumn,
     required this.onSelected,
-    this.isMigrationColumn = false,
+  });
+
+  @override
+  Color? get barrierColor => Colors.black26;
+
+  @override
+  bool get barrierDismissible => true;
+
+  @override
+  String? get barrierLabel => 'Dismiss';
+
+  @override
+  Duration get transitionDuration => const Duration(milliseconds: 200);
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    return _RadialMenuOverlay(
+      center: center,
+      animation: animation,
+      currentSymbol: currentSymbol,
+      isMigrationColumn: isMigrationColumn,
+      onSelected: (symbol) {
+        onSelected(symbol);
+        Navigator.of(context).pop();
+      },
+      onDismiss: () => Navigator.of(context).pop(),
+    );
+  }
+}
+
+class _RadialMenuOverlay extends StatelessWidget {
+  final Offset center;
+  final Animation<double> animation;
+  final MarkerSymbol currentSymbol;
+  final bool isMigrationColumn;
+  final ValueChanged<MarkerSymbol?> onSelected;
+  final VoidCallback onDismiss;
+
+  static const double _radius = 64.0;
+  static const double _itemSize = 44.0;
+
+  const _RadialMenuOverlay({
+    required this.center,
+    required this.animation,
+    required this.currentSymbol,
+    required this.isMigrationColumn,
+    required this.onSelected,
+    required this.onDismiss,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final symbols = isMigrationColumn
-        ? [MarkerSymbol.migratedForward]
-        : MarkerSymbol.values;
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+    final brightness = theme.brightness;
+
+    // Build the list of menu items.
+    final items = <_RadialItem>[];
+
+    if (isMigrationColumn) {
+      items.add(_RadialItem(
+        symbol: MarkerSymbol.migratedForward,
+        label: '>',
+        color: AlphaTheme.markerColor(
+          MarkerSymbol.migratedForward,
+          brightness,
+        ),
+      ));
+    } else {
+      for (final sym in MarkerSymbol.values) {
+        items.add(_RadialItem(
+          symbol: sym,
+          label: sym.displayChar,
+          color: AlphaTheme.markerColor(sym, brightness),
+        ));
+      }
+    }
+
+    // Add clear option.
+    items.add(_RadialItem(
+      symbol: null,
+      label: '∅',
+      color: theme.colorScheme.error,
+    ));
+
+    final itemCount = items.length;
+    final angleStep = 2 * math.pi / itemCount;
+    // Start from the top (-π/2).
+    const startAngle = -math.pi / 2;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onDismiss,
+      child: Stack(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text('Set Marker', style: theme.textTheme.titleMedium),
-          ),
-          const Divider(height: 1),
-          ...symbols.map((symbol) {
-            final color = AlphaTheme.markerColor(symbol, theme.brightness);
-            final isSelected = symbol == currentSymbol;
-            return ListTile(
-              leading: Text(
-                symbol.displayChar,
-                style: TextStyle(
-                  fontSize: 22,
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              title: Text(symbol.displayName),
-              trailing: isSelected
-                  ? Icon(Icons.check, color: theme.colorScheme.primary)
-                  : null,
-              onTap: () => onSelected(symbol),
-            );
-          }),
-          const Divider(height: 1),
-          ListTile(
-            leading: Icon(Icons.clear, color: theme.colorScheme.error),
-            title: const Text('Clear'),
-            onTap: () => onSelected(null),
-          ),
-          const SizedBox(height: 8),
+          for (var i = 0; i < itemCount; i++)
+            _buildItem(
+              context,
+              items[i],
+              startAngle + angleStep * i,
+              brightness,
+            ),
         ],
       ),
     );
   }
+
+  Widget _buildItem(
+    BuildContext context,
+    _RadialItem item,
+    double angle,
+    Brightness brightness,
+  ) {
+    final theme = Theme.of(context);
+    final isSelected = item.symbol == currentSymbol;
+
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final progress = Curves.easeOutBack.transform(animation.value);
+        final dx = math.cos(angle) * _radius * progress;
+        final dy = math.sin(angle) * _radius * progress;
+
+        return Positioned(
+          left: center.dx + dx - _itemSize / 2,
+          top: center.dy + dy - _itemSize / 2,
+          child: Opacity(
+            opacity: animation.value,
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTap: () => onSelected(item.symbol),
+        child: Container(
+          width: _itemSize,
+          height: _itemSize,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isSelected
+                ? theme.colorScheme.primaryContainer
+                : (brightness == Brightness.dark
+                    ? AlphaTheme.paperDarkVariant
+                    : AlphaTheme.paperLightVariant),
+            border: Border.all(
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.2),
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              item.label,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: item.color,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RadialItem {
+  final MarkerSymbol? symbol;
+  final String label;
+  final Color color;
+
+  const _RadialItem({
+    required this.symbol,
+    required this.label,
+    required this.color,
+  });
 }

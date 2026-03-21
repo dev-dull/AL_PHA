@@ -14,33 +14,30 @@ class WeeklyViewScreen extends ConsumerStatefulWidget {
 }
 
 class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
-  late final PageController _pageController;
   late DateTime _currentMonday;
 
   @override
   void initState() {
     super.initState();
     _currentMonday = mondayOfWeek(DateTime.now());
-    _pageController = PageController(initialPage: weekPageCenter);
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  void _goToPreviousWeek() {
+    setState(() {
+      _currentMonday = _currentMonday.subtract(const Duration(days: 7));
+    });
   }
 
-  void _goToPage(int page) {
-    _pageController.animateToPage(
-      page,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+  void _goToNextWeek() {
+    setState(() {
+      _currentMonday = _currentMonday.add(const Duration(days: 7));
+    });
   }
 
   void _goToToday() {
-    final todayPage = pageIndexFromMonday(mondayOfWeek(DateTime.now()));
-    _goToPage(todayPage);
+    setState(() {
+      _currentMonday = mondayOfWeek(DateTime.now());
+    });
   }
 
   @override
@@ -58,10 +55,7 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
           IconButton(
             icon: const Icon(Icons.chevron_left),
             tooltip: 'Previous week',
-            onPressed: () {
-              final current = _pageController.page?.round() ?? weekPageCenter;
-              _goToPage(current - 1);
-            },
+            onPressed: _goToPreviousWeek,
           ),
           IconButton(
             icon: const Icon(Icons.today),
@@ -71,25 +65,11 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
           IconButton(
             icon: const Icon(Icons.chevron_right),
             tooltip: 'Next week',
-            onPressed: () {
-              final current = _pageController.page?.round() ?? weekPageCenter;
-              _goToPage(current + 1);
-            },
+            onPressed: _goToNextWeek,
           ),
         ],
       ),
-      body: PageView.builder(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentMonday = mondayFromPageIndex(index);
-          });
-        },
-        itemBuilder: (context, index) {
-          final monday = mondayFromPageIndex(index);
-          return _WeekPage(key: ValueKey(monday), monday: monday);
-        },
-      ),
+      body: _WeekPage(key: ValueKey(_currentMonday), monday: _currentMonday),
     );
   }
 }
