@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:alpha/features/task/domain/task.dart';
+import 'package:alpha/features/task/domain/recurrence.dart';
 
 /// Bottom sheet for editing task details: title, description,
-/// priority, deadline, and delete.
+/// priority, deadline, event settings, and delete.
 class TaskDetailSheet extends StatefulWidget {
   final Task task;
 
@@ -46,6 +47,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late DateTime? _deadline;
   late bool _isEvent;
   late TimeOfDay? _scheduledTime;
+  late RecurrenceFrequency _recurrence;
+  late Set<int> _scheduledDays;
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -58,6 +61,10 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     _deadline = widget.task.deadline;
     _isEvent = widget.task.isEvent;
     _scheduledTime = _parseTime(widget.task.scheduledTime);
+
+    final (freq, days) = parseRRule(widget.task.recurrenceRule);
+    _recurrence = freq;
+    _scheduledDays = days;
   }
 
   static TimeOfDay? _parseTime(String? time) {
@@ -94,6 +101,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       deadline: _deadline,
       isEvent: _isEvent,
       scheduledTime: _isEvent ? _formatTime(_scheduledTime) : null,
+      recurrenceRule:
+          _isEvent ? buildRRule(_recurrence, _scheduledDays) : null,
     );
     widget.onSave(updated);
     Navigator.of(context).pop();
@@ -263,13 +272,58 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               contentPadding: EdgeInsets.zero,
               onChanged: (v) => setState(() {
                 _isEvent = v;
-                if (!v) _scheduledTime = null;
+                if (!v) {
+                  _scheduledTime = null;
+                  _recurrence = RecurrenceFrequency.none;
+                  _scheduledDays.clear();
+                }
               }),
             ),
 
-            // Scheduled time picker (only shown for events)
+            // Event-specific fields
             if (_isEvent) ...[
               const SizedBox(height: 4),
+
+              // Day picker
+              Text(
+                'Scheduled Days',
+                style: theme.textTheme.labelMedium,
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(7, (i) {
+                  final selected = _scheduledDays.contains(i);
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      if (selected) {
+                        _scheduledDays.remove(i);
+                      } else {
+                        _scheduledDays.add(i);
+                      }
+                    }),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: selected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.surfaceContainerHighest,
+                      child: Text(
+                        dayLabels[i].substring(0, 1),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: selected
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 12),
+
+              // Time picker
               InkWell(
                 onTap: () async {
                   final picked = await showTimePicker(
@@ -304,6 +358,33 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                             ),
                           )
                         : null,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Recurrence picker
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Repeat',
+                  border: OutlineInputBorder(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<RecurrenceFrequency>(
+                    value: _recurrence,
+                    isDense: true,
+                    isExpanded: true,
+                    items: RecurrenceFrequency.values
+                        .map((f) => DropdownMenuItem(
+                              value: f,
+                              child: Text(f.displayName),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setState(() => _recurrence = v);
+                      }
+                    },
                   ),
                 ),
               ),

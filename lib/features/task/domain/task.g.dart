@@ -26,6 +26,7 @@ _Task _$TaskFromJson(Map<String, dynamic> json) => _Task(
   migratedFromTaskId: json['migratedFromTaskId'] as String?,
   isEvent: json['isEvent'] as bool? ?? false,
   scheduledTime: json['scheduledTime'] as String?,
+  recurrenceRule: json['recurrenceRule'] as String?,
 );
 
 Map<String, dynamic> _$TaskToJson(_Task instance) => <String, dynamic>{
@@ -43,6 +44,7 @@ Map<String, dynamic> _$TaskToJson(_Task instance) => <String, dynamic>{
   'migratedFromTaskId': instance.migratedFromTaskId,
   'isEvent': instance.isEvent,
   'scheduledTime': instance.scheduledTime,
+  'recurrenceRule': instance.recurrenceRule,
 };
 
 const _$TaskStateEnumMap = {

@@ -30,6 +30,8 @@ dependencies:
   # Utilities
   uuid: ^4.5.1
   intl: ^0.19.0
+  enough_icalendar: ^0.17.0
+  file_picker: ^10.3.10
 dev_dependencies:
   flutter_test:
     sdk: flutter

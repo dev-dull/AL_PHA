@@ -24,6 +24,7 @@ class TaskRepository {
       migratedFromTaskId: row.migratedFromTaskId as String?,
       isEvent: row.isEvent as bool,
       scheduledTime: row.scheduledTime as String?,
+      recurrenceRule: row.recurrenceRule as String?,
     );
   }
 
@@ -46,6 +47,7 @@ class TaskRepository {
             migratedFromTaskId: Value(task.migratedFromTaskId),
             isEvent: Value(task.isEvent),
             scheduledTime: Value(task.scheduledTime),
+            recurrenceRule: Value(task.recurrenceRule),
           ),
         );
     return task;
@@ -76,6 +78,7 @@ class TaskRepository {
         deadline: Value(task.deadline),
         isEvent: Value(task.isEvent),
         scheduledTime: Value(task.scheduledTime),
+        recurrenceRule: Value(task.recurrenceRule),
       ),
     );
     return task;

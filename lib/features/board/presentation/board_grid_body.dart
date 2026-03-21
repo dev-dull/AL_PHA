@@ -1,11 +1,18 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:alpha/design_system/widgets/dot_grid_background.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
+import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/task/data/ical_import.dart';
+import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_sort.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
@@ -154,79 +161,157 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   Future<void> _showAddEventDialog(BuildContext context) async {
     final controller = TextEditingController();
     TimeOfDay? scheduledTime;
+    final selectedDays = <int>{};
+    var recurrence = RecurrenceFrequency.none;
 
-    final result = await showDialog<(String, TimeOfDay?)>(
+    final result = await showDialog<
+        (String, TimeOfDay?, Set<int>, RecurrenceFrequency)>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('New Event'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                autofocus: true,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(hintText: 'Event title'),
-                onSubmitted: (v) =>
-                    Navigator.of(ctx).pop((v, scheduledTime)),
+        builder: (ctx, setDialogState) {
+          final theme = Theme.of(ctx);
+          return AlertDialog(
+            title: const Text('New Event'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      hintText: 'Event title',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Day picker
+                  Text(
+                    'Days',
+                    style: theme.textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(7, (i) {
+                      final selected = selectedDays.contains(i);
+                      return GestureDetector(
+                        onTap: () => setDialogState(() {
+                          if (selected) {
+                            selectedDays.remove(i);
+                          } else {
+                            selectedDays.add(i);
+                          }
+                        }),
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: selected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceContainerHighest,
+                          child: Text(
+                            dayLabels[i].substring(0, 1),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: selected
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Time picker
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: ctx,
+                        initialTime: scheduledTime ??
+                            const TimeOfDay(hour: 9, minute: 0),
+                      );
+                      if (picked != null) {
+                        setDialogState(
+                            () => scheduledTime = picked);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Scheduled Time',
+                        border: const OutlineInputBorder(),
+                        suffixIcon: scheduledTime != null
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () => setDialogState(
+                                    () => scheduledTime = null),
+                              )
+                            : const Icon(Icons.access_time),
+                      ),
+                      child: Text(
+                        scheduledTime != null
+                            ? scheduledTime!.format(ctx)
+                            : 'No time set',
+                        style: scheduledTime == null
+                            ? theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Recurrence picker
+                  InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Repeat',
+                      border: OutlineInputBorder(),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<RecurrenceFrequency>(
+                        value: recurrence,
+                        isDense: true,
+                        isExpanded: true,
+                        items: RecurrenceFrequency.values
+                            .map((f) => DropdownMenuItem(
+                                  value: f,
+                                  child: Text(f.displayName),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setDialogState(
+                                () => recurrence = v);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: ctx,
-                    initialTime: scheduledTime ??
-                        const TimeOfDay(hour: 9, minute: 0),
-                  );
-                  if (picked != null) {
-                    setDialogState(() => scheduledTime = picked);
-                  }
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Scheduled Time',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: scheduledTime != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () => setDialogState(
-                                () => scheduledTime = null),
-                          )
-                        : const Icon(Icons.access_time),
-                  ),
-                  child: Text(
-                    scheduledTime != null
-                        ? scheduledTime!.format(ctx)
-                        : 'No time set',
-                    style: scheduledTime == null
-                        ? Theme.of(ctx)
-                            .textTheme
-                            .bodyMedium
-                            ?.copyWith(
-                              color: Theme.of(ctx)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.5),
-                            )
-                        : null,
-                  ),
-                ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop((
+                  controller.text,
+                  scheduledTime,
+                  Set<int>.from(selectedDays),
+                  recurrence,
+                )),
+                child: const Text('Add'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx)
-                  .pop((controller.text, scheduledTime)),
-              child: const Text('Add'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
 
@@ -234,28 +319,141 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
     if (result == null || result.$1.trim().isEmpty) return;
 
+    await _createEventTask(
+      title: result.$1.trim(),
+      scheduledTime: result.$2,
+      days: result.$3,
+      recurrence: result.$4,
+    );
+  }
+
+  Future<void> _createEventTask({
+    required String title,
+    TimeOfDay? scheduledTime,
+    Set<int> days = const {},
+    RecurrenceFrequency recurrence = RecurrenceFrequency.none,
+    String description = '',
+    int priority = 0,
+    String? rruleOverride,
+  }) async {
     final tasks = ref.read(taskListProvider(widget.boardId));
     final currentCount = tasks.valueOrNull?.length ?? 0;
 
     String? timeStr;
-    if (result.$2 != null) {
-      timeStr = '${result.$2!.hour.toString().padLeft(2, '0')}:'
-          '${result.$2!.minute.toString().padLeft(2, '0')}';
+    if (scheduledTime != null) {
+      timeStr = '${scheduledTime.hour.toString().padLeft(2, '0')}:'
+          '${scheduledTime.minute.toString().padLeft(2, '0')}';
     }
 
-    await ref
-        .read(taskActionsProvider)
-        .create(
+    final rrule = rruleOverride ?? buildRRule(recurrence, days);
+    final taskId = _uuid.v4();
+
+    await ref.read(taskActionsProvider).create(
           Task(
-            id: _uuid.v4(),
+            id: taskId,
             boardId: widget.boardId,
-            title: result.$1.trim(),
+            title: title,
+            description: description,
             position: currentCount,
             createdAt: DateTime.now(),
             isEvent: true,
             scheduledTime: timeStr,
+            recurrenceRule: rrule,
+            priority: priority,
           ),
         );
+
+    // Auto-place event markers on selected day columns.
+    if (days.isNotEmpty) {
+      await _placeEventMarkers(taskId, days);
+    }
+  }
+
+  Future<void> _placeEventMarkers(
+    String taskId,
+    Set<int> dayPositions,
+  ) async {
+    final columnsAsync = ref.read(columnListProvider(widget.boardId));
+    final columns = columnsAsync.valueOrNull;
+    if (columns == null) return;
+
+    final markerActions = ref.read(markerActionsProvider);
+    for (final col in columns) {
+      if (col.type == ColumnType.date &&
+          dayPositions.contains(col.position)) {
+        await markerActions.setMarker(
+          boardId: widget.boardId,
+          taskId: taskId,
+          columnId: col.id,
+          symbol: MarkerSymbol.event,
+        );
+      }
+    }
+  }
+
+  Future<void> _importICalFile(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['ics', 'ical'],
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    final filePath = result.files.single.path;
+    if (filePath == null) return;
+
+    try {
+      final content = await File(filePath).readAsString();
+      final events = parseICalString(content);
+
+      if (events.isEmpty) {
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('No events found in file')),
+          );
+        }
+        return;
+      }
+
+      for (final event in events) {
+        await _createEventTask(
+          title: event.title,
+          description: event.description,
+          scheduledTime: _parseTimeStr(event.scheduledTime),
+          days: event.scheduledDays,
+          priority: event.priority ?? 0,
+          rruleOverride: event.recurrenceRule,
+        );
+      }
+
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Imported ${events.length} event'
+              '${events.length == 1 ? '' : 's'}',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Failed to import: $e')),
+        );
+      }
+    }
+  }
+
+  static TimeOfDay? _parseTimeStr(String? time) {
+    if (time == null) return null;
+    final parts = time.split(':');
+    if (parts.length != 2) return null;
+    return TimeOfDay(
+      hour: int.parse(parts[0]),
+      minute: int.parse(parts[1]),
+    );
   }
 
   // ----------------------------------------------------------
@@ -286,6 +484,13 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              FloatingActionButton.small(
+                heroTag: 'importCal',
+                onPressed: () => _importICalFile(context),
+                tooltip: 'Import iCal',
+                child: const Icon(Icons.file_open),
+              ),
+              const SizedBox(height: 8),
               FloatingActionButton.small(
                 heroTag: 'addEvent',
                 onPressed: () => _showAddEventDialog(context),
@@ -550,6 +755,7 @@ class BoardRow extends StatelessWidget {
                 taskId: task.id,
                 columnId: col.id,
                 columnType: col.type,
+                isEvent: task.isEvent,
               ),
             ),
             VerticalDivider(width: 1, color: theme.dividerColor),

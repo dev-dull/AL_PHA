@@ -22,6 +22,8 @@ abstract class Task with _$Task {
     @Default(false) bool isEvent,
     /// Stored as "HH:mm" (24-hour format), e.g. "14:30".
     String? scheduledTime,
+    /// iCal RRULE string, e.g. "FREQ=WEEKLY;BYDAY=MO,WE,FR".
+    String? recurrenceRule,
   }) = _Task;
 
   factory Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);

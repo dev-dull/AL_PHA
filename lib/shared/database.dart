@@ -51,6 +51,7 @@ class Tasks extends Table {
   TextColumn get migratedFromTaskId => text().nullable()();
   BoolColumn get isEvent => boolean().withDefault(const Constant(false))();
   TextColumn get scheduledTime => text().nullable()();
+  TextColumn get recurrenceRule => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -81,7 +82,7 @@ class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -119,6 +120,11 @@ class AlphaDatabase extends _$AlphaDatabase {
         );
         await customStatement(
           'ALTER TABLE tasks ADD COLUMN scheduled_time TEXT',
+        );
+      }
+      if (from < 5) {
+        await customStatement(
+          'ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT',
         );
       }
     },

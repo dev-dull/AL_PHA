@@ -18,6 +18,7 @@ class MarkerCell extends ConsumerWidget {
   final String taskId;
   final String columnId;
   final ColumnType columnType;
+  final bool isEvent;
 
   /// Cell dimensions in logical pixels.
   static const double cellSize = 48;
@@ -28,6 +29,7 @@ class MarkerCell extends ConsumerWidget {
     required this.taskId,
     required this.columnId,
     this.columnType = ColumnType.date,
+    this.isEvent = false,
   });
 
   @override
@@ -81,12 +83,12 @@ class MarkerCell extends ConsumerWidget {
         columnId: columnId,
       );
     } else if (marker == null) {
-      // Empty day cell — set dot.
+      // Empty day cell — set dot for tasks, circle for events.
       ref.read(markerActionsProvider).setMarker(
         boardId: boardId,
         taskId: taskId,
         columnId: columnId,
-        symbol: MarkerSymbol.dot,
+        symbol: isEvent ? MarkerSymbol.event : MarkerSymbol.dot,
       );
     } else {
       // Has a symbol — show radial menu.

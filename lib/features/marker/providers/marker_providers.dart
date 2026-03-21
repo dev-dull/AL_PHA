@@ -344,8 +344,14 @@ class MarkerActions {
         deadline: task.deadline,
         migratedFromBoardId: boardId,
         migratedFromTaskId: task.id,
+        isEvent: task.isEvent,
+        scheduledTime: task.scheduledTime,
+        recurrenceRule: task.recurrenceRule,
       ),
     );
+
+    final markerSymbol =
+        task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
 
     if (dotPositions.isNotEmpty) {
       final targetColumns = await columnRepo.getByBoard(targetBoardId);
@@ -358,7 +364,7 @@ class MarkerActions {
               taskId: newTaskId,
               columnId: targetCol.id,
               boardId: targetBoardId,
-              symbol: MarkerSymbol.dot,
+              symbol: markerSymbol,
               updatedAt: now,
             ),
           );
@@ -455,7 +461,10 @@ class MarkerActions {
 
     for (final col in pastDayColumns) {
       final dotsInCol = allMarkers.where(
-        (m) => m.columnId == col.id && m.symbol == MarkerSymbol.dot,
+        (m) =>
+            m.columnId == col.id &&
+            (m.symbol == MarkerSymbol.dot ||
+                m.symbol == MarkerSymbol.event),
       );
       for (final marker in dotsInCol) {
         await markerRepo.set(
@@ -486,7 +495,8 @@ class MarkerActions {
           (m) =>
               m.taskId == taskId &&
               m.columnId == col.id &&
-              m.symbol == MarkerSymbol.dot,
+              (m.symbol == MarkerSymbol.dot ||
+                  m.symbol == MarkerSymbol.event),
         );
       });
       if (!hasFutureDot) {
@@ -555,11 +565,16 @@ class MarkerActions {
           deadline: task.deadline,
           migratedFromBoardId: boardId,
           migratedFromTaskId: task.id,
+          isEvent: task.isEvent,
+          scheduledTime: task.scheduledTime,
+          recurrenceRule: task.recurrenceRule,
         ),
       );
       nextPosition++;
       didMigrate = true;
 
+      final markerSymbol =
+          task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
       final positions = taskDotPositions[taskId];
       if (positions != null && positions.isNotEmpty) {
         final targetColumns = await columnRepo.getByBoard(targetBoardId);
@@ -572,7 +587,7 @@ class MarkerActions {
                 taskId: newTaskId,
                 columnId: targetCol.id,
                 boardId: targetBoardId,
-                symbol: MarkerSymbol.dot,
+                symbol: markerSymbol,
                 updatedAt: now,
               ),
             );

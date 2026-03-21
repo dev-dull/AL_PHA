@@ -977,6 +977,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _recurrenceRuleMeta = const VerificationMeta(
+    'recurrenceRule',
+  );
+  @override
+  late final GeneratedColumn<String> recurrenceRule = GeneratedColumn<String>(
+    'recurrence_rule',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -993,6 +1004,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     migratedFromTaskId,
     isEvent,
     scheduledTime,
+    recurrenceRule,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1112,6 +1124,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('recurrence_rule')) {
+      context.handle(
+        _recurrenceRuleMeta,
+        recurrenceRule.isAcceptableOrUnknown(
+          data['recurrence_rule']!,
+          _recurrenceRuleMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1177,6 +1198,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}scheduled_time'],
       ),
+      recurrenceRule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence_rule'],
+      ),
     );
   }
 
@@ -1201,6 +1226,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String? migratedFromTaskId;
   final bool isEvent;
   final String? scheduledTime;
+  final String? recurrenceRule;
   const TaskRow({
     required this.id,
     required this.boardId,
@@ -1216,6 +1242,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.migratedFromTaskId,
     required this.isEvent,
     this.scheduledTime,
+    this.recurrenceRule,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1243,6 +1270,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     map['is_event'] = Variable<bool>(isEvent);
     if (!nullToAbsent || scheduledTime != null) {
       map['scheduled_time'] = Variable<String>(scheduledTime);
+    }
+    if (!nullToAbsent || recurrenceRule != null) {
+      map['recurrence_rule'] = Variable<String>(recurrenceRule);
     }
     return map;
   }
@@ -1273,6 +1303,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       scheduledTime: scheduledTime == null && nullToAbsent
           ? const Value.absent()
           : Value(scheduledTime),
+      recurrenceRule: recurrenceRule == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrenceRule),
     );
   }
 
@@ -1300,6 +1333,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       ),
       isEvent: serializer.fromJson<bool>(json['isEvent']),
       scheduledTime: serializer.fromJson<String?>(json['scheduledTime']),
+      recurrenceRule: serializer.fromJson<String?>(json['recurrenceRule']),
     );
   }
   @override
@@ -1320,6 +1354,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'migratedFromTaskId': serializer.toJson<String?>(migratedFromTaskId),
       'isEvent': serializer.toJson<bool>(isEvent),
       'scheduledTime': serializer.toJson<String?>(scheduledTime),
+      'recurrenceRule': serializer.toJson<String?>(recurrenceRule),
     };
   }
 
@@ -1338,6 +1373,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<String?> migratedFromTaskId = const Value.absent(),
     bool? isEvent,
     Value<String?> scheduledTime = const Value.absent(),
+    Value<String?> recurrenceRule = const Value.absent(),
   }) => TaskRow(
     id: id ?? this.id,
     boardId: boardId ?? this.boardId,
@@ -1359,6 +1395,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     scheduledTime: scheduledTime.present
         ? scheduledTime.value
         : this.scheduledTime,
+    recurrenceRule: recurrenceRule.present
+        ? recurrenceRule.value
+        : this.recurrenceRule,
   );
   TaskRow copyWithCompanion(TasksCompanion data) {
     return TaskRow(
@@ -1386,6 +1425,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       scheduledTime: data.scheduledTime.present
           ? data.scheduledTime.value
           : this.scheduledTime,
+      recurrenceRule: data.recurrenceRule.present
+          ? data.recurrenceRule.value
+          : this.recurrenceRule,
     );
   }
 
@@ -1405,7 +1447,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('migratedFromBoardId: $migratedFromBoardId, ')
           ..write('migratedFromTaskId: $migratedFromTaskId, ')
           ..write('isEvent: $isEvent, ')
-          ..write('scheduledTime: $scheduledTime')
+          ..write('scheduledTime: $scheduledTime, ')
+          ..write('recurrenceRule: $recurrenceRule')
           ..write(')'))
         .toString();
   }
@@ -1426,6 +1469,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     migratedFromTaskId,
     isEvent,
     scheduledTime,
+    recurrenceRule,
   );
   @override
   bool operator ==(Object other) =>
@@ -1444,7 +1488,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.migratedFromBoardId == this.migratedFromBoardId &&
           other.migratedFromTaskId == this.migratedFromTaskId &&
           other.isEvent == this.isEvent &&
-          other.scheduledTime == this.scheduledTime);
+          other.scheduledTime == this.scheduledTime &&
+          other.recurrenceRule == this.recurrenceRule);
 }
 
 class TasksCompanion extends UpdateCompanion<TaskRow> {
@@ -1462,6 +1507,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<String?> migratedFromTaskId;
   final Value<bool> isEvent;
   final Value<String?> scheduledTime;
+  final Value<String?> recurrenceRule;
   final Value<int> rowid;
   const TasksCompanion({
     this.id = const Value.absent(),
@@ -1478,6 +1524,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.migratedFromTaskId = const Value.absent(),
     this.isEvent = const Value.absent(),
     this.scheduledTime = const Value.absent(),
+    this.recurrenceRule = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TasksCompanion.insert({
@@ -1495,6 +1542,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.migratedFromTaskId = const Value.absent(),
     this.isEvent = const Value.absent(),
     this.scheduledTime = const Value.absent(),
+    this.recurrenceRule = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        boardId = Value(boardId),
@@ -1516,6 +1564,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? migratedFromTaskId,
     Expression<bool>? isEvent,
     Expression<String>? scheduledTime,
+    Expression<String>? recurrenceRule,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1535,6 +1584,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
         'migrated_from_task_id': migratedFromTaskId,
       if (isEvent != null) 'is_event': isEvent,
       if (scheduledTime != null) 'scheduled_time': scheduledTime,
+      if (recurrenceRule != null) 'recurrence_rule': recurrenceRule,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1554,6 +1604,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<String?>? migratedFromTaskId,
     Value<bool>? isEvent,
     Value<String?>? scheduledTime,
+    Value<String?>? recurrenceRule,
     Value<int>? rowid,
   }) {
     return TasksCompanion(
@@ -1571,6 +1622,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       migratedFromTaskId: migratedFromTaskId ?? this.migratedFromTaskId,
       isEvent: isEvent ?? this.isEvent,
       scheduledTime: scheduledTime ?? this.scheduledTime,
+      recurrenceRule: recurrenceRule ?? this.recurrenceRule,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1622,6 +1674,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (scheduledTime.present) {
       map['scheduled_time'] = Variable<String>(scheduledTime.value);
     }
+    if (recurrenceRule.present) {
+      map['recurrence_rule'] = Variable<String>(recurrenceRule.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1645,6 +1700,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('migratedFromTaskId: $migratedFromTaskId, ')
           ..write('isEvent: $isEvent, ')
           ..write('scheduledTime: $scheduledTime, ')
+          ..write('recurrenceRule: $recurrenceRule, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3043,6 +3099,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<String?> migratedFromTaskId,
       Value<bool> isEvent,
       Value<String?> scheduledTime,
+      Value<String?> recurrenceRule,
       Value<int> rowid,
     });
 typedef $$TasksTableUpdateCompanionBuilder =
@@ -3061,6 +3118,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<String?> migratedFromTaskId,
       Value<bool> isEvent,
       Value<String?> scheduledTime,
+      Value<String?> recurrenceRule,
       Value<int> rowid,
     });
 
@@ -3176,6 +3234,11 @@ class $$TasksTableFilterComposer
 
   ColumnFilters<String> get scheduledTime => $composableBuilder(
     column: $table.scheduledTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrenceRule => $composableBuilder(
+    column: $table.recurrenceRule,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3302,6 +3365,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recurrenceRule => $composableBuilder(
+    column: $table.recurrenceRule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BoardsTableOrderingComposer get boardId {
     final $$BoardsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3381,6 +3449,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<String> get scheduledTime => $composableBuilder(
     column: $table.scheduledTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recurrenceRule => $composableBuilder(
+    column: $table.recurrenceRule,
     builder: (column) => column,
   );
 
@@ -3475,6 +3548,7 @@ class $$TasksTableTableManager
                 Value<String?> migratedFromTaskId = const Value.absent(),
                 Value<bool> isEvent = const Value.absent(),
                 Value<String?> scheduledTime = const Value.absent(),
+                Value<String?> recurrenceRule = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
@@ -3491,6 +3565,7 @@ class $$TasksTableTableManager
                 migratedFromTaskId: migratedFromTaskId,
                 isEvent: isEvent,
                 scheduledTime: scheduledTime,
+                recurrenceRule: recurrenceRule,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3509,6 +3584,7 @@ class $$TasksTableTableManager
                 Value<String?> migratedFromTaskId = const Value.absent(),
                 Value<bool> isEvent = const Value.absent(),
                 Value<String?> scheduledTime = const Value.absent(),
+                Value<String?> recurrenceRule = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
@@ -3525,6 +3601,7 @@ class $$TasksTableTableManager
                 migratedFromTaskId: migratedFromTaskId,
                 isEvent: isEvent,
                 scheduledTime: scheduledTime,
+                recurrenceRule: recurrenceRule,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
