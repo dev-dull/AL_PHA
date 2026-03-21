@@ -47,6 +47,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    - family: Caveat
+    - family: PatrickHand
       fonts:
-        - asset: fonts/Caveat-Variable.ttf
+        - asset: fonts/PatrickHand-Regular.ttf
