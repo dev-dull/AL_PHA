@@ -16,11 +16,13 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
   DateTime? _targetMonday;
+  int _weekNavKey = 0;
 
   /// Called by monthly/yearly views to jump to a specific week.
   void _navigateToWeek(DateTime monday) {
     setState(() {
       _targetMonday = monday;
+      _weekNavKey++;
       _currentIndex = 0;
     });
   }
@@ -28,16 +30,9 @@ class _HomeShellState extends State<HomeShell> {
   Widget _buildBody() {
     switch (_currentIndex) {
       case 0:
-        final monday = _targetMonday;
-        // Clear the target after using it.
-        if (monday != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _targetMonday = null);
-          });
-        }
         return WeeklyViewScreen(
-          key: monday != null ? ValueKey(monday) : null,
-          initialMonday: monday,
+          key: ValueKey('week_$_weekNavKey'),
+          initialMonday: _targetMonday,
         );
       case 1:
         return MonthlyViewScreen(onDayTap: _navigateToWeek);
