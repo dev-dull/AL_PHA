@@ -493,6 +493,9 @@ class BoardRow extends StatelessWidget {
                 columnId: col.id,
                 columnType: col.type,
                 isEvent: task.isEvent,
+                isRecurring: task.isEvent &&
+                    task.recurrenceRule != null &&
+                    task.recurrenceRule!.contains('FREQ='),
                 onEventTap: task.isEvent ? onTap : null,
               ),
             ),

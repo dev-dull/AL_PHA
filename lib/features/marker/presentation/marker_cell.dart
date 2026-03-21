@@ -20,6 +20,9 @@ class MarkerCell extends ConsumerWidget {
   final ColumnType columnType;
   final bool isEvent;
 
+  /// Whether the event has a recurring schedule (FREQ= in RRULE).
+  final bool isRecurring;
+
   /// Called when an event cell is tapped on a day column, so the
   /// parent can open the task detail sheet instead of toggling markers.
   final VoidCallback? onEventTap;
@@ -34,6 +37,7 @@ class MarkerCell extends ConsumerWidget {
     required this.columnId,
     this.columnType = ColumnType.date,
     this.isEvent = false,
+    this.isRecurring = false,
     this.onEventTap,
   });
 
@@ -54,6 +58,25 @@ class MarkerCell extends ConsumerWidget {
             : AlphaTheme.markerColor(symbol, brightness))
         : null;
 
+    // Migration column for events: show calendar/repeat icon.
+    Widget child;
+    if (isMigration && isEvent && symbol != null) {
+      child = Icon(
+        isRecurring ? Icons.event_repeat : Icons.event,
+        size: 18,
+        color: color,
+      );
+    } else {
+      child = Text(
+        symbol?.displayChar ?? '',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      );
+    }
+
     return SizedBox(
       width: cellSize,
       height: cellSize,
@@ -62,16 +85,7 @@ class MarkerCell extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(4),
           onTap: () => _onTap(context, ref, marker),
-          child: Center(
-            child: Text(
-              symbol?.displayChar ?? '',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ),
+          child: Center(child: child),
         ),
       ),
     );
