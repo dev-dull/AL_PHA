@@ -20,12 +20,14 @@ All 8 redesign phases are complete, plus additional post-MVP features:
 - **Phase 5:** Task sorting (manual, priority, deadline, date entered, alphabetical)
 - **Phase 6:** Bullet journal theme (Patrick Hand font, cream paper palette, ink-like marker colors)
 - **Phase 7:** Migration simplification (auto-migration on week change, per-task dot schedule carry-over)
-- **Phase 8:** Multi-period views (weekly, monthly, quarterly, yearly — all fully functional)
+- **Phase 8:** Monthly and yearly overview screens (calendar heatmaps, tap day → jump to weekly view)
 
 The app includes:
 - Flutter project scaffold (feature-first, Riverpod, GoRouter, Freezed, Drift)
 - Auto-created weekly boards with chevron navigation between weeks
-- Monthly view (W1–W5 columns), quarterly view (M1–M3), yearly view (Q1–Q4)
+- Monthly overview (calendar heatmap showing task completion per day)
+- Yearly overview (12 mini-month grids with activity heatmap)
+- Tap any day in monthly/yearly views to jump to that week's weekly view
 - Board grid/matrix view with day columns on left, task names on right
 - Radial/circular marker menu (tap empty → dot, tap existing → radial picker)
 - Auto-fill markers: < (done early) and > (missed days), with per-task migration
