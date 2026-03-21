@@ -8,31 +8,36 @@ AlPHA (Alastair Planner & Habit App) is a cross-platform productivity app implem
 
 - **Remote:** git@github.com:dev-dull/AL_PHA.git
 - **Owner:** dev-dull (Alastair)
-- **Visibility:** Private
+- **Visibility:** Public
 
-## Current Phase: MVP Redesign (Offline-First, No Backend)
+## Current Phase: MVP Complete (Offline-First, No Backend)
 
-The app is mid-redesign to align with the authentic Alastair Method. Phases 1-4 are complete:
-- **Phase 1:** New Alastair Method symbols — dot (•), slash (/), x (X), migratedForward (>), doneEarly (<), event (○)
+All 8 redesign phases are complete, plus additional post-MVP features:
+- **Phase 1:** New Alastair Method symbols — dot (•), slash (/), x (✓), migratedForward (>), doneEarly (<), event (○)
 - **Phase 2:** Fixed weekly columns (M T W T F S S >), removed templates and column management
 - **Phase 3:** Grid layout flip — day columns on left, task names on right
 - **Phase 4:** Auto-fill logic — < for done early, > for missed days
+- **Phase 5:** Task sorting (manual, priority, deadline, date entered, alphabetical)
+- **Phase 6:** Bullet journal theme (Patrick Hand font, cream paper palette, ink-like marker colors)
+- **Phase 7:** Migration simplification (auto-migration on week change, per-task dot schedule carry-over)
+- **Phase 8:** Multi-period views (weekly, monthly, quarterly, yearly — all fully functional)
 
-Phases 5-8 remaining: task sorting, bullet journal theme, migration simplification, future view stubs.
-
-The MVP includes:
+The app includes:
 - Flutter project scaffold (feature-first, Riverpod, GoRouter, Freezed, Drift)
-- Board CRUD (create, list, archive)
-- Board grid/matrix view with fixed weekly columns (M T W T F S S >) and task names on right
-- Tap-to-cycle markers (empty → dot → slash → x → empty)
-- Auto-fill markers: < (done early) and > (missed days)
+- Auto-created weekly boards with chevron navigation between weeks
+- Monthly view (W1–W5 columns), quarterly view (M1–M3), yearly view (Q1–Q4)
+- Board grid/matrix view with day columns on left, task names on right
+- Radial/circular marker menu (tap empty → dot, tap existing → radial picker)
+- Auto-fill markers: < (done early) and > (missed days), with per-task migration
+- Migration column as simple toggle (empty ↔ >) — manually setting > pushes task to next period
 - Add/edit/delete tasks, drag-to-reorder, swipe-to-complete/cancel
-- Migration wizard (move incomplete tasks to a new board)
+- Bullet journal theme with handwritten font and ink-on-paper aesthetics
 - Local persistence with Drift (SQLite)
-- Dark mode
+- Dark mode with theme-aware marker colors
 - Basic CI pipeline (lint, test, build verification)
+- 87 tests (unit + widget)
 
-**Not in MVP:** AWS backend, auth, sync, subscriptions, onboarding, recurring tasks.
+**Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding, recurring tasks.
 
 ## Architecture
 
@@ -50,7 +55,7 @@ The MVP includes:
 - Immutable models in `lib/features/<feature>/domain/`
 - JSON serialization for DB and future API compatibility
 
-### Local DB: Drift (SQLite) — Schema v2
+### Local DB: Drift (SQLite) — Schema v3
 - Isar was planned but has incompatible dependencies with Freezed v3 (source_gen conflict)
 - Tables defined in `lib/shared/database.dart` with `@DataClassName('...Row')` to avoid name collisions
 - Drift data classes use `*Row` suffix (BoardRow, TaskRow, etc.), domain models are Freezed
@@ -110,8 +115,9 @@ lib/
 │   ├── task/
 │   ├── marker/
 │   ├── column/
-│   └── migration/
-├── shared/                 # Cross-feature utilities
+│   ├── migration/
+│   └── views/              # Future view stubs (if any)
+├── shared/                 # Cross-feature utilities (week_utils, period_utils, DB, providers)
 test/
 ├── models/
 ├── state/
@@ -137,7 +143,7 @@ test/
 ### Testing
 - Test naming: `[unit] [condition] [expected behavior]`
 - Fixtures in `test/fixtures/`
-- Coverage target: 80% (MVP phase) — currently 69 tests (unit + widget)
+- Coverage target: 80% (MVP phase) — currently 87 tests (unit + widget)
 
 ### GitHub Issues
 - Issues prefixed with `ALP-` in titles where applicable
