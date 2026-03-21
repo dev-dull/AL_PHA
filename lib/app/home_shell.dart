@@ -62,19 +62,19 @@ class _HomeShellState extends State<HomeShell> {
           },
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.view_week_outlined),
-              selectedIcon: Icon(Icons.view_week),
-              label: 'Weekly',
+              icon: Icon(Icons.edit_calendar_outlined),
+              selectedIcon: Icon(Icons.edit_calendar),
+              label: 'Planner',
             ),
             NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),
               selectedIcon: Icon(Icons.calendar_month),
-              label: 'Monthly',
+              label: 'Month Overview',
             ),
             NavigationDestination(
               icon: Icon(Icons.calendar_today_outlined),
               selectedIcon: Icon(Icons.calendar_today),
-              label: 'Yearly',
+              label: 'Year Overview',
             ),
           ],
         ),
