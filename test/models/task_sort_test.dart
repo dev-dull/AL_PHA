@@ -72,6 +72,23 @@ void main() {
       expect(sorted.map((t) => t.id), ['2', '3', '1']);
     });
 
+    test('nextScheduled sorts by earliest dot position', () {
+      // Simulate dot positions: task 1 → day 4, task 2 → day 1, task 3 → null
+      final dotPositions = {'1': 4, '2': 1};
+      final sorted = sortTasks(
+        tasks,
+        TaskSortMode.nextScheduled,
+        getPosition: (t) => t.position,
+        getCreatedAt: (t) => t.createdAt,
+        getDeadline: (t) => t.deadline,
+        getTitle: (t) => t.title,
+        getPriority: (t) => t.priority,
+        getNextDotPosition: (t) => dotPositions[t.id],
+      );
+      // task 2 (day 1) → task 1 (day 4) → task 3 (null, last)
+      expect(sorted.map((t) => t.id), ['2', '1', '3']);
+    });
+
     test('does not mutate original list', () {
       final original = List<Task>.of(tasks);
       _sort(tasks, TaskSortMode.priority);

@@ -6,6 +6,7 @@ import 'package:alpha/design_system/widgets/dot_grid_background.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
+import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
@@ -251,39 +252,6 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   }
 
   // ----------------------------------------------------------
-  // Sort menu (exposed for parent widgets to include in AppBar)
-  // ----------------------------------------------------------
-
-  /// Builds the sort popup menu button for use in an AppBar.
-  PopupMenuButton<TaskSortMode> buildSortButton(BuildContext context) {
-    return PopupMenuButton<TaskSortMode>(
-      icon: const Icon(Icons.sort),
-      tooltip: 'Sort tasks',
-      onSelected: (mode) => setState(() => _sortMode = mode),
-      itemBuilder: (_) => [
-        for (final mode in TaskSortMode.values)
-          PopupMenuItem(
-            value: mode,
-            child: Row(
-              children: [
-                if (_sortMode == mode)
-                  Icon(
-                    Icons.check,
-                    size: 18,
-                    color: Theme.of(context).colorScheme.primary,
-                  )
-                else
-                  const SizedBox(width: 18),
-                const SizedBox(width: 8),
-                Text(mode.displayName),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  // ----------------------------------------------------------
   // Grid
   // ----------------------------------------------------------
 
@@ -305,6 +273,28 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     return {};
   }
 
+  /// Returns the lowest date-column position that has a dot or
+  /// event marker for [taskId], or null if none.
+  int? _nextDotPosition(
+    String taskId,
+    List<BoardColumn> columns,
+    Map<String, Marker> markers,
+  ) {
+    int? best;
+    for (final col in columns) {
+      if (col.type != ColumnType.date) continue;
+      final m = markers['${taskId}_${col.id}'];
+      if (m != null &&
+          (m.symbol == MarkerSymbol.dot ||
+              m.symbol == MarkerSymbol.event)) {
+        if (best == null || col.position < best) {
+          best = col.position;
+        }
+      }
+    }
+    return best;
+  }
+
   Widget _buildGrid(
     BuildContext context,
     List<Task> tasks,
@@ -317,6 +307,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final theme = Theme.of(context);
     final markerColumnsWidth = columns.length * MarkerCell.cellSize;
 
+    final markersAsync =
+        ref.watch(markersByBoardProvider(widget.boardId));
+    final markers = markersAsync.valueOrNull ?? {};
+
     final sortedTasks = sortTasks(
       tasks,
       _sortMode,
@@ -325,6 +319,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       getDeadline: (t) => t.deadline,
       getTitle: (t) => t.title,
       getPriority: (t) => t.priority,
+      getNextDotPosition: (t) =>
+          _nextDotPosition(t.id, columns, markers),
     );
 
     return DotGridBackground(
@@ -336,7 +332,11 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
               children: [
                 ...columns.map((col) => ColumnHeader(column: col)),
                 VerticalDivider(width: 1, color: theme.dividerColor),
-                const Expanded(child: HeaderCorner()),
+                Expanded(child: _SortableHeaderCorner(
+                  sortMode: _sortMode,
+                  onSortChanged: (mode) =>
+                      setState(() => _sortMode = mode),
+                )),
               ],
             ),
           ),
@@ -433,22 +433,61 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 // Shared sub-widgets
 // ============================================================
 
-/// Header label for the task name column.
-class HeaderCorner extends StatelessWidget {
-  const HeaderCorner({super.key});
+/// Header with "Tasks" label and sort popup menu.
+class _SortableHeaderCorner extends StatelessWidget {
+  final TaskSortMode sortMode;
+  final ValueChanged<TaskSortMode> onSortChanged;
+
+  const _SortableHeaderCorner({
+    required this.sortMode,
+    required this.onSortChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          'Tasks',
-          style: Theme.of(
-            context,
-          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
-        ),
+      padding: const EdgeInsets.only(left: 8),
+      child: Row(
+        children: [
+          Text(
+            'Tasks',
+            style: theme.textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const Spacer(),
+          PopupMenuButton<TaskSortMode>(
+            icon: Icon(
+              Icons.sort,
+              size: 18,
+              color: theme.colorScheme.onSurface
+                  .withValues(alpha: 0.5),
+            ),
+            tooltip: 'Sort tasks',
+            padding: EdgeInsets.zero,
+            onSelected: onSortChanged,
+            itemBuilder: (_) => [
+              for (final mode in TaskSortMode.values)
+                PopupMenuItem(
+                  value: mode,
+                  child: Row(
+                    children: [
+                      if (sortMode == mode)
+                        Icon(
+                          Icons.check,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        )
+                      else
+                        const SizedBox(width: 18),
+                      const SizedBox(width: 8),
+                      Text(mode.displayName),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
