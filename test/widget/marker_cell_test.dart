@@ -132,11 +132,11 @@ void main() {
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Radial menu shows symbol characters (plus clear ∅)
-      for (final sym in MarkerSymbol.values) {
-        expect(find.text(sym.displayChar), findsWidgets);
-      }
-      expect(find.text('∅'), findsOneWidget);
+      // Radial menu shows manual-cycle symbols (plus clear ∅)
+      expect(find.text('•'), findsWidgets); // dot
+      expect(find.text('/'), findsWidgets); // slash
+      expect(find.text('✓'), findsOneWidget); // x
+      expect(find.text('∅'), findsOneWidget); // clear
     });
 
     testWidgets('selecting symbol from radial menu sets marker', (
@@ -179,11 +179,11 @@ void main() {
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Tap the ○ (event) symbol in the radial menu
-      await tester.tap(find.text('○'));
+      // Tap the ✓ (done) symbol in the radial menu
+      await tester.tap(find.text('✓'));
       await tester.pumpAndSettle();
 
-      expect(find.text('○'), findsOneWidget);
+      expect(find.text('✓'), findsOneWidget);
     });
 
     testWidgets('clearing via radial menu removes marker', (

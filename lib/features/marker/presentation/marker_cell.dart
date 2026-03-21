@@ -237,7 +237,15 @@ class _RadialMenuOverlay extends StatelessWidget {
         ),
       ));
     } else {
-      for (final sym in MarkerSymbol.values) {
+      // Only show the manual cycle symbols (dot, slash, x).
+      // Event (○), doneEarly (<), and migratedForward (>) are
+      // set automatically and not offered as manual choices.
+      const manualSymbols = [
+        MarkerSymbol.dot,
+        MarkerSymbol.slash,
+        MarkerSymbol.x,
+      ];
+      for (final sym in manualSymbols) {
         items.add(_RadialItem(
           symbol: sym,
           label: sym.displayChar,
