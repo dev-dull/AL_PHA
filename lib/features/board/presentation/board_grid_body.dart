@@ -448,6 +448,7 @@ class BoardRow extends StatelessWidget {
                 columnId: col.id,
                 columnType: col.type,
                 isEvent: task.isEvent,
+                onEventTap: task.isEvent ? onTap : null,
               ),
             ),
             VerticalDivider(width: 1, color: theme.dividerColor),

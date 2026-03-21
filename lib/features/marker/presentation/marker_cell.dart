@@ -20,6 +20,10 @@ class MarkerCell extends ConsumerWidget {
   final ColumnType columnType;
   final bool isEvent;
 
+  /// Called when an event cell is tapped on a day column, so the
+  /// parent can open the task detail sheet instead of toggling markers.
+  final VoidCallback? onEventTap;
+
   /// Cell dimensions in logical pixels.
   static const double cellSize = 48;
 
@@ -30,6 +34,7 @@ class MarkerCell extends ConsumerWidget {
     required this.columnId,
     this.columnType = ColumnType.date,
     this.isEvent = false,
+    this.onEventTap,
   });
 
   @override
@@ -82,6 +87,9 @@ class MarkerCell extends ConsumerWidget {
         taskId: taskId,
         columnId: columnId,
       );
+    } else if (isEvent && onEventTap != null) {
+      // Event on a day column — open the edit sheet.
+      onEventTap!();
     } else if (marker == null) {
       // Empty day cell — set dot for tasks, circle for events.
       ref.read(markerActionsProvider).setMarker(

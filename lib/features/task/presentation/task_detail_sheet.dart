@@ -66,7 +66,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
     final (freq, days) = parseRRule(widget.task.recurrenceRule);
     _recurrence = freq;
-    _scheduledDays = days;
+    _scheduledDays = freq == RecurrenceFrequency.daily
+        ? {0, 1, 2, 3, 4, 5, 6}
+        : days;
   }
 
   static TimeOfDay? _parseTime(String? time) {
@@ -356,36 +358,44 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 style: theme.textTheme.labelMedium,
               ),
               const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(7, (i) {
-                  final selected = _scheduledDays.contains(i);
-                  return GestureDetector(
-                    onTap: () => setState(() {
-                      if (selected) {
-                        _scheduledDays.remove(i);
-                      } else {
-                        _scheduledDays.add(i);
-                      }
-                    }),
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: selected
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.surfaceContainerHighest,
-                      child: Text(
-                        dayLabels[i].substring(0, 1),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: selected
-                              ? theme.colorScheme.onPrimary
-                              : theme.colorScheme.onSurface,
+              IgnorePointer(
+                ignoring: _recurrence == RecurrenceFrequency.daily,
+                child: Opacity(
+                  opacity: _recurrence == RecurrenceFrequency.daily
+                      ? 0.5
+                      : 1.0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(7, (i) {
+                      final selected = _scheduledDays.contains(i);
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          if (selected) {
+                            _scheduledDays.remove(i);
+                          } else {
+                            _scheduledDays.add(i);
+                          }
+                        }),
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: selected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surfaceContainerHighest,
+                          child: Text(
+                            dayLabels[i].substring(0, 1),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: selected
+                                  ? theme.colorScheme.onPrimary
+                                  : theme.colorScheme.onSurface,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }),
+                      );
+                    }),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -448,7 +458,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                         .toList(),
                     onChanged: (v) {
                       if (v != null) {
-                        setState(() => _recurrence = v);
+                        setState(() {
+                          _recurrence = v;
+                          if (v == RecurrenceFrequency.daily) {
+                            _scheduledDays
+                              ..clear()
+                              ..addAll({0, 1, 2, 3, 4, 5, 6});
+                          }
+                        });
                       }
                     },
                   ),
