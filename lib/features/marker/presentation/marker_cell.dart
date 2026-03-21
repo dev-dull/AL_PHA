@@ -89,8 +89,8 @@ class MarkerCell extends ConsumerWidget {
     );
   }
 
-  /// Renders the marker symbol. Dot and event are painted circles
-  /// for a hand-drawn feel; text symbols use Patrick Hand.
+  /// Renders the marker symbol. Dot, checkmark, and event are
+  /// painted for a hand-drawn feel; text symbols use Patrick Hand.
   static Widget _buildMarkerWidget(MarkerSymbol? symbol, Color? color) {
     if (symbol == null) return const SizedBox.shrink();
 
@@ -102,6 +102,14 @@ class MarkerCell extends ConsumerWidget {
       );
     }
 
+    // Done → hand-drawn checkmark.
+    if (symbol == MarkerSymbol.x) {
+      return CustomPaint(
+        size: const Size(16, 16),
+        painter: _InkCheckPainter(color: color ?? Colors.grey),
+      );
+    }
+
     // Event → small open circle.
     if (symbol == MarkerSymbol.event) {
       return CustomPaint(
@@ -110,7 +118,7 @@ class MarkerCell extends ConsumerWidget {
       );
     }
 
-    // Text symbols (/, X, >, <) — rendered in Patrick Hand.
+    // Text symbols (/, >, <) — rendered in Patrick Hand.
     return Text(
       symbol.displayChar,
       style: TextStyle(
@@ -372,28 +380,21 @@ class _RadialMenuOverlay extends StatelessWidget {
             ],
           ),
           child: Center(
-            child: item.symbol == MarkerSymbol.dot
-                ? CustomPaint(
-                    size: const Size(10, 10),
-                    painter: _InkDotPainter(color: item.color),
+            child: item.symbol != null
+                ? MarkerCell._buildMarkerWidget(
+                    item.symbol,
+                    item.color,
                   )
-                : item.symbol == MarkerSymbol.event
-                    ? CustomPaint(
-                        size: const Size(14, 14),
-                        painter: _InkCirclePainter(
-                          color: item.color,
-                        ),
-                      )
-                    : Text(
-                        item.label,
-                        style: TextStyle(
-                          fontFamily: 'PatrickHand',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: item.color,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
+                : Text(
+                    item.label,
+                    style: TextStyle(
+                      fontFamily: 'PatrickHand',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: item.color,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
           ),
         ),
       ),
@@ -442,6 +443,34 @@ class _InkDotPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_InkDotPainter old) => old.color != color;
+}
+
+/// Paints a hand-drawn checkmark stroke.
+class _InkCheckPainter extends CustomPainter {
+  final Color color;
+
+  _InkCheckPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    final path = Path()
+      // Start at upper-left, dip to bottom-center, rise to upper-right.
+      ..moveTo(size.width * 0.12, size.height * 0.52)
+      ..lineTo(size.width * 0.40, size.height * 0.82)
+      ..lineTo(size.width * 0.88, size.height * 0.18);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_InkCheckPainter old) => old.color != color;
 }
 
 /// Paints an open circle with a hand-drawn stroke.

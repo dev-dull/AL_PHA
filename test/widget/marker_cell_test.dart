@@ -134,10 +134,9 @@ void main() {
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Radial menu shows manual-cycle symbols (plus clear ∅)
-      // Dot renders as painted widget in the radial menu
+      // Radial menu shows manual-cycle symbols (plus clear ∅).
+      // Dot and checkmark are painted, so only verify text items.
       expect(find.text('/'), findsWidgets); // slash
-      expect(find.text('X'), findsOneWidget); // done
       expect(find.text('∅'), findsOneWidget); // clear
     });
 
@@ -181,11 +180,11 @@ void main() {
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Tap the X (done) symbol in the radial menu
-      await tester.tap(find.text('X'));
+      // Tap the slash (/) symbol in the radial menu
+      await tester.tap(find.text('/').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('X'), findsOneWidget);
+      expect(find.text('/'), findsOneWidget);
     });
 
     testWidgets('clearing via radial menu removes marker', (

@@ -30,7 +30,7 @@ void main() {
     test('displayChar should return correct characters', () {
       expect(MarkerSymbol.dot.displayChar, '•');
       expect(MarkerSymbol.slash.displayChar, '/');
-      expect(MarkerSymbol.x.displayChar, 'X');
+      expect(MarkerSymbol.x.displayChar, '✓');
       expect(MarkerSymbol.migratedForward.displayChar, '>');
       expect(MarkerSymbol.doneEarly.displayChar, '<');
       expect(MarkerSymbol.event.displayChar, '○');
