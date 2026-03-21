@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 
 // ── App theme identifiers ─────────────────────────────────────────
@@ -77,9 +78,17 @@ class AlphaTheme {
   }
 
   static ThemeData _buildTheme(ColorScheme colorScheme) {
+    final textTheme = GoogleFonts.caveatTextTheme(
+      ThemeData(colorScheme: colorScheme).textTheme,
+    ).apply(
+      bodyColor: colorScheme.onSurface,
+      displayColor: colorScheme.onSurface,
+    );
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      textTheme: textTheme,
       scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: AppBarTheme(
         centerTitle: false,
