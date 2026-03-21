@@ -59,11 +59,15 @@ class MarkerCell extends ConsumerWidget {
         : null;
 
     Widget child;
-    if (isEvent && symbol != null) {
+    if (isMigration && isEvent) {
+      final iconColor = color ??
+          (brightness == Brightness.dark
+              ? const Color(0xFFA09A94)
+              : const Color(0xFF6B6560));
       child = Icon(
         isRecurring ? Icons.event_repeat : Icons.event,
         size: 18,
-        color: color,
+        color: iconColor.withValues(alpha: symbol != null ? 1.0 : 0.4),
       );
     } else {
       child = Text(
