@@ -128,9 +128,9 @@ class AlphaTheme {
   /// Light-theme marker colors — dark ink on cream paper.
   static const _lightMarkerColors = {
     MarkerSymbol.dot: Color(0xFF1A3A5C), // dark navy ink
-    MarkerSymbol.slash: Color(0xFF8B5E3C), // brown ink
+    MarkerSymbol.slash: Color(0xFF2B5E9E), // blue ink
     MarkerSymbol.x: Color(0xFF2D5A3D), // dark green ink
-    MarkerSymbol.migratedForward: Color(0xFF6B6560), // grey ink
+    MarkerSymbol.migratedForward: Color(0xFFC0392B), // red ink
     MarkerSymbol.doneEarly: Color(0xFF3D7A55), // green ink
     MarkerSymbol.event: Color(0xFF5C3A6E), // purple ink
   };
@@ -138,9 +138,9 @@ class AlphaTheme {
   /// Dark-theme marker colors — lighter ink on dark paper.
   static const _darkMarkerColors = {
     MarkerSymbol.dot: Color(0xFFA8C4E0), // light blue ink
-    MarkerSymbol.slash: Color(0xFFD4A574), // light brown ink
+    MarkerSymbol.slash: Color(0xFF6CA6E0), // light blue ink
     MarkerSymbol.x: Color(0xFF8FC4A0), // light green ink
-    MarkerSymbol.migratedForward: Color(0xFFA09A94), // light grey ink
+    MarkerSymbol.migratedForward: Color(0xFFE57373), // light red ink
     MarkerSymbol.doneEarly: Color(0xFF8FC4A0), // light green ink
     MarkerSymbol.event: Color(0xFFC4A0D4), // light purple ink
   };
