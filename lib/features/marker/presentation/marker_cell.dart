@@ -19,6 +19,7 @@ class MarkerCell extends ConsumerWidget {
   final String columnId;
   final ColumnType columnType;
   final bool isEvent;
+  final bool isPastDay;
 
   /// Whether the event has a recurring schedule (FREQ= in RRULE).
   final bool isRecurring;
@@ -37,6 +38,7 @@ class MarkerCell extends ConsumerWidget {
     required this.columnId,
     this.columnType = ColumnType.date,
     this.isEvent = false,
+    this.isPastDay = false,
     this.isRecurring = false,
     this.onEventTap,
   });
@@ -137,6 +139,7 @@ class MarkerCell extends ConsumerWidget {
         center: cellCenter,
         currentSymbol: currentMarker.symbol,
         isMigrationColumn: isMigration,
+        isPastDay: isPastDay,
         onSelected: (symbol) {
           ref.read(markerActionsProvider).setMarker(
             boardId: boardId,
@@ -158,12 +161,14 @@ class _RadialMenuRoute extends PopupRoute<void> {
   final Offset center;
   final MarkerSymbol currentSymbol;
   final bool isMigrationColumn;
+  final bool isPastDay;
   final ValueChanged<MarkerSymbol?> onSelected;
 
   _RadialMenuRoute({
     required this.center,
     required this.currentSymbol,
     required this.isMigrationColumn,
+    this.isPastDay = false,
     required this.onSelected,
   });
 
@@ -190,6 +195,7 @@ class _RadialMenuRoute extends PopupRoute<void> {
       animation: animation,
       currentSymbol: currentSymbol,
       isMigrationColumn: isMigrationColumn,
+      isPastDay: isPastDay,
       onSelected: (symbol) {
         onSelected(symbol);
         Navigator.of(context).pop();
@@ -204,6 +210,7 @@ class _RadialMenuOverlay extends StatelessWidget {
   final Animation<double> animation;
   final MarkerSymbol currentSymbol;
   final bool isMigrationColumn;
+  final bool isPastDay;
   final ValueChanged<MarkerSymbol?> onSelected;
   final VoidCallback onDismiss;
 
@@ -215,6 +222,7 @@ class _RadialMenuOverlay extends StatelessWidget {
     required this.animation,
     required this.currentSymbol,
     required this.isMigrationColumn,
+    this.isPastDay = false,
     required this.onSelected,
     required this.onDismiss,
   });
@@ -240,8 +248,10 @@ class _RadialMenuOverlay extends StatelessWidget {
       // Only show the manual cycle symbols (dot, slash, x).
       // Event (○), doneEarly (<), and migratedForward (>) are
       // set automatically and not offered as manual choices.
-      const manualSymbols = [
-        MarkerSymbol.dot,
+      // Dot is excluded on past days — scheduling in the past
+      // doesn't make sense.
+      final manualSymbols = [
+        if (!isPastDay) MarkerSymbol.dot,
         MarkerSymbol.slash,
         MarkerSymbol.x,
       ];

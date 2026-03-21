@@ -12,10 +12,12 @@ import 'package:alpha/features/marker/providers/marker_providers.dart';
 import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/shared/providers.dart';
+import 'package:alpha/features/board/providers/board_providers.dart';
 import 'package:alpha/features/task/domain/task_sort.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
+import 'package:alpha/shared/week_utils.dart';
 
 /// The board grid body: column headers + task rows with markers.
 /// Used by both [BoardDetailScreen] and [WeeklyViewScreen].
@@ -285,6 +287,24 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   // Grid
   // ----------------------------------------------------------
 
+  Set<int> _computePastDayPositions() {
+    final boardAsync = ref.watch(boardProvider(widget.boardId));
+    final board = boardAsync.valueOrNull;
+    if (board == null) return {};
+    final weekStart = board.weekStart ?? mondayOfWeek(board.createdAt);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final currentMonday = mondayOfWeek(today);
+    if (weekStart.isBefore(currentMonday)) {
+      // Past week — all day positions are past.
+      return {0, 1, 2, 3, 4, 5, 6};
+    } else if (weekStart == currentMonday) {
+      // Current week — positions before today's weekday.
+      return {for (var i = 0; i < now.weekday - 1; i++) i};
+    }
+    return {};
+  }
+
   Widget _buildGrid(
     BuildContext context,
     List<Task> tasks,
@@ -324,7 +344,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           Expanded(
             child: sortedTasks.isEmpty
                 ? _buildEmptyState(context)
-                : _buildTaskList(sortedTasks, columns, markerColumnsWidth),
+                : _buildTaskList(
+                    sortedTasks,
+                    columns,
+                    markerColumnsWidth,
+                    _computePastDayPositions(),
+                  ),
           ),
         ],
       ),
@@ -335,6 +360,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     List<Task> tasks,
     List<BoardColumn> columns,
     double markerColumnsWidth,
+    Set<int> pastDayPositions,
   ) {
     final canReorder = _sortMode == TaskSortMode.manual;
 
@@ -360,6 +386,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           columns: columns,
           index: i,
           canReorder: canReorder,
+          pastDayPositions: pastDayPositions,
           onComplete: () => _completeTask(task),
           onCancel: () => _cancelTask(task),
           onTap: () => _openTaskDetailSheet(task),
@@ -459,6 +486,7 @@ class BoardRow extends StatelessWidget {
   final List<BoardColumn> columns;
   final int index;
   final bool canReorder;
+  final Set<int> pastDayPositions;
   final VoidCallback onComplete;
   final VoidCallback onCancel;
   final VoidCallback onTap;
@@ -470,6 +498,7 @@ class BoardRow extends StatelessWidget {
     required this.columns,
     required this.index,
     this.canReorder = true,
+    this.pastDayPositions = const {},
     required this.onComplete,
     required this.onCancel,
     required this.onTap,
@@ -493,6 +522,8 @@ class BoardRow extends StatelessWidget {
                 columnId: col.id,
                 columnType: col.type,
                 isEvent: task.isEvent,
+                isPastDay: col.type == ColumnType.date &&
+                    pastDayPositions.contains(col.position),
                 isRecurring: task.isEvent &&
                     task.recurrenceRule != null &&
                     task.recurrenceRule!.contains('FREQ='),
