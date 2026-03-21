@@ -23,7 +23,7 @@ class DaySummary {
     this.events = 0,
   });
 
-  int get total => completed + missed + inProgress + scheduled + events;
+  int get total => completed + missed + inProgress + scheduled;
   bool get isEmpty => total == 0;
 
   double get completionRate =>

@@ -218,11 +218,6 @@ class _DayCell extends StatelessWidget {
         indicatorColor = brightness == Brightness.dark
             ? const Color(0xFF6CA6E0)
             : const Color(0xFF2B5E9E);
-      } else if (s.events > 0) {
-        // Events only — purple.
-        indicatorColor = brightness == Brightness.dark
-            ? const Color(0xFFC4A0D4)
-            : const Color(0xFF5C3A6E);
       }
     }
 
