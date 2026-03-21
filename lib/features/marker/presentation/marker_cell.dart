@@ -58,9 +58,8 @@ class MarkerCell extends ConsumerWidget {
             : AlphaTheme.markerColor(symbol, brightness))
         : null;
 
-    // Migration column for events: show calendar/repeat icon.
     Widget child;
-    if (isMigration && isEvent && symbol != null) {
+    if (isEvent && symbol != null) {
       child = Icon(
         isRecurring ? Icons.event_repeat : Icons.event,
         size: 18,
