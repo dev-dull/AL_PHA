@@ -6,6 +6,7 @@ import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
+import 'package:alpha/features/task/providers/task_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
@@ -355,6 +356,7 @@ class MarkerActions {
         .map((t) => t.migratedFromTaskId)
         .toSet();
     var nextPosition = targetTasks.length;
+    var didMigrate = false;
 
     for (final taskId in migratedTaskIds) {
       // Skip if already migrated to target board.
@@ -388,6 +390,7 @@ class MarkerActions {
         ),
       );
       nextPosition++;
+      didMigrate = true;
 
       // Carry over day-of-week dots to the target board.
       final positions = taskDotPositions[taskId];
@@ -409,6 +412,13 @@ class MarkerActions {
           }
         }
       }
+    }
+
+    // Invalidate target board providers so they pick up new data
+    // immediately when navigated to.
+    if (didMigrate) {
+      _ref.invalidate(taskListProvider(targetBoardId));
+      _ref.invalidate(markersByBoardProvider(targetBoardId));
     }
   }
 }
