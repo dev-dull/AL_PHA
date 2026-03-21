@@ -7,6 +7,7 @@ import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
@@ -480,7 +481,9 @@ class MarkerActions {
       }
     }
 
-    if (migratedTaskIds.isEmpty) return;
+    final isPastWeek = boardWeekStart.isBefore(currentMonday);
+
+    if (migratedTaskIds.isEmpty && !isPastWeek) return;
 
     final updatedMarkers = await markerRepo.getByBoard(boardId);
 
@@ -504,8 +507,7 @@ class MarkerActions {
       }
     }
 
-    if (tasksToMigrate.isEmpty) return;
-
+    // Mark the migration column for missed tasks.
     final migrationCol = columns
         .where((c) => c.type != ColumnType.date)
         .firstOrNull;
@@ -527,7 +529,6 @@ class MarkerActions {
       }
     }
 
-    final isPastWeek = boardWeekStart.isBefore(currentMonday);
     final targetMonday = isPastWeek
         ? currentMonday
         : currentMonday.add(const Duration(days: 7));
@@ -542,6 +543,7 @@ class MarkerActions {
     var nextPosition = targetTasks.length;
     var didMigrate = false;
 
+    // Migrate missed tasks (normal migration).
     for (final taskId in tasksToMigrate) {
       if (existingMigrationSources.contains(taskId)) continue;
 
@@ -591,6 +593,63 @@ class MarkerActions {
                 updatedAt: now,
               ),
             );
+          }
+        }
+      }
+    }
+
+    // Recurring events: always carry forward even if fully completed.
+    if (isPastWeek) {
+      final allTasks = await taskRepo.getByBoard(boardId);
+      final recurringEvents = allTasks.where((t) =>
+          t.isEvent &&
+          t.recurrenceRule != null &&
+          t.recurrenceRule!.contains('FREQ='));
+
+      for (final task in recurringEvents) {
+        if (existingMigrationSources.contains(task.id)) continue;
+        if (tasksToMigrate.contains(task.id)) continue;
+
+        final (_, days) = parseRRule(task.recurrenceRule);
+        final newTaskId = _uuid.v4();
+        await taskRepo.create(
+          Task(
+            id: newTaskId,
+            boardId: targetBoardId,
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            position: nextPosition,
+            createdAt: now,
+            deadline: task.deadline,
+            migratedFromBoardId: boardId,
+            migratedFromTaskId: task.id,
+            isEvent: true,
+            scheduledTime: task.scheduledTime,
+            recurrenceRule: task.recurrenceRule,
+          ),
+        );
+        nextPosition++;
+        didMigrate = true;
+
+        // Place event markers on scheduled days.
+        if (days.isNotEmpty) {
+          final targetColumns =
+              await columnRepo.getByBoard(targetBoardId);
+          for (final targetCol in targetColumns) {
+            if (targetCol.type == ColumnType.date &&
+                days.contains(targetCol.position)) {
+              await markerRepo.set(
+                Marker(
+                  id: _uuid.v4(),
+                  taskId: newTaskId,
+                  columnId: targetCol.id,
+                  boardId: targetBoardId,
+                  symbol: MarkerSymbol.event,
+                  updatedAt: now,
+                ),
+              );
+            }
           }
         }
       }
