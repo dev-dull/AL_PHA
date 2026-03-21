@@ -341,6 +341,7 @@ class _RadialMenuOverlay extends StatelessWidget {
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: item.color,
+                decoration: TextDecoration.none,
               ),
             ),
           ),
