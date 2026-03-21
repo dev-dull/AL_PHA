@@ -38,11 +38,18 @@ class BoardRepository {
   }
 
   Future<Board?> getByWeekStart(DateTime monday) async {
+    return getByPeriodStart(monday, BoardType.weekly);
+  }
+
+  Future<Board?> getByPeriodStart(
+    DateTime periodStart,
+    BoardType type,
+  ) async {
     final query = _db.select(_db.boards)
       ..where(
         (b) =>
-            b.weekStart.equals(monday) &
-            b.type.equals('weekly') &
+            b.weekStart.equals(periodStart) &
+            b.type.equals(type.name) &
             b.archived.equals(false),
       );
     final row = await query.getSingleOrNull();

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:alpha/features/board/presentation/weekly_view_screen.dart';
-import 'package:alpha/features/views/presentation/future_view_stub.dart';
+import 'package:alpha/features/board/presentation/monthly_view_screen.dart';
+import 'package:alpha/features/board/presentation/quarterly_view_screen.dart';
+import 'package:alpha/features/board/presentation/yearly_view_screen.dart';
 
 /// Root shell with bottom navigation for weekly, monthly,
 /// quarterly, and yearly views.
@@ -19,14 +21,11 @@ class _HomeShellState extends State<HomeShell> {
       case 0:
         return const WeeklyViewScreen();
       case 1:
-        return const _StubScaffold(
-          title: 'Monthly',
-          icon: Icons.calendar_month,
-        );
+        return const MonthlyViewScreen();
       case 2:
-        return const _StubScaffold(title: 'Quarterly', icon: Icons.date_range);
+        return const QuarterlyViewScreen();
       case 3:
-        return const _StubScaffold(title: 'Yearly', icon: Icons.calendar_today);
+        return const YearlyViewScreen();
       default:
         return const WeeklyViewScreen();
     }
@@ -68,17 +67,3 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-class _StubScaffold extends StatelessWidget {
-  final String title;
-  final IconData icon;
-
-  const _StubScaffold({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AlPHA')),
-      body: FutureViewStub(title: title, icon: icon),
-    );
-  }
-}

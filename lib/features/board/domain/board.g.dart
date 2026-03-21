@@ -32,6 +32,7 @@ const _$BoardTypeEnumMap = {
   BoardType.daily: 'daily',
   BoardType.weekly: 'weekly',
   BoardType.monthly: 'monthly',
+  BoardType.quarterly: 'quarterly',
   BoardType.yearly: 'yearly',
   BoardType.custom: 'custom',
 };

@@ -38,6 +38,8 @@ void main() {
     DateTime? createdAt,
   }) async {
     final now = createdAt ?? DateTime.now();
+    // Normalize to midnight for weekStart comparison.
+    final weekStart = DateTime(now.year, now.month, now.day);
     final boardRepo = container.read(boardRepositoryProvider);
     await boardRepo.create(
       Board(
@@ -46,6 +48,7 @@ void main() {
         type: BoardType.weekly,
         createdAt: now,
         updatedAt: now,
+        weekStart: weekStart,
       ),
     );
 

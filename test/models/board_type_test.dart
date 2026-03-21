@@ -9,8 +9,8 @@ void main() {
       }
     });
 
-    test('should have exactly 5 types', () {
-      expect(BoardType.values.length, 5);
+    test('should have exactly 6 types', () {
+      expect(BoardType.values.length, 6);
     });
   });
 }
