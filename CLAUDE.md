@@ -2,7 +2,7 @@
 
 ## What is this project?
 
-AlPHA (Alastair Planner & Habit App) is a cross-platform productivity app implementing "The Alastair Method" — a matrix-based task management system. Built with Flutter (Android, iOS, Web) and backed by AWS.
+AlPHA (Alastair Planner & Habit App) is a cross-platform productivity app implementing "The Alastair Method" — a matrix-based task management system. Built with Flutter (Android, iOS, Web), currently offline-first with Drift/SQLite. AWS backend planned for a future phase.
 
 ## Repository
 
@@ -25,21 +25,25 @@ All 8 redesign phases are complete, plus additional post-MVP features:
 The app includes:
 - Flutter project scaffold (feature-first, Riverpod, GoRouter, Freezed, Drift)
 - Auto-created weekly boards with chevron navigation between weeks
-- Monthly overview (calendar heatmap showing task completion per day)
-- Yearly overview (12 mini-month grids with activity heatmap)
+- Monthly overview (calendar heatmap showing task completion per day, events excluded from color coding)
+- Yearly overview (12 mini-month grids with red→green completion gradient, events excluded)
 - Tap any day in monthly/yearly views to jump to that week's weekly view
 - Board grid/matrix view with day columns on left, task names on right
 - Radial/circular marker menu (tap empty → dot, tap existing → radial picker)
 - Auto-fill markers: < (done early) and > (missed days), with per-task migration
-- Migration column as simple toggle (empty ↔ >) — manually setting > pushes task to next period
+- Migration column as simple toggle (empty ↔ >) — manually setting > pushes task to next period; completed tasks can also be migrated, carrying dots for all marked days
 - Add/edit/delete tasks, drag-to-reorder, swipe-to-complete/cancel
+- Full event system: dedicated event editor, day-of-week picker, scheduled time, iCal import/export
+- Recurring events with iCal RRULE support (daily, weekly with custom day selection)
+- Calendar icons on event marker cells in the board grid
 - Bullet journal theme with handwritten font and ink-on-paper aesthetics
 - Local persistence with Drift (SQLite)
 - Dark mode with theme-aware marker colors
+- DST-safe week arithmetic (calendar date math instead of Duration-based millisecond offsets)
 - Basic CI pipeline (lint, test, build verification)
 - 87 tests (unit + widget)
 
-**Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding, recurring tasks.
+**Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding, recurring tasks (non-event), task notes, color-coded task categories.
 
 ## Architecture
 
@@ -57,7 +61,7 @@ The app includes:
 - Immutable models in `lib/features/<feature>/domain/`
 - JSON serialization for DB and future API compatibility
 
-### Local DB: Drift (SQLite) — Schema v3
+### Local DB: Drift (SQLite) — Schema v5
 - Isar was planned but has incompatible dependencies with Freezed v3 (source_gen conflict)
 - Tables defined in `lib/shared/database.dart` with `@DataClassName('...Row')` to avoid name collisions
 - Drift data classes use `*Row` suffix (BoardRow, TaskRow, etc.), domain models are Freezed
