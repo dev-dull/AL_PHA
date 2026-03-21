@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/features/board/presentation/board_grid_body.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
+import 'package:alpha/features/marker/providers/marker_providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
 /// The primary weekly view: auto-creates boards per week and
-/// supports swiping between weeks.
+/// navigates between weeks via chevron buttons.
 class WeeklyViewScreen extends ConsumerStatefulWidget {
   const WeeklyViewScreen({super.key});
 
@@ -22,22 +23,36 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
     _currentMonday = mondayOfWeek(DateTime.now());
   }
 
+  /// Runs auto-fill on the board being left, then navigates.
+  Future<void> _changeWeek(DateTime newMonday) async {
+    final oldMonday = _currentMonday;
+
+    // Run auto-fill on the board being navigated away from
+    // so any new dots on past days get migrated.
+    final oldBoardId = ref
+        .read(weeklyBoardProvider(oldMonday))
+        .valueOrNull;
+    if (oldBoardId != null) {
+      await ref
+          .read(markerActionsProvider)
+          .autoFillMissedDays(boardId: oldBoardId);
+    }
+
+    if (mounted) {
+      setState(() => _currentMonday = newMonday);
+    }
+  }
+
   void _goToPreviousWeek() {
-    setState(() {
-      _currentMonday = _currentMonday.subtract(const Duration(days: 7));
-    });
+    _changeWeek(_currentMonday.subtract(const Duration(days: 7)));
   }
 
   void _goToNextWeek() {
-    setState(() {
-      _currentMonday = _currentMonday.add(const Duration(days: 7));
-    });
+    _changeWeek(_currentMonday.add(const Duration(days: 7)));
   }
 
   void _goToToday() {
-    setState(() {
-      _currentMonday = mondayOfWeek(DateTime.now());
-    });
+    _changeWeek(mondayOfWeek(DateTime.now()));
   }
 
   @override
