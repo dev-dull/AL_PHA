@@ -414,7 +414,7 @@ class BoardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isTerminal = task.state.isTerminal;
+    final isCancelled = task.state == TaskState.cancelled;
     final theme = Theme.of(context);
 
     Widget row = GestureDetector(
@@ -454,8 +454,9 @@ class BoardRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    decoration: isTerminal ? TextDecoration.lineThrough : null,
-                    color: isTerminal
+                    decoration:
+                        isCancelled ? TextDecoration.lineThrough : null,
+                    color: isCancelled
                         ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
                         : null,
                   ),
@@ -467,7 +468,7 @@ class BoardRow extends StatelessWidget {
       ),
     );
 
-    if (isTerminal) return row;
+    if (isCancelled) return row;
 
     return Dismissible(
       key: ValueKey('dismiss_${task.id}'),

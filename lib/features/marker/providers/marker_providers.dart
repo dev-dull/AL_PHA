@@ -313,9 +313,6 @@ class MarkerActions {
 
     final now = DateTime.now();
 
-    // Mark source task as migrated.
-    await taskRepo.update(task.copyWith(state: TaskState.migrated));
-
     // Create on target board.
     final newTaskId = _uuid.v4();
     await taskRepo.create(
@@ -505,9 +502,6 @@ class MarkerActions {
           task.state != TaskState.inProgress) {
         continue;
       }
-
-      // Mark source task as migrated.
-      await taskRepo.update(task.copyWith(state: TaskState.migrated));
 
       // Create on target board.
       final newTaskId = _uuid.v4();
