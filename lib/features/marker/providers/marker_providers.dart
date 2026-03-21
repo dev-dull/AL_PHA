@@ -1,9 +1,13 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
+import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:alpha/features/task/domain/task.dart';
+import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/shared/providers.dart';
+import 'package:alpha/shared/week_utils.dart';
 
 part 'marker_providers.g.dart';
 
@@ -247,11 +251,14 @@ class MarkerActions {
 
   /// Auto-fills `>` (migrated) on past day columns where a task
   /// still has a dot (scheduled but not acted on).
+  /// Also marks the migration column and creates the task on
+  /// the current week's board.
   /// Call this when opening a board to catch up missed days.
   Future<void> autoFillMissedDays({required String boardId}) async {
     final boardRepo = _ref.read(boardRepositoryProvider);
     final columnRepo = _ref.read(columnRepositoryProvider);
     final markerRepo = _ref.read(markerRepositoryProvider);
+    final taskRepo = _ref.read(taskRepositoryProvider);
 
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
@@ -264,18 +271,13 @@ class MarkerActions {
     final today = DateTime(now.year, now.month, now.day);
 
     // Determine which day columns are in the past.
-    // Column positions 0–6 map to Mon–Sun.
-    // Compare the board's week to the current week.
-    final boardCreatedAt = board.createdAt;
-    final boardMonday = boardCreatedAt.subtract(
-      Duration(days: boardCreatedAt.weekday - 1),
-    );
-    final boardWeekStart = DateTime(
-      boardMonday.year,
-      boardMonday.month,
-      boardMonday.day,
-    );
-    final currentMonday = today.subtract(Duration(days: today.weekday - 1));
+    final boardWeekStart = board.weekStart ??
+        DateTime(
+          board.createdAt.year,
+          board.createdAt.month,
+          board.createdAt.day,
+        ).subtract(Duration(days: board.createdAt.weekday - 1));
+    final currentMonday = mondayOfWeek(today);
 
     Iterable<dynamic> pastDayColumns;
     if (boardWeekStart.isBefore(currentMonday)) {
@@ -283,7 +285,6 @@ class MarkerActions {
       pastDayColumns = dayColumns;
     } else if (boardWeekStart == currentMonday) {
       // Current week: columns before today are past.
-      // position 0=Mon → weekday 1, so past if position < (weekday - 1).
       pastDayColumns = dayColumns.where((c) => c.position < (now.weekday - 1));
     } else {
       // Future week: nothing is past.
@@ -293,6 +294,9 @@ class MarkerActions {
     if (pastDayColumns.isEmpty) return;
 
     final allMarkers = await markerRepo.getByBoard(boardId);
+    // Track which tasks had dots converted to > (need migration).
+    final migratedTaskIds = <String>{};
+
     for (final col in pastDayColumns) {
       final dotsInCol = allMarkers.where(
         (m) => m.columnId == col.id && m.symbol == MarkerSymbol.dot,
@@ -301,7 +305,83 @@ class MarkerActions {
         await markerRepo.set(
           marker.copyWith(symbol: MarkerSymbol.migratedForward, updatedAt: now),
         );
+        migratedTaskIds.add(marker.taskId);
       }
+    }
+
+    if (migratedTaskIds.isEmpty) return;
+
+    // Mark the migration column (>) for each affected task.
+    final migrationCol = columns
+        .where((c) => c.type != ColumnType.date)
+        .firstOrNull;
+    if (migrationCol != null) {
+      for (final taskId in migratedTaskIds) {
+        final existing = await markerRepo.get(taskId, migrationCol.id);
+        if (existing == null) {
+          await markerRepo.set(
+            Marker(
+              id: _uuid.v4(),
+              taskId: taskId,
+              columnId: migrationCol.id,
+              boardId: boardId,
+              symbol: MarkerSymbol.migratedForward,
+              updatedAt: now,
+            ),
+          );
+        }
+      }
+    }
+
+    // Auto-migrate tasks to the current week's board.
+    // Only migrate open/inProgress tasks that aren't already there.
+    final isPastWeek = boardWeekStart.isBefore(currentMonday);
+    if (!isPastWeek) return;
+
+    final targetBoardId = await _ref.read(
+      weeklyBoardProvider(currentMonday).future,
+    );
+
+    // Get existing tasks on the target board to check for dupes
+    // and compute next position.
+    final targetTasks = await taskRepo.getByBoard(targetBoardId);
+    final existingMigrationSources = targetTasks
+        .where((t) => t.migratedFromBoardId == boardId)
+        .map((t) => t.migratedFromTaskId)
+        .toSet();
+    var nextPosition = targetTasks.length;
+
+    for (final taskId in migratedTaskIds) {
+      // Skip if already migrated to target board.
+      if (existingMigrationSources.contains(taskId)) continue;
+
+      final task = await taskRepo.getById(taskId);
+      if (task == null) continue;
+      // Only migrate open or in-progress tasks.
+      if (task.state != TaskState.open &&
+          task.state != TaskState.inProgress) {
+        continue;
+      }
+
+      // Mark source task as migrated.
+      await taskRepo.update(task.copyWith(state: TaskState.migrated));
+
+      // Create on target board.
+      await taskRepo.create(
+        Task(
+          id: _uuid.v4(),
+          boardId: targetBoardId,
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          position: nextPosition,
+          createdAt: now,
+          deadline: task.deadline,
+          migratedFromBoardId: boardId,
+          migratedFromTaskId: task.id,
+        ),
+      );
+      nextPosition++;
     }
   }
 }
