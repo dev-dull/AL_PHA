@@ -38,8 +38,13 @@ class MarkerCell extends ConsumerWidget {
 
     final symbol = marker?.symbol;
     final brightness = Theme.of(context).brightness;
+    final isMigration = columnType != ColumnType.date;
     final color = symbol != null
-        ? AlphaTheme.markerColor(symbol, brightness)
+        ? (isMigration
+            ? (brightness == Brightness.dark
+                ? const Color(0xFFA09A94)
+                : const Color(0xFF6B6560))
+            : AlphaTheme.markerColor(symbol, brightness))
         : null;
 
     return SizedBox(
@@ -66,16 +71,22 @@ class MarkerCell extends ConsumerWidget {
   }
 
   void _onTap(BuildContext context, WidgetRef ref, Marker? marker) {
-    if (marker == null) {
-      // Empty cell — set dot (or > for migration column).
-      final isMigration = columnType != ColumnType.date;
+    final isMigration = columnType != ColumnType.date;
+
+    if (isMigration) {
+      // Migration column: simple toggle > ↔ empty.
+      ref.read(markerActionsProvider).cycleMarker(
+        boardId: boardId,
+        taskId: taskId,
+        columnId: columnId,
+      );
+    } else if (marker == null) {
+      // Empty day cell — set dot.
       ref.read(markerActionsProvider).setMarker(
         boardId: boardId,
         taskId: taskId,
         columnId: columnId,
-        symbol: isMigration
-            ? MarkerSymbol.migratedForward
-            : MarkerSymbol.dot,
+        symbol: MarkerSymbol.dot,
       );
     } else {
       // Has a symbol — show radial menu.
