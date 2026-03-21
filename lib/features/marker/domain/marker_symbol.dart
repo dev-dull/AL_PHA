@@ -13,7 +13,7 @@ enum MarkerSymbol {
       case MarkerSymbol.slash:
         return '/';
       case MarkerSymbol.x:
-        return '✓';
+        return 'X';
       case MarkerSymbol.migratedForward:
         return '>';
       case MarkerSymbol.doneEarly:

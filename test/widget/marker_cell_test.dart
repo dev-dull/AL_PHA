@@ -31,17 +31,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // No symbol character should be visible
-      for (final symbol in MarkerSymbol.values) {
-        expect(
-          find.text(symbol.displayChar),
-          findsNothing,
-          reason: 'Should not show ${symbol.displayChar}',
-        );
-      }
+      // No marker text or symbols should be visible
+      expect(find.text('/'), findsNothing);
+      expect(find.text('X'), findsNothing);
+      expect(find.text('>'), findsNothing);
+      expect(find.text('<'), findsNothing);
     });
 
-    testWidgets('renders display character when marker exists', (tester) async {
+    testWidgets('renders marker when marker exists', (tester) async {
       final container = await tester.pumpApp(
         const MarkerCell(boardId: boardId, taskId: taskId, columnId: colId),
       );
@@ -66,7 +63,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('•'), findsOneWidget);
+      // Dot renders as a painted widget — verify no text '•' but
+      // the cell has content (the MarkerCell itself is present).
+      expect(find.text('•'), findsNothing);
+      expect(find.byType(MarkerCell), findsOneWidget);
     });
 
     testWidgets('tap cycles empty to dot', (tester) async {
@@ -89,7 +89,9 @@ void main() {
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      expect(find.text('•'), findsOneWidget);
+      // Dot renders as painted widget, not text
+      expect(find.text('•'), findsNothing);
+      expect(find.byType(MarkerCell), findsOneWidget);
     });
 
     testWidgets('tap on existing symbol opens radial menu', (
@@ -133,9 +135,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Radial menu shows manual-cycle symbols (plus clear ∅)
-      expect(find.text('•'), findsWidgets); // dot
+      // Dot renders as painted widget in the radial menu
       expect(find.text('/'), findsWidgets); // slash
-      expect(find.text('✓'), findsOneWidget); // x
+      expect(find.text('X'), findsOneWidget); // done
       expect(find.text('∅'), findsOneWidget); // clear
     });
 
@@ -179,11 +181,11 @@ void main() {
       await tester.tap(find.byType(MarkerCell));
       await tester.pumpAndSettle();
 
-      // Tap the ✓ (done) symbol in the radial menu
-      await tester.tap(find.text('✓'));
+      // Tap the X (done) symbol in the radial menu
+      await tester.tap(find.text('X'));
       await tester.pumpAndSettle();
 
-      expect(find.text('✓'), findsOneWidget);
+      expect(find.text('X'), findsOneWidget);
     });
 
     testWidgets('clearing via radial menu removes marker', (

@@ -72,14 +72,7 @@ class MarkerCell extends ConsumerWidget {
         color: iconColor.withValues(alpha: symbol != null ? 1.0 : 0.4),
       );
     } else {
-      child = Text(
-        symbol?.displayChar ?? '',
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: color,
-        ),
-      );
+      child = _buildMarkerWidget(symbol, color);
     }
 
     return SizedBox(
@@ -92,6 +85,40 @@ class MarkerCell extends ConsumerWidget {
           onTap: () => _onTap(context, ref, marker),
           child: Center(child: child),
         ),
+      ),
+    );
+  }
+
+  /// Renders the marker symbol. Dot and event are painted circles
+  /// for a hand-drawn feel; text symbols use Patrick Hand.
+  static Widget _buildMarkerWidget(MarkerSymbol? symbol, Color? color) {
+    if (symbol == null) return const SizedBox.shrink();
+
+    // Dot → small filled circle.
+    if (symbol == MarkerSymbol.dot) {
+      return CustomPaint(
+        size: const Size(10, 10),
+        painter: _InkDotPainter(color: color ?? Colors.grey),
+      );
+    }
+
+    // Event → small open circle.
+    if (symbol == MarkerSymbol.event) {
+      return CustomPaint(
+        size: const Size(14, 14),
+        painter: _InkCirclePainter(color: color ?? Colors.grey),
+      );
+    }
+
+    // Text symbols (/, X, >, <) — rendered in Patrick Hand.
+    return Text(
+      symbol.displayChar,
+      style: TextStyle(
+        fontFamily: 'PatrickHand',
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: color,
+        decoration: TextDecoration.none,
       ),
     );
   }
@@ -345,15 +372,28 @@ class _RadialMenuOverlay extends StatelessWidget {
             ],
           ),
           child: Center(
-            child: Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: item.color,
-                decoration: TextDecoration.none,
-              ),
-            ),
+            child: item.symbol == MarkerSymbol.dot
+                ? CustomPaint(
+                    size: const Size(10, 10),
+                    painter: _InkDotPainter(color: item.color),
+                  )
+                : item.symbol == MarkerSymbol.event
+                    ? CustomPaint(
+                        size: const Size(14, 14),
+                        painter: _InkCirclePainter(
+                          color: item.color,
+                        ),
+                      )
+                    : Text(
+                        item.label,
+                        style: TextStyle(
+                          fontFamily: 'PatrickHand',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: item.color,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
           ),
         ),
       ),
@@ -371,4 +411,63 @@ class _RadialItem {
     required this.label,
     required this.color,
   });
+}
+
+// ================================================================
+// Custom painters for hand-drawn marker shapes
+// ================================================================
+
+/// Paints a filled dot with slight irregularity for a
+/// hand-drawn look.
+class _InkDotPainter extends CustomPainter {
+  final Color color;
+
+  _InkDotPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: size.width * 0.9,
+        height: size.height,
+      ),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_InkDotPainter old) => old.color != color;
+}
+
+/// Paints an open circle with a hand-drawn stroke.
+class _InkCirclePainter extends CustomPainter {
+  final Color color;
+
+  _InkCirclePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    final center = Offset(size.width / 2, size.height / 2);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: center,
+        width: size.width * 0.85,
+        height: size.height * 0.95,
+      ),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_InkCirclePainter old) => old.color != color;
 }
