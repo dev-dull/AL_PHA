@@ -294,8 +294,10 @@ class MarkerActions {
     if (pastDayColumns.isEmpty) return;
 
     final allMarkers = await markerRepo.getByBoard(boardId);
-    // Track which tasks had dots converted to > (need migration).
+    // Track which tasks had dots converted to > (need migration),
+    // and which day-of-week positions had dots (to carry over).
     final migratedTaskIds = <String>{};
+    final taskDotPositions = <String, Set<int>>{};
 
     for (final col in pastDayColumns) {
       final dotsInCol = allMarkers.where(
@@ -306,6 +308,9 @@ class MarkerActions {
           marker.copyWith(symbol: MarkerSymbol.migratedForward, updatedAt: now),
         );
         migratedTaskIds.add(marker.taskId);
+        taskDotPositions
+            .putIfAbsent(marker.taskId, () => {})
+            .add(col.position);
       }
     }
 
@@ -367,9 +372,10 @@ class MarkerActions {
       await taskRepo.update(task.copyWith(state: TaskState.migrated));
 
       // Create on target board.
+      final newTaskId = _uuid.v4();
       await taskRepo.create(
         Task(
-          id: _uuid.v4(),
+          id: newTaskId,
           boardId: targetBoardId,
           title: task.title,
           description: task.description,
@@ -382,6 +388,27 @@ class MarkerActions {
         ),
       );
       nextPosition++;
+
+      // Carry over day-of-week dots to the target board.
+      final positions = taskDotPositions[taskId];
+      if (positions != null && positions.isNotEmpty) {
+        final targetColumns = await columnRepo.getByBoard(targetBoardId);
+        for (final targetCol in targetColumns) {
+          if (targetCol.type == ColumnType.date &&
+              positions.contains(targetCol.position)) {
+            await markerRepo.set(
+              Marker(
+                id: _uuid.v4(),
+                taskId: newTaskId,
+                columnId: targetCol.id,
+                boardId: targetBoardId,
+                symbol: MarkerSymbol.dot,
+                updatedAt: now,
+              ),
+            );
+          }
+        }
+      }
     }
   }
 }
