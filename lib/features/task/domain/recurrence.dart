@@ -107,6 +107,14 @@ String? buildRRule(RecurrenceFrequency freq, Set<int> days) {
   return (freq, days);
 }
 
+/// Builds a BYDAY-only string (no FREQ) to preserve scheduled days
+/// when recurrence is removed. Returns `null` if [days] is empty.
+String? buildByDayOnly(Set<int> days) {
+  if (days.isEmpty) return null;
+  final sorted = days.toList()..sort();
+  return 'BYDAY=${sorted.map((d) => _icalDays[d]).join(',')}';
+}
+
 /// Given an RRULE, returns the set of weekday column positions
 /// (0=Mon .. 6=Sun) that should have markers.
 Set<int> scheduledDaysFromRRule(String? rrule) {

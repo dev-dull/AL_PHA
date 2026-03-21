@@ -113,8 +113,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       final choice = await _showSeriesPrompt('Edit');
       if (choice == null) return; // cancelled
       if (choice == _SeriesChoice.thisEvent) {
-        // Strip recurrence so it becomes a standalone event.
-        widget.onSave(updated.copyWith(recurrenceRule: null));
+        // Remove frequency but keep the scheduled days.
+        widget.onSave(
+          updated.copyWith(
+            recurrenceRule: buildByDayOnly(_scheduledDays),
+          ),
+        );
       } else {
         widget.onSave(updated);
       }
@@ -131,9 +135,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       final choice = await _showSeriesPrompt('Delete');
       if (choice == null) return;
       if (choice == _SeriesChoice.thisEvent) {
-        // Strip recurrence so migration won't recreate it, then
-        // delete.
-        widget.onSave(widget.task.copyWith(recurrenceRule: null));
+        // Remove frequency so migration won't recreate it, but
+        // keep days for display consistency.
+        final (_, days) = parseRRule(widget.task.recurrenceRule);
+        widget.onSave(
+          widget.task.copyWith(recurrenceRule: buildByDayOnly(days)),
+        );
       }
       // Both choices ultimately delete from the current board.
     }
