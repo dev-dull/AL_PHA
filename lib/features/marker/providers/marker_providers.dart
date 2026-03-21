@@ -317,6 +317,12 @@ class MarkerActions {
 
     if (migratedTaskIds.isEmpty) return;
 
+    // Only mark migration column and migrate tasks for fully past weeks.
+    // Current week: dots on past days become > but the week isn't over,
+    // so no migration column or cross-board migration yet.
+    final isPastWeek = boardWeekStart.isBefore(currentMonday);
+    if (!isPastWeek) return;
+
     // Mark the migration column (>) for each affected task.
     final migrationCol = columns
         .where((c) => c.type != ColumnType.date)
@@ -338,11 +344,6 @@ class MarkerActions {
         }
       }
     }
-
-    // Auto-migrate tasks to the current week's board.
-    // Only migrate open/inProgress tasks that aren't already there.
-    final isPastWeek = boardWeekStart.isBefore(currentMonday);
-    if (!isPastWeek) return;
 
     final targetBoardId = await _ref.read(
       weeklyBoardProvider(currentMonday).future,
