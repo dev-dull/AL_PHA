@@ -104,7 +104,9 @@ class _MonthGrid extends StatelessWidget {
     final today = DateTime.now();
     final todayKey = DateTime(today.year, today.month, today.day);
 
-    return Padding(
+    final totalRows = ((startOffset + numDays) / 7).ceil();
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
@@ -128,8 +130,10 @@ class _MonthGrid extends StatelessWidget {
                 .toList(),
           ),
           const SizedBox(height: 8),
-          // Calendar grid.
-          Expanded(
+          // Calendar grid with explicit height so it doesn't
+          // need Expanded or scrolling of its own.
+          AspectRatio(
+            aspectRatio: 7 / totalRows,
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate:
