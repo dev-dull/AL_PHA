@@ -178,6 +178,7 @@ class _MiniMonth extends StatelessWidget {
               final isToday = dateKey == todayKey;
 
               return _MiniDayCell(
+                day: day,
                 summary: summary,
                 isToday: isToday,
                 isPast: dateKey.isBefore(todayKey),
@@ -193,6 +194,7 @@ class _MiniMonth extends StatelessWidget {
 }
 
 class _MiniDayCell extends StatelessWidget {
+  final int day;
   final DaySummary? summary;
   final bool isToday;
   final bool isPast;
@@ -200,6 +202,7 @@ class _MiniDayCell extends StatelessWidget {
   final VoidCallback onTap;
 
   const _MiniDayCell({
+    required this.day,
     this.summary,
     required this.isToday,
     required this.isPast,
@@ -213,9 +216,8 @@ class _MiniDayCell extends StatelessWidget {
     final s = summary;
     final hasData = s != null && !s.isEmpty;
 
-    Color color;
+    Color bgColor;
     if (hasData) {
-      // Gradient from red (0% completed) to green (100% completed).
       final rate = s.completionRate;
       final red = brightness == Brightness.dark
           ? const Color(0xFFE57373)
@@ -223,25 +225,44 @@ class _MiniDayCell extends StatelessWidget {
       final green = brightness == Brightness.dark
           ? const Color(0xFF8FC4A0)
           : const Color(0xFF3D7A55);
-      color = Color.lerp(red, green, rate)!;
+      bgColor = Color.lerp(red, green, rate)!;
     } else {
-      color = isPast
+      bgColor = isPast
           ? theme.colorScheme.onSurface.withValues(alpha: 0.06)
           : Colors.transparent;
     }
+
+    // Pick a legible text color against the background.
+    final textColor = hasData
+        ? (ThemeData.estimateBrightnessForColor(bgColor) ==
+                Brightness.dark
+            ? Colors.white70
+            : Colors.black54)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.4);
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(2),
-          color: color,
+          color: bgColor,
           border: isToday
               ? Border.all(
                   color: theme.colorScheme.primary,
                   width: 1.5,
                 )
               : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '$day',
+          style: TextStyle(
+            fontSize: 7,
+            height: 1,
+            fontWeight:
+                isToday ? FontWeight.bold : FontWeight.normal,
+            color: textColor,
+          ),
         ),
       ),
     );
