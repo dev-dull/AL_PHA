@@ -1,7 +1,10 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
-import 'package:alpha/features/board/providers/weekly_board_provider.dart';
+import 'package:alpha/features/board/domain/board.dart';
+import 'package:alpha/features/board/domain/board_type.dart';
+import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/task/domain/task.dart';
@@ -258,6 +261,43 @@ class MarkerActions {
     return col.type != ColumnType.date;
   }
 
+  /// Looks up or creates a weekly board for the given Monday,
+  /// bypassing the Riverpod provider to avoid caching issues.
+  Future<String> _getOrCreateWeeklyBoard(DateTime monday) async {
+    final boardRepo = _ref.read(boardRepositoryProvider);
+    final existing = await boardRepo.getByWeekStart(monday);
+    if (existing != null) return existing.id;
+
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final boardId = _uuid.v4();
+    final now = DateTime.now();
+
+    await boardRepo.create(
+      Board(
+        id: boardId,
+        name: weekBoardName(monday),
+        type: BoardType.weekly,
+        weekStart: monday,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+
+    for (final col in weeklyColumnDefs) {
+      await columnRepo.create(
+        BoardColumn(
+          id: _uuid.v4(),
+          boardId: boardId,
+          label: col.label,
+          position: col.position,
+          type: col.type,
+        ),
+      );
+    }
+
+    return boardId;
+  }
+
   /// Migrates a single task to the next week's board.
   /// Copies the task's day-of-week dot schedule to the new board.
   Future<void> _migrateTaskToNextWeek({
@@ -283,9 +323,9 @@ class MarkerActions {
     final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
     final nextMonday = boardMonday.add(const Duration(days: 7));
 
-    final targetBoardId = await _ref.read(
-      weeklyBoardProvider(nextMonday).future,
-    );
+    // Lookup or create the target board directly via repository
+    // (avoids provider caching issues).
+    final targetBoardId = await _getOrCreateWeeklyBoard(nextMonday);
 
     // Check if already migrated to this target.
     final targetTasks = await taskRepo.getByBoard(targetBoardId);
@@ -519,9 +559,7 @@ class MarkerActions {
         ? currentMonday
         : currentMonday.add(const Duration(days: 7));
 
-    final targetBoardId = await _ref.read(
-      weeklyBoardProvider(targetMonday).future,
-    );
+    final targetBoardId = await _getOrCreateWeeklyBoard(targetMonday);
 
     // Get existing tasks on the target board to check for dupes
     // and compute next position.
