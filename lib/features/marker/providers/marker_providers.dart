@@ -660,4 +660,98 @@ class MarkerActions {
       _ref.invalidate(markersByBoardProvider(targetBoardId));
     }
   }
+
+  /// Copies recurring events from the previous week's board into
+  /// [boardId] if they aren't already present.  Called when a board
+  /// is opened so that weekly/daily events appear automatically.
+  Future<void> populateRecurringEvents({
+    required String boardId,
+  }) async {
+    final boardRepo = _ref.read(boardRepositoryProvider);
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final markerRepo = _ref.read(markerRepositoryProvider);
+    final taskRepo = _ref.read(taskRepositoryProvider);
+
+    final board = await boardRepo.getById(boardId);
+    if (board == null) return;
+
+    final boardWeekStart = board.weekStart ??
+        DateTime(
+          board.createdAt.year,
+          board.createdAt.month,
+          board.createdAt.day,
+        ).subtract(Duration(days: board.createdAt.weekday - 1));
+
+    final prevMonday = boardWeekStart.subtract(const Duration(days: 7));
+    final prevBoard = await boardRepo.getByWeekStart(prevMonday);
+    if (prevBoard == null) return;
+
+    final prevTasks = await taskRepo.getByBoard(prevBoard.id);
+    final recurringEvents = prevTasks.where((t) =>
+        t.isEvent &&
+        t.recurrenceRule != null &&
+        t.recurrenceRule!.contains('FREQ='));
+
+    if (recurringEvents.isEmpty) return;
+
+    final currentTasks = await taskRepo.getByBoard(boardId);
+    final alreadyMigrated = currentTasks
+        .where((t) => t.migratedFromBoardId == prevBoard.id)
+        .map((t) => t.migratedFromTaskId)
+        .toSet();
+
+    var nextPosition = currentTasks.length;
+    final now = DateTime.now();
+    var didAdd = false;
+
+    for (final task in recurringEvents) {
+      if (alreadyMigrated.contains(task.id)) continue;
+
+      final (_, days) = parseRRule(task.recurrenceRule);
+      final newTaskId = _uuid.v4();
+      await taskRepo.create(
+        Task(
+          id: newTaskId,
+          boardId: boardId,
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          position: nextPosition,
+          createdAt: now,
+          deadline: task.deadline,
+          migratedFromBoardId: prevBoard.id,
+          migratedFromTaskId: task.id,
+          isEvent: true,
+          scheduledTime: task.scheduledTime,
+          recurrenceRule: task.recurrenceRule,
+        ),
+      );
+      nextPosition++;
+      didAdd = true;
+
+      if (days.isNotEmpty) {
+        final targetColumns = await columnRepo.getByBoard(boardId);
+        for (final col in targetColumns) {
+          if (col.type == ColumnType.date &&
+              days.contains(col.position)) {
+            await markerRepo.set(
+              Marker(
+                id: _uuid.v4(),
+                taskId: newTaskId,
+                columnId: col.id,
+                boardId: boardId,
+                symbol: MarkerSymbol.event,
+                updatedAt: now,
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    if (didAdd) {
+      _ref.invalidate(taskListProvider(boardId));
+      _ref.invalidate(markersByBoardProvider(boardId));
+    }
+  }
 }

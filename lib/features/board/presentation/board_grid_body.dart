@@ -33,11 +33,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   @override
   void initState() {
     super.initState();
-    // Await auto-fill so migration completes before user navigates.
     Future.microtask(() async {
-      await ref
-          .read(markerActionsProvider)
-          .autoFillMissedDays(boardId: widget.boardId);
+      final actions = ref.read(markerActionsProvider);
+      // Pull recurring events from the previous week.
+      await actions.populateRecurringEvents(boardId: widget.boardId);
+      // Auto-fill missed days and migrate incomplete tasks.
+      await actions.autoFillMissedDays(boardId: widget.boardId);
     });
   }
 
