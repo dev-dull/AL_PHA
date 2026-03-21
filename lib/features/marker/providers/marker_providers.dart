@@ -86,6 +86,7 @@ class MarkerActions {
         await _migrateTaskToNextWeek(boardId: boardId, taskId: taskId);
       } else {
         await repo.remove(taskId, columnId);
+        await _undoMigrateTask(boardId: boardId, taskId: taskId);
       }
       return;
     }
@@ -353,6 +354,47 @@ class MarkerActions {
     // Invalidate target board providers.
     _ref.invalidate(taskListProvider(targetBoardId));
     _ref.invalidate(markersByBoardProvider(targetBoardId));
+  }
+
+  /// Removes a previously migrated task from the next week's board
+  /// when the user toggles off the > marker.
+  Future<void> _undoMigrateTask({
+    required String boardId,
+    required String taskId,
+  }) async {
+    final taskRepo = _ref.read(taskRepositoryProvider);
+    final boardRepo = _ref.read(boardRepositoryProvider);
+
+    final board = await boardRepo.getById(boardId);
+    if (board == null) return;
+    final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
+    final nextMonday = boardMonday.add(const Duration(days: 7));
+
+    // Look up the target board (don't create if it doesn't exist).
+    final targetBoard = await boardRepo.getByWeekStart(nextMonday);
+    if (targetBoard == null) return;
+
+    final targetTasks = await taskRepo.getByBoard(targetBoard.id);
+    final migrated = targetTasks.where(
+      (t) =>
+          t.migratedFromBoardId == boardId &&
+          t.migratedFromTaskId == taskId,
+    );
+
+    for (final t in migrated) {
+      // Remove markers for this task first.
+      final markerRepo = _ref.read(markerRepositoryProvider);
+      final markers = await markerRepo.getByBoard(targetBoard.id);
+      for (final m in markers.where((m) => m.taskId == t.id)) {
+        await markerRepo.remove(m.taskId, m.columnId);
+      }
+      await taskRepo.delete(t.id);
+    }
+
+    if (migrated.isNotEmpty) {
+      _ref.invalidate(taskListProvider(targetBoard.id));
+      _ref.invalidate(markersByBoardProvider(targetBoard.id));
+    }
   }
 
   /// Auto-fills `>` (migrated) on past day columns where a task
