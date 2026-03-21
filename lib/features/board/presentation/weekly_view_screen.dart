@@ -46,11 +46,13 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   }
 
   void _goToPreviousWeek() {
-    _changeWeek(_currentMonday.subtract(const Duration(days: 7)));
+    final m = _currentMonday;
+    _changeWeek(DateTime(m.year, m.month, m.day - 7));
   }
 
   void _goToNextWeek() {
-    _changeWeek(_currentMonday.add(const Duration(days: 7)));
+    final m = _currentMonday;
+    _changeWeek(DateTime(m.year, m.month, m.day + 7));
   }
 
   void _goToToday() {

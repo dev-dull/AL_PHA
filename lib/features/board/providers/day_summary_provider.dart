@@ -97,7 +97,8 @@ Future<Map<DateTime, DaySummary>> daySummaries(
       }
     }
 
-    monday = monday.add(const Duration(days: 7));
+    // Use calendar arithmetic instead of Duration to avoid DST shifts.
+    monday = DateTime(monday.year, monday.month, monday.day + 7);
   }
 
   return result;

@@ -299,7 +299,8 @@ class MarkerActions {
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
     final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
-    final nextMonday = boardMonday.add(const Duration(days: 7));
+    final nextMonday =
+        DateTime(boardMonday.year, boardMonday.month, boardMonday.day + 7);
 
     final targetBoardId = await _getOrCreateWeeklyBoard(nextMonday);
 
@@ -381,7 +382,8 @@ class MarkerActions {
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
     final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
-    final nextMonday = boardMonday.add(const Duration(days: 7));
+    final nextMonday =
+        DateTime(boardMonday.year, boardMonday.month, boardMonday.day + 7);
 
     final targetBoard = await boardRepo.getByWeekStart(nextMonday);
     if (targetBoard == null) return;
@@ -523,7 +525,11 @@ class MarkerActions {
 
     final targetMonday = isPastWeek
         ? currentMonday
-        : currentMonday.add(const Duration(days: 7));
+        : DateTime(
+            currentMonday.year,
+            currentMonday.month,
+            currentMonday.day + 7,
+          );
 
     final targetBoardId = await _getOrCreateWeeklyBoard(targetMonday);
 
@@ -674,7 +680,11 @@ class MarkerActions {
           board.createdAt.day,
         ).subtract(Duration(days: board.createdAt.weekday - 1));
 
-    final prevMonday = boardWeekStart.subtract(const Duration(days: 7));
+    final prevMonday = DateTime(
+      boardWeekStart.year,
+      boardWeekStart.month,
+      boardWeekStart.day - 7,
+    );
     final prevBoard = await boardRepo.getByWeekStart(prevMonday);
     if (prevBoard == null) return;
 

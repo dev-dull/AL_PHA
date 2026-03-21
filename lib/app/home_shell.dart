@@ -50,8 +50,16 @@ class _HomeShellState extends State<HomeShell> {
         Expanded(child: _buildBody()),
         NavigationBar(
           selectedIndex: _currentIndex,
-          onDestinationSelected: (i) =>
-              setState(() => _currentIndex = i),
+          onDestinationSelected: (i) {
+            setState(() {
+              if (i == 0 && _currentIndex != 0) {
+                // Reset to current week when returning via tab bar.
+                _targetMonday = null;
+                _weekNavKey++;
+              }
+              _currentIndex = i;
+            });
+          },
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.view_week_outlined),
