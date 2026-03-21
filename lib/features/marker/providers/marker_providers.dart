@@ -83,6 +83,7 @@ class MarkerActions {
             updatedAt: DateTime.now(),
           ),
         );
+        await _migrateTaskToNextWeek(boardId: boardId, taskId: taskId);
       } else {
         await repo.remove(taskId, columnId);
       }
@@ -183,6 +184,12 @@ class MarkerActions {
         changedColumnId: columnId,
       );
     }
+
+    // If > was set on the migration column, migrate the task.
+    if (symbol == MarkerSymbol.migratedForward &&
+        await _isMigrationColumn(boardId, columnId)) {
+      await _migrateTaskToNextWeek(boardId: boardId, taskId: taskId);
+    }
   }
 
   /// When a task is marked X on a day, any dots on later day
@@ -248,6 +255,107 @@ class MarkerActions {
     final columns = await columnRepo.getByBoard(boardId);
     final col = columns.firstWhere((c) => c.id == columnId);
     return col.type != ColumnType.date;
+  }
+
+  /// Migrates a single task to the next week's board.
+  /// Copies the task's day-of-week dot schedule to the new board.
+  Future<void> _migrateTaskToNextWeek({
+    required String boardId,
+    required String taskId,
+  }) async {
+    final taskRepo = _ref.read(taskRepositoryProvider);
+    final markerRepo = _ref.read(markerRepositoryProvider);
+    final columnRepo = _ref.read(columnRepositoryProvider);
+    final boardRepo = _ref.read(boardRepositoryProvider);
+
+    final task = await taskRepo.getById(taskId);
+    if (task == null) return;
+    // Only migrate open or in-progress tasks.
+    if (task.state != TaskState.open &&
+        task.state != TaskState.inProgress) {
+      return;
+    }
+
+    // Determine the next week's Monday from the board's weekStart.
+    final board = await boardRepo.getById(boardId);
+    if (board == null) return;
+    final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
+    final nextMonday = boardMonday.add(const Duration(days: 7));
+
+    final targetBoardId = await _ref.read(
+      weeklyBoardProvider(nextMonday).future,
+    );
+
+    // Check if already migrated to this target.
+    final targetTasks = await taskRepo.getByBoard(targetBoardId);
+    final alreadyMigrated = targetTasks.any(
+      (t) =>
+          t.migratedFromBoardId == boardId &&
+          t.migratedFromTaskId == taskId,
+    );
+    if (alreadyMigrated) return;
+
+    // Collect dot positions from source board.
+    final sourceColumns = await columnRepo.getByBoard(boardId);
+    final sourceMarkers = await markerRepo.getByBoard(boardId);
+    final dotPositions = <int>{};
+    for (final col in sourceColumns) {
+      if (col.type != ColumnType.date) continue;
+      final hasDot = sourceMarkers.any(
+        (m) =>
+            m.taskId == taskId &&
+            m.columnId == col.id &&
+            (m.symbol == MarkerSymbol.dot ||
+                m.symbol == MarkerSymbol.migratedForward),
+      );
+      if (hasDot) dotPositions.add(col.position);
+    }
+
+    final now = DateTime.now();
+
+    // Mark source task as migrated.
+    await taskRepo.update(task.copyWith(state: TaskState.migrated));
+
+    // Create on target board.
+    final newTaskId = _uuid.v4();
+    await taskRepo.create(
+      Task(
+        id: newTaskId,
+        boardId: targetBoardId,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        position: targetTasks.length,
+        createdAt: now,
+        deadline: task.deadline,
+        migratedFromBoardId: boardId,
+        migratedFromTaskId: task.id,
+      ),
+    );
+
+    // Copy dot schedule to target board.
+    if (dotPositions.isNotEmpty) {
+      final targetColumns = await columnRepo.getByBoard(targetBoardId);
+      for (final targetCol in targetColumns) {
+        if (targetCol.type == ColumnType.date &&
+            dotPositions.contains(targetCol.position)) {
+          await markerRepo.set(
+            Marker(
+              id: _uuid.v4(),
+              taskId: newTaskId,
+              columnId: targetCol.id,
+              boardId: targetBoardId,
+              symbol: MarkerSymbol.dot,
+              updatedAt: now,
+            ),
+          );
+        }
+      }
+    }
+
+    // Invalidate target board providers.
+    _ref.invalidate(taskListProvider(targetBoardId));
+    _ref.invalidate(markersByBoardProvider(targetBoardId));
   }
 
   /// Auto-fills `>` (migrated) on past day columns where a task
