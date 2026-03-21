@@ -317,18 +317,39 @@ class MarkerActions {
 
     if (migratedTaskIds.isEmpty) return;
 
-    // Only mark migration column and migrate tasks for fully past weeks.
-    // Current week: dots on past days become > but the week isn't over,
-    // so no migration column or cross-board migration yet.
-    final isPastWeek = boardWeekStart.isBefore(currentMonday);
-    if (!isPastWeek) return;
+    // Re-read markers after converting dots to >.
+    final updatedMarkers = await markerRepo.getByBoard(boardId);
 
-    // Mark the migration column (>) for each affected task.
+    // Determine which future day columns remain (current week only).
+    final futureDayColumns = dayColumns.where(
+      (c) => c.position >= (now.weekday - 1),
+    );
+
+    // For each affected task, check if it has any remaining dots
+    // on future day columns. If not, it needs full migration.
+    final tasksToMigrate = <String>{};
+    for (final taskId in migratedTaskIds) {
+      final hasFutureDot = futureDayColumns.any((col) {
+        return updatedMarkers.any(
+          (m) =>
+              m.taskId == taskId &&
+              m.columnId == col.id &&
+              m.symbol == MarkerSymbol.dot,
+        );
+      });
+      if (!hasFutureDot) {
+        tasksToMigrate.add(taskId);
+      }
+    }
+
+    if (tasksToMigrate.isEmpty) return;
+
+    // Mark the migration column (>) for tasks with no future dots.
     final migrationCol = columns
         .where((c) => c.type != ColumnType.date)
         .firstOrNull;
     if (migrationCol != null) {
-      for (final taskId in migratedTaskIds) {
+      for (final taskId in tasksToMigrate) {
         final existing = await markerRepo.get(taskId, migrationCol.id);
         if (existing == null) {
           await markerRepo.set(
@@ -345,8 +366,14 @@ class MarkerActions {
       }
     }
 
+    // Determine target week: next week if current week, else current.
+    final isPastWeek = boardWeekStart.isBefore(currentMonday);
+    final targetMonday = isPastWeek
+        ? currentMonday
+        : currentMonday.add(const Duration(days: 7));
+
     final targetBoardId = await _ref.read(
-      weeklyBoardProvider(currentMonday).future,
+      weeklyBoardProvider(targetMonday).future,
     );
 
     // Get existing tasks on the target board to check for dupes
@@ -359,7 +386,7 @@ class MarkerActions {
     var nextPosition = targetTasks.length;
     var didMigrate = false;
 
-    for (final taskId in migratedTaskIds) {
+    for (final taskId in tasksToMigrate) {
       // Skip if already migrated to target board.
       if (existingMigrationSources.contains(taskId)) continue;
 
