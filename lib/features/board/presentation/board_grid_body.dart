@@ -4,10 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 import 'package:alpha/design_system/widgets/dot_grid_background.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
+import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
+import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
+import 'package:alpha/shared/providers.dart';
 import 'package:alpha/features/task/domain/task_sort.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
@@ -89,11 +93,51 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       task: task,
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
+        if (updated.isEvent) {
+          await _syncEventMarkers(updated);
+        }
       },
       onDelete: () async {
         await ref.read(taskActionsProvider).delete(task.id);
       },
     );
+  }
+
+  /// Syncs the event markers on day columns to match the task's
+  /// scheduled days (derived from its recurrence rule).
+  Future<void> _syncEventMarkers(Task task) async {
+    final columnsAsync = ref.read(columnListProvider(widget.boardId));
+    final columns = columnsAsync.valueOrNull;
+    if (columns == null) return;
+
+    final (_, days) = parseRRule(task.recurrenceRule);
+    final markerActions = ref.read(markerActionsProvider);
+    final markerRepo = ref.read(markerRepositoryProvider);
+
+    for (final col in columns) {
+      if (col.type != ColumnType.date) continue;
+
+      final existing = await markerRepo.get(task.id, col.id);
+      final shouldHaveMarker = days.contains(col.position);
+
+      if (shouldHaveMarker && existing == null) {
+        await markerActions.setMarker(
+          boardId: widget.boardId,
+          taskId: task.id,
+          columnId: col.id,
+          symbol: MarkerSymbol.event,
+        );
+      } else if (!shouldHaveMarker &&
+          existing != null &&
+          existing.symbol == MarkerSymbol.event) {
+        await markerActions.setMarker(
+          boardId: widget.boardId,
+          taskId: task.id,
+          columnId: col.id,
+          symbol: null,
+        );
+      }
+    }
   }
 
   Future<void> _onReorder(List<Task> tasks, int oldIndex, int newIndex) async {
