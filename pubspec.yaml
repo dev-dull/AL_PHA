@@ -30,8 +30,6 @@ dependencies:
   # Utilities
   uuid: ^4.5.1
   intl: ^0.19.0
-  google_fonts: ^8.0.2
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -48,3 +46,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Caveat
+      fonts:
+        - asset: fonts/Caveat-Variable.ttf

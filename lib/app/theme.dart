@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 
 // ── App theme identifiers ─────────────────────────────────────────
@@ -78,12 +77,49 @@ class AlphaTheme {
   }
 
   static ThemeData _buildTheme(ColorScheme colorScheme) {
-    final textTheme = GoogleFonts.caveatTextTheme(
-      ThemeData(colorScheme: colorScheme).textTheme,
-    ).apply(
-      bodyColor: colorScheme.onSurface,
-      displayColor: colorScheme.onSurface,
-    );
+    const fontFamily = 'Caveat';
+    final baseTextTheme = ThemeData(colorScheme: colorScheme).textTheme;
+    final textTheme = baseTextTheme
+        .apply(fontFamily: fontFamily)
+        .copyWith(
+          // Bump sizes slightly — Caveat reads smaller than system fonts.
+          bodyLarge: baseTextTheme.bodyLarge?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 20,
+          ),
+          bodyMedium: baseTextTheme.bodyMedium?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 18,
+          ),
+          bodySmall: baseTextTheme.bodySmall?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 16,
+          ),
+          titleLarge: baseTextTheme.titleLarge?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 26,
+          ),
+          titleMedium: baseTextTheme.titleMedium?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 22,
+          ),
+          labelLarge: baseTextTheme.labelLarge?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 18,
+          ),
+          labelMedium: baseTextTheme.labelMedium?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 16,
+          ),
+          labelSmall: baseTextTheme.labelSmall?.copyWith(
+            fontFamily: fontFamily,
+            fontSize: 14,
+          ),
+        )
+        .apply(
+          bodyColor: colorScheme.onSurface,
+          displayColor: colorScheme.onSurface,
+        );
 
     return ThemeData(
       useMaterial3: true,
