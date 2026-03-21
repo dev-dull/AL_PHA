@@ -22,6 +22,8 @@ class TaskRepository {
       deadline: row.deadline as DateTime?,
       migratedFromBoardId: row.migratedFromBoardId as String?,
       migratedFromTaskId: row.migratedFromTaskId as String?,
+      isEvent: row.isEvent as bool,
+      scheduledTime: row.scheduledTime as String?,
     );
   }
 
@@ -42,6 +44,8 @@ class TaskRepository {
             deadline: Value(task.deadline),
             migratedFromBoardId: Value(task.migratedFromBoardId),
             migratedFromTaskId: Value(task.migratedFromTaskId),
+            isEvent: Value(task.isEvent),
+            scheduledTime: Value(task.scheduledTime),
           ),
         );
     return task;
@@ -70,6 +74,8 @@ class TaskRepository {
         position: Value(task.position),
         completedAt: Value(task.completedAt),
         deadline: Value(task.deadline),
+        isEvent: Value(task.isEvent),
+        scheduledTime: Value(task.scheduledTime),
       ),
     );
     return task;

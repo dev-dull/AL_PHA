@@ -151,6 +151,113 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         );
   }
 
+  Future<void> _showAddEventDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    TimeOfDay? scheduledTime;
+
+    final result = await showDialog<(String, TimeOfDay?)>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('New Event'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(hintText: 'Event title'),
+                onSubmitted: (v) =>
+                    Navigator.of(ctx).pop((v, scheduledTime)),
+              ),
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: ctx,
+                    initialTime: scheduledTime ??
+                        const TimeOfDay(hour: 9, minute: 0),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => scheduledTime = picked);
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Scheduled Time',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: scheduledTime != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () => setDialogState(
+                                () => scheduledTime = null),
+                          )
+                        : const Icon(Icons.access_time),
+                  ),
+                  child: Text(
+                    scheduledTime != null
+                        ? scheduledTime!.format(ctx)
+                        : 'No time set',
+                    style: scheduledTime == null
+                        ? Theme.of(ctx)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                              color: Theme.of(ctx)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5),
+                            )
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx)
+                  .pop((controller.text, scheduledTime)),
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 300), controller.dispose);
+
+    if (result == null || result.$1.trim().isEmpty) return;
+
+    final tasks = ref.read(taskListProvider(widget.boardId));
+    final currentCount = tasks.valueOrNull?.length ?? 0;
+
+    String? timeStr;
+    if (result.$2 != null) {
+      timeStr = '${result.$2!.hour.toString().padLeft(2, '0')}:'
+          '${result.$2!.minute.toString().padLeft(2, '0')}';
+    }
+
+    await ref
+        .read(taskActionsProvider)
+        .create(
+          Task(
+            id: _uuid.v4(),
+            boardId: widget.boardId,
+            title: result.$1.trim(),
+            position: currentCount,
+            createdAt: DateTime.now(),
+            isEvent: true,
+            scheduledTime: timeStr,
+          ),
+        );
+  }
+
   // ----------------------------------------------------------
   // Build
   // ----------------------------------------------------------
@@ -175,10 +282,24 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         Positioned(
           right: 16,
           bottom: 16,
-          child: FloatingActionButton(
-            onPressed: () => _showAddTaskDialog(context),
-            tooltip: 'Add task',
-            child: const Icon(Icons.add),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              FloatingActionButton.small(
+                heroTag: 'addEvent',
+                onPressed: () => _showAddEventDialog(context),
+                tooltip: 'Add event',
+                child: const Icon(Icons.event),
+              ),
+              const SizedBox(height: 8),
+              FloatingActionButton(
+                heroTag: 'addTask',
+                onPressed: () => _showAddTaskDialog(context),
+                tooltip: 'Add task',
+                child: const Icon(Icons.add),
+              ),
+            ],
           ),
         ),
       ],
@@ -449,17 +570,45 @@ class BoardRow extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 4, right: 8),
-                child: Text(
-                  task.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    decoration:
-                        isCancelled ? TextDecoration.lineThrough : null,
-                    color: isCancelled
-                        ? theme.colorScheme.onSurface.withValues(alpha: 0.4)
-                        : null,
-                  ),
+                child: Row(
+                  children: [
+                    if (task.isEvent) ...[
+                      Icon(
+                        Icons.event,
+                        size: 14,
+                        color: theme.colorScheme.primary
+                            .withValues(alpha: isCancelled ? 0.4 : 0.7),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(
+                        task.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          decoration: isCancelled
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: isCancelled
+                              ? theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.4)
+                              : null,
+                        ),
+                      ),
+                    ),
+                    if (task.isEvent && task.scheduledTime != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          task.scheduledTime!,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: isCancelled ? 0.3 : 0.5),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

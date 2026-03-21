@@ -15,7 +15,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Task {
 
- String get id; String get boardId; String get title; String get description; TaskState get state; int get priority; int get position; DateTime get createdAt; DateTime? get completedAt; DateTime? get deadline; String? get migratedFromBoardId; String? get migratedFromTaskId;
+ String get id; String get boardId; String get title; String get description; TaskState get state; int get priority; int get position; DateTime get createdAt; DateTime? get completedAt; DateTime? get deadline; String? get migratedFromBoardId; String? get migratedFromTaskId; bool get isEvent;/// Stored as "HH:mm" (24-hour format), e.g. "14:30".
+ String? get scheduledTime;
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +29,16 @@ $TaskCopyWith<Task> get copyWith => _$TaskCopyWithImpl<Task>(this as Task, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Task&&(identical(other.id, id) || other.id == id)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.state, state) || other.state == state)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.position, position) || other.position == position)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.migratedFromBoardId, migratedFromBoardId) || other.migratedFromBoardId == migratedFromBoardId)&&(identical(other.migratedFromTaskId, migratedFromTaskId) || other.migratedFromTaskId == migratedFromTaskId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Task&&(identical(other.id, id) || other.id == id)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.state, state) || other.state == state)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.position, position) || other.position == position)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.migratedFromBoardId, migratedFromBoardId) || other.migratedFromBoardId == migratedFromBoardId)&&(identical(other.migratedFromTaskId, migratedFromTaskId) || other.migratedFromTaskId == migratedFromTaskId)&&(identical(other.isEvent, isEvent) || other.isEvent == isEvent)&&(identical(other.scheduledTime, scheduledTime) || other.scheduledTime == scheduledTime));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,boardId,title,description,state,priority,position,createdAt,completedAt,deadline,migratedFromBoardId,migratedFromTaskId);
+int get hashCode => Object.hash(runtimeType,id,boardId,title,description,state,priority,position,createdAt,completedAt,deadline,migratedFromBoardId,migratedFromTaskId,isEvent,scheduledTime);
 
 @override
 String toString() {
-  return 'Task(id: $id, boardId: $boardId, title: $title, description: $description, state: $state, priority: $priority, position: $position, createdAt: $createdAt, completedAt: $completedAt, deadline: $deadline, migratedFromBoardId: $migratedFromBoardId, migratedFromTaskId: $migratedFromTaskId)';
+  return 'Task(id: $id, boardId: $boardId, title: $title, description: $description, state: $state, priority: $priority, position: $position, createdAt: $createdAt, completedAt: $completedAt, deadline: $deadline, migratedFromBoardId: $migratedFromBoardId, migratedFromTaskId: $migratedFromTaskId, isEvent: $isEvent, scheduledTime: $scheduledTime)';
 }
 
 
@@ -48,7 +49,7 @@ abstract mixin class $TaskCopyWith<$Res>  {
   factory $TaskCopyWith(Task value, $Res Function(Task) _then) = _$TaskCopyWithImpl;
 @useResult
 $Res call({
- String id, String boardId, String title, String description, TaskState state, int priority, int position, DateTime createdAt, DateTime? completedAt, DateTime? deadline, String? migratedFromBoardId, String? migratedFromTaskId
+ String id, String boardId, String title, String description, TaskState state, int priority, int position, DateTime createdAt, DateTime? completedAt, DateTime? deadline, String? migratedFromBoardId, String? migratedFromTaskId, bool isEvent, String? scheduledTime
 });
 
 
@@ -65,7 +66,7 @@ class _$TaskCopyWithImpl<$Res>
 
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? boardId = null,Object? title = null,Object? description = null,Object? state = null,Object? priority = null,Object? position = null,Object? createdAt = null,Object? completedAt = freezed,Object? deadline = freezed,Object? migratedFromBoardId = freezed,Object? migratedFromTaskId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? boardId = null,Object? title = null,Object? description = null,Object? state = null,Object? priority = null,Object? position = null,Object? createdAt = null,Object? completedAt = freezed,Object? deadline = freezed,Object? migratedFromBoardId = freezed,Object? migratedFromTaskId = freezed,Object? isEvent = null,Object? scheduledTime = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,boardId: null == boardId ? _self.boardId : boardId // ignore: cast_nullable_to_non_nullable
@@ -79,6 +80,8 @@ as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedA
 as DateTime?,deadline: freezed == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime?,migratedFromBoardId: freezed == migratedFromBoardId ? _self.migratedFromBoardId : migratedFromBoardId // ignore: cast_nullable_to_non_nullable
 as String?,migratedFromTaskId: freezed == migratedFromTaskId ? _self.migratedFromTaskId : migratedFromTaskId // ignore: cast_nullable_to_non_nullable
+as String?,isEvent: null == isEvent ? _self.isEvent : isEvent // ignore: cast_nullable_to_non_nullable
+as bool,scheduledTime: freezed == scheduledTime ? _self.scheduledTime : scheduledTime // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -164,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String boardId,  String title,  String description,  TaskState state,  int priority,  int position,  DateTime createdAt,  DateTime? completedAt,  DateTime? deadline,  String? migratedFromBoardId,  String? migratedFromTaskId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String boardId,  String title,  String description,  TaskState state,  int priority,  int position,  DateTime createdAt,  DateTime? completedAt,  DateTime? deadline,  String? migratedFromBoardId,  String? migratedFromTaskId,  bool isEvent,  String? scheduledTime)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Task() when $default != null:
-return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state,_that.priority,_that.position,_that.createdAt,_that.completedAt,_that.deadline,_that.migratedFromBoardId,_that.migratedFromTaskId);case _:
+return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state,_that.priority,_that.position,_that.createdAt,_that.completedAt,_that.deadline,_that.migratedFromBoardId,_that.migratedFromTaskId,_that.isEvent,_that.scheduledTime);case _:
   return orElse();
 
 }
@@ -185,10 +188,10 @@ return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String boardId,  String title,  String description,  TaskState state,  int priority,  int position,  DateTime createdAt,  DateTime? completedAt,  DateTime? deadline,  String? migratedFromBoardId,  String? migratedFromTaskId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String boardId,  String title,  String description,  TaskState state,  int priority,  int position,  DateTime createdAt,  DateTime? completedAt,  DateTime? deadline,  String? migratedFromBoardId,  String? migratedFromTaskId,  bool isEvent,  String? scheduledTime)  $default,) {final _that = this;
 switch (_that) {
 case _Task():
-return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state,_that.priority,_that.position,_that.createdAt,_that.completedAt,_that.deadline,_that.migratedFromBoardId,_that.migratedFromTaskId);case _:
+return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state,_that.priority,_that.position,_that.createdAt,_that.completedAt,_that.deadline,_that.migratedFromBoardId,_that.migratedFromTaskId,_that.isEvent,_that.scheduledTime);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -205,10 +208,10 @@ return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String boardId,  String title,  String description,  TaskState state,  int priority,  int position,  DateTime createdAt,  DateTime? completedAt,  DateTime? deadline,  String? migratedFromBoardId,  String? migratedFromTaskId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String boardId,  String title,  String description,  TaskState state,  int priority,  int position,  DateTime createdAt,  DateTime? completedAt,  DateTime? deadline,  String? migratedFromBoardId,  String? migratedFromTaskId,  bool isEvent,  String? scheduledTime)?  $default,) {final _that = this;
 switch (_that) {
 case _Task() when $default != null:
-return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state,_that.priority,_that.position,_that.createdAt,_that.completedAt,_that.deadline,_that.migratedFromBoardId,_that.migratedFromTaskId);case _:
+return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state,_that.priority,_that.position,_that.createdAt,_that.completedAt,_that.deadline,_that.migratedFromBoardId,_that.migratedFromTaskId,_that.isEvent,_that.scheduledTime);case _:
   return null;
 
 }
@@ -220,7 +223,7 @@ return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state
 @JsonSerializable()
 
 class _Task implements Task {
-  const _Task({required this.id, required this.boardId, required this.title, this.description = '', this.state = TaskState.open, this.priority = 0, required this.position, required this.createdAt, this.completedAt, this.deadline, this.migratedFromBoardId, this.migratedFromTaskId});
+  const _Task({required this.id, required this.boardId, required this.title, this.description = '', this.state = TaskState.open, this.priority = 0, required this.position, required this.createdAt, this.completedAt, this.deadline, this.migratedFromBoardId, this.migratedFromTaskId, this.isEvent = false, this.scheduledTime});
   factory _Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);
 
 @override final  String id;
@@ -235,6 +238,9 @@ class _Task implements Task {
 @override final  DateTime? deadline;
 @override final  String? migratedFromBoardId;
 @override final  String? migratedFromTaskId;
+@override@JsonKey() final  bool isEvent;
+/// Stored as "HH:mm" (24-hour format), e.g. "14:30".
+@override final  String? scheduledTime;
 
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
@@ -249,16 +255,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Task&&(identical(other.id, id) || other.id == id)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.state, state) || other.state == state)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.position, position) || other.position == position)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.migratedFromBoardId, migratedFromBoardId) || other.migratedFromBoardId == migratedFromBoardId)&&(identical(other.migratedFromTaskId, migratedFromTaskId) || other.migratedFromTaskId == migratedFromTaskId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Task&&(identical(other.id, id) || other.id == id)&&(identical(other.boardId, boardId) || other.boardId == boardId)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.state, state) || other.state == state)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.position, position) || other.position == position)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.migratedFromBoardId, migratedFromBoardId) || other.migratedFromBoardId == migratedFromBoardId)&&(identical(other.migratedFromTaskId, migratedFromTaskId) || other.migratedFromTaskId == migratedFromTaskId)&&(identical(other.isEvent, isEvent) || other.isEvent == isEvent)&&(identical(other.scheduledTime, scheduledTime) || other.scheduledTime == scheduledTime));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,boardId,title,description,state,priority,position,createdAt,completedAt,deadline,migratedFromBoardId,migratedFromTaskId);
+int get hashCode => Object.hash(runtimeType,id,boardId,title,description,state,priority,position,createdAt,completedAt,deadline,migratedFromBoardId,migratedFromTaskId,isEvent,scheduledTime);
 
 @override
 String toString() {
-  return 'Task(id: $id, boardId: $boardId, title: $title, description: $description, state: $state, priority: $priority, position: $position, createdAt: $createdAt, completedAt: $completedAt, deadline: $deadline, migratedFromBoardId: $migratedFromBoardId, migratedFromTaskId: $migratedFromTaskId)';
+  return 'Task(id: $id, boardId: $boardId, title: $title, description: $description, state: $state, priority: $priority, position: $position, createdAt: $createdAt, completedAt: $completedAt, deadline: $deadline, migratedFromBoardId: $migratedFromBoardId, migratedFromTaskId: $migratedFromTaskId, isEvent: $isEvent, scheduledTime: $scheduledTime)';
 }
 
 
@@ -269,7 +275,7 @@ abstract mixin class _$TaskCopyWith<$Res> implements $TaskCopyWith<$Res> {
   factory _$TaskCopyWith(_Task value, $Res Function(_Task) _then) = __$TaskCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String boardId, String title, String description, TaskState state, int priority, int position, DateTime createdAt, DateTime? completedAt, DateTime? deadline, String? migratedFromBoardId, String? migratedFromTaskId
+ String id, String boardId, String title, String description, TaskState state, int priority, int position, DateTime createdAt, DateTime? completedAt, DateTime? deadline, String? migratedFromBoardId, String? migratedFromTaskId, bool isEvent, String? scheduledTime
 });
 
 
@@ -286,7 +292,7 @@ class __$TaskCopyWithImpl<$Res>
 
 /// Create a copy of Task
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? boardId = null,Object? title = null,Object? description = null,Object? state = null,Object? priority = null,Object? position = null,Object? createdAt = null,Object? completedAt = freezed,Object? deadline = freezed,Object? migratedFromBoardId = freezed,Object? migratedFromTaskId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? boardId = null,Object? title = null,Object? description = null,Object? state = null,Object? priority = null,Object? position = null,Object? createdAt = null,Object? completedAt = freezed,Object? deadline = freezed,Object? migratedFromBoardId = freezed,Object? migratedFromTaskId = freezed,Object? isEvent = null,Object? scheduledTime = freezed,}) {
   return _then(_Task(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,boardId: null == boardId ? _self.boardId : boardId // ignore: cast_nullable_to_non_nullable
@@ -300,6 +306,8 @@ as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedA
 as DateTime?,deadline: freezed == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime?,migratedFromBoardId: freezed == migratedFromBoardId ? _self.migratedFromBoardId : migratedFromBoardId // ignore: cast_nullable_to_non_nullable
 as String?,migratedFromTaskId: freezed == migratedFromTaskId ? _self.migratedFromTaskId : migratedFromTaskId // ignore: cast_nullable_to_non_nullable
+as String?,isEvent: null == isEvent ? _self.isEvent : isEvent // ignore: cast_nullable_to_non_nullable
+as bool,scheduledTime: freezed == scheduledTime ? _self.scheduledTime : scheduledTime // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

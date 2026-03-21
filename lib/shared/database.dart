@@ -49,6 +49,8 @@ class Tasks extends Table {
   DateTimeColumn get deadline => dateTime().nullable()();
   TextColumn get migratedFromBoardId => text().nullable()();
   TextColumn get migratedFromTaskId => text().nullable()();
+  BoolColumn get isEvent => boolean().withDefault(const Constant(false))();
+  TextColumn get scheduledTime => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -79,7 +81,7 @@ class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,6 +111,14 @@ class AlphaDatabase extends _$AlphaDatabase {
           'UPDATE boards SET week_start = '
           "created_at - ((CAST(strftime('%w', created_at / 1000, 'unixepoch') AS INTEGER) + 6) % 7) * 86400000 "
           "WHERE type = 'weekly'",
+        );
+      }
+      if (from < 4) {
+        await customStatement(
+          'ALTER TABLE tasks ADD COLUMN is_event INTEGER NOT NULL DEFAULT 0',
+        );
+        await customStatement(
+          'ALTER TABLE tasks ADD COLUMN scheduled_time TEXT',
         );
       }
     },

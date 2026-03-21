@@ -951,6 +951,32 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _isEventMeta = const VerificationMeta(
+    'isEvent',
+  );
+  @override
+  late final GeneratedColumn<bool> isEvent = GeneratedColumn<bool>(
+    'is_event',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_event" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _scheduledTimeMeta = const VerificationMeta(
+    'scheduledTime',
+  );
+  @override
+  late final GeneratedColumn<String> scheduledTime = GeneratedColumn<String>(
+    'scheduled_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -965,6 +991,8 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     deadline,
     migratedFromBoardId,
     migratedFromTaskId,
+    isEvent,
+    scheduledTime,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1069,6 +1097,21 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('is_event')) {
+      context.handle(
+        _isEventMeta,
+        isEvent.isAcceptableOrUnknown(data['is_event']!, _isEventMeta),
+      );
+    }
+    if (data.containsKey('scheduled_time')) {
+      context.handle(
+        _scheduledTimeMeta,
+        scheduledTime.isAcceptableOrUnknown(
+          data['scheduled_time']!,
+          _scheduledTimeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1126,6 +1169,14 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}migrated_from_task_id'],
       ),
+      isEvent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_event'],
+      )!,
+      scheduledTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scheduled_time'],
+      ),
     );
   }
 
@@ -1148,6 +1199,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final DateTime? deadline;
   final String? migratedFromBoardId;
   final String? migratedFromTaskId;
+  final bool isEvent;
+  final String? scheduledTime;
   const TaskRow({
     required this.id,
     required this.boardId,
@@ -1161,6 +1214,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.deadline,
     this.migratedFromBoardId,
     this.migratedFromTaskId,
+    required this.isEvent,
+    this.scheduledTime,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1184,6 +1239,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     }
     if (!nullToAbsent || migratedFromTaskId != null) {
       map['migrated_from_task_id'] = Variable<String>(migratedFromTaskId);
+    }
+    map['is_event'] = Variable<bool>(isEvent);
+    if (!nullToAbsent || scheduledTime != null) {
+      map['scheduled_time'] = Variable<String>(scheduledTime);
     }
     return map;
   }
@@ -1210,6 +1269,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       migratedFromTaskId: migratedFromTaskId == null && nullToAbsent
           ? const Value.absent()
           : Value(migratedFromTaskId),
+      isEvent: Value(isEvent),
+      scheduledTime: scheduledTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledTime),
     );
   }
 
@@ -1235,6 +1298,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       migratedFromTaskId: serializer.fromJson<String?>(
         json['migratedFromTaskId'],
       ),
+      isEvent: serializer.fromJson<bool>(json['isEvent']),
+      scheduledTime: serializer.fromJson<String?>(json['scheduledTime']),
     );
   }
   @override
@@ -1253,6 +1318,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'deadline': serializer.toJson<DateTime?>(deadline),
       'migratedFromBoardId': serializer.toJson<String?>(migratedFromBoardId),
       'migratedFromTaskId': serializer.toJson<String?>(migratedFromTaskId),
+      'isEvent': serializer.toJson<bool>(isEvent),
+      'scheduledTime': serializer.toJson<String?>(scheduledTime),
     };
   }
 
@@ -1269,6 +1336,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<DateTime?> deadline = const Value.absent(),
     Value<String?> migratedFromBoardId = const Value.absent(),
     Value<String?> migratedFromTaskId = const Value.absent(),
+    bool? isEvent,
+    Value<String?> scheduledTime = const Value.absent(),
   }) => TaskRow(
     id: id ?? this.id,
     boardId: boardId ?? this.boardId,
@@ -1286,6 +1355,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     migratedFromTaskId: migratedFromTaskId.present
         ? migratedFromTaskId.value
         : this.migratedFromTaskId,
+    isEvent: isEvent ?? this.isEvent,
+    scheduledTime: scheduledTime.present
+        ? scheduledTime.value
+        : this.scheduledTime,
   );
   TaskRow copyWithCompanion(TasksCompanion data) {
     return TaskRow(
@@ -1309,6 +1382,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       migratedFromTaskId: data.migratedFromTaskId.present
           ? data.migratedFromTaskId.value
           : this.migratedFromTaskId,
+      isEvent: data.isEvent.present ? data.isEvent.value : this.isEvent,
+      scheduledTime: data.scheduledTime.present
+          ? data.scheduledTime.value
+          : this.scheduledTime,
     );
   }
 
@@ -1326,7 +1403,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('completedAt: $completedAt, ')
           ..write('deadline: $deadline, ')
           ..write('migratedFromBoardId: $migratedFromBoardId, ')
-          ..write('migratedFromTaskId: $migratedFromTaskId')
+          ..write('migratedFromTaskId: $migratedFromTaskId, ')
+          ..write('isEvent: $isEvent, ')
+          ..write('scheduledTime: $scheduledTime')
           ..write(')'))
         .toString();
   }
@@ -1345,6 +1424,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     deadline,
     migratedFromBoardId,
     migratedFromTaskId,
+    isEvent,
+    scheduledTime,
   );
   @override
   bool operator ==(Object other) =>
@@ -1361,7 +1442,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.completedAt == this.completedAt &&
           other.deadline == this.deadline &&
           other.migratedFromBoardId == this.migratedFromBoardId &&
-          other.migratedFromTaskId == this.migratedFromTaskId);
+          other.migratedFromTaskId == this.migratedFromTaskId &&
+          other.isEvent == this.isEvent &&
+          other.scheduledTime == this.scheduledTime);
 }
 
 class TasksCompanion extends UpdateCompanion<TaskRow> {
@@ -1377,6 +1460,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<DateTime?> deadline;
   final Value<String?> migratedFromBoardId;
   final Value<String?> migratedFromTaskId;
+  final Value<bool> isEvent;
+  final Value<String?> scheduledTime;
   final Value<int> rowid;
   const TasksCompanion({
     this.id = const Value.absent(),
@@ -1391,6 +1476,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.deadline = const Value.absent(),
     this.migratedFromBoardId = const Value.absent(),
     this.migratedFromTaskId = const Value.absent(),
+    this.isEvent = const Value.absent(),
+    this.scheduledTime = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TasksCompanion.insert({
@@ -1406,6 +1493,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.deadline = const Value.absent(),
     this.migratedFromBoardId = const Value.absent(),
     this.migratedFromTaskId = const Value.absent(),
+    this.isEvent = const Value.absent(),
+    this.scheduledTime = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        boardId = Value(boardId),
@@ -1425,6 +1514,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<DateTime>? deadline,
     Expression<String>? migratedFromBoardId,
     Expression<String>? migratedFromTaskId,
+    Expression<bool>? isEvent,
+    Expression<String>? scheduledTime,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1442,6 +1533,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
         'migrated_from_board_id': migratedFromBoardId,
       if (migratedFromTaskId != null)
         'migrated_from_task_id': migratedFromTaskId,
+      if (isEvent != null) 'is_event': isEvent,
+      if (scheduledTime != null) 'scheduled_time': scheduledTime,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1459,6 +1552,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<DateTime?>? deadline,
     Value<String?>? migratedFromBoardId,
     Value<String?>? migratedFromTaskId,
+    Value<bool>? isEvent,
+    Value<String?>? scheduledTime,
     Value<int>? rowid,
   }) {
     return TasksCompanion(
@@ -1474,6 +1569,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       deadline: deadline ?? this.deadline,
       migratedFromBoardId: migratedFromBoardId ?? this.migratedFromBoardId,
       migratedFromTaskId: migratedFromTaskId ?? this.migratedFromTaskId,
+      isEvent: isEvent ?? this.isEvent,
+      scheduledTime: scheduledTime ?? this.scheduledTime,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1519,6 +1616,12 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (migratedFromTaskId.present) {
       map['migrated_from_task_id'] = Variable<String>(migratedFromTaskId.value);
     }
+    if (isEvent.present) {
+      map['is_event'] = Variable<bool>(isEvent.value);
+    }
+    if (scheduledTime.present) {
+      map['scheduled_time'] = Variable<String>(scheduledTime.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1540,6 +1643,8 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('deadline: $deadline, ')
           ..write('migratedFromBoardId: $migratedFromBoardId, ')
           ..write('migratedFromTaskId: $migratedFromTaskId, ')
+          ..write('isEvent: $isEvent, ')
+          ..write('scheduledTime: $scheduledTime, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2936,6 +3041,8 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<DateTime?> deadline,
       Value<String?> migratedFromBoardId,
       Value<String?> migratedFromTaskId,
+      Value<bool> isEvent,
+      Value<String?> scheduledTime,
       Value<int> rowid,
     });
 typedef $$TasksTableUpdateCompanionBuilder =
@@ -2952,6 +3059,8 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<DateTime?> deadline,
       Value<String?> migratedFromBoardId,
       Value<String?> migratedFromTaskId,
+      Value<bool> isEvent,
+      Value<String?> scheduledTime,
       Value<int> rowid,
     });
 
@@ -3057,6 +3166,16 @@ class $$TasksTableFilterComposer
 
   ColumnFilters<String> get migratedFromTaskId => $composableBuilder(
     column: $table.migratedFromTaskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEvent => $composableBuilder(
+    column: $table.isEvent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scheduledTime => $composableBuilder(
+    column: $table.scheduledTime,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3173,6 +3292,16 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isEvent => $composableBuilder(
+    column: $table.isEvent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scheduledTime => $composableBuilder(
+    column: $table.scheduledTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BoardsTableOrderingComposer get boardId {
     final $$BoardsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3244,6 +3373,14 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<String> get migratedFromTaskId => $composableBuilder(
     column: $table.migratedFromTaskId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isEvent =>
+      $composableBuilder(column: $table.isEvent, builder: (column) => column);
+
+  GeneratedColumn<String> get scheduledTime => $composableBuilder(
+    column: $table.scheduledTime,
     builder: (column) => column,
   );
 
@@ -3336,6 +3473,8 @@ class $$TasksTableTableManager
                 Value<DateTime?> deadline = const Value.absent(),
                 Value<String?> migratedFromBoardId = const Value.absent(),
                 Value<String?> migratedFromTaskId = const Value.absent(),
+                Value<bool> isEvent = const Value.absent(),
+                Value<String?> scheduledTime = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
@@ -3350,6 +3489,8 @@ class $$TasksTableTableManager
                 deadline: deadline,
                 migratedFromBoardId: migratedFromBoardId,
                 migratedFromTaskId: migratedFromTaskId,
+                isEvent: isEvent,
+                scheduledTime: scheduledTime,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3366,6 +3507,8 @@ class $$TasksTableTableManager
                 Value<DateTime?> deadline = const Value.absent(),
                 Value<String?> migratedFromBoardId = const Value.absent(),
                 Value<String?> migratedFromTaskId = const Value.absent(),
+                Value<bool> isEvent = const Value.absent(),
+                Value<String?> scheduledTime = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
@@ -3380,6 +3523,8 @@ class $$TasksTableTableManager
                 deadline: deadline,
                 migratedFromBoardId: migratedFromBoardId,
                 migratedFromTaskId: migratedFromTaskId,
+                isEvent: isEvent,
+                scheduledTime: scheduledTime,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

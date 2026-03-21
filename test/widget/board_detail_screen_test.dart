@@ -134,7 +134,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byTooltip('Add task'));
       await tester.pumpAndSettle();
 
       expect(find.text('New Task'), findsOneWidget);
@@ -156,7 +156,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open dialog
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byTooltip('Add task'));
       await tester.pumpAndSettle();
 
       // Enter name and submit
@@ -176,7 +176,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byTooltip('Add task'));
       await tester.pumpAndSettle();
 
       // Submit empty — tap Cancel instead to avoid controller disposal issues

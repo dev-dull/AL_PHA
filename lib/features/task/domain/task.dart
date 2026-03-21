@@ -19,6 +19,9 @@ abstract class Task with _$Task {
     DateTime? deadline,
     String? migratedFromBoardId,
     String? migratedFromTaskId,
+    @Default(false) bool isEvent,
+    /// Stored as "HH:mm" (24-hour format), e.g. "14:30".
+    String? scheduledTime,
   }) = _Task;
 
   factory Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);

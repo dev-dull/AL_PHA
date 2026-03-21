@@ -44,6 +44,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late final TextEditingController _descCtrl;
   late int _priority;
   late DateTime? _deadline;
+  late bool _isEvent;
+  late TimeOfDay? _scheduledTime;
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -54,6 +56,24 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     _descCtrl = TextEditingController(text: widget.task.description);
     _priority = widget.task.priority;
     _deadline = widget.task.deadline;
+    _isEvent = widget.task.isEvent;
+    _scheduledTime = _parseTime(widget.task.scheduledTime);
+  }
+
+  static TimeOfDay? _parseTime(String? time) {
+    if (time == null) return null;
+    final parts = time.split(':');
+    if (parts.length != 2) return null;
+    return TimeOfDay(
+      hour: int.parse(parts[0]),
+      minute: int.parse(parts[1]),
+    );
+  }
+
+  static String? _formatTime(TimeOfDay? time) {
+    if (time == null) return null;
+    return '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -72,6 +92,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       description: _descCtrl.text.trim(),
       priority: _priority,
       deadline: _deadline,
+      isEvent: _isEvent,
+      scheduledTime: _isEvent ? _formatTime(_scheduledTime) : null,
     );
     widget.onSave(updated);
     Navigator.of(context).pop();
@@ -231,6 +253,62 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+
+            // Event toggle
+            SwitchListTile(
+              title: const Text('Event'),
+              subtitle: const Text('Mark as an event with a scheduled time'),
+              value: _isEvent,
+              contentPadding: EdgeInsets.zero,
+              onChanged: (v) => setState(() {
+                _isEvent = v;
+                if (!v) _scheduledTime = null;
+              }),
+            ),
+
+            // Scheduled time picker (only shown for events)
+            if (_isEvent) ...[
+              const SizedBox(height: 4),
+              InkWell(
+                onTap: () async {
+                  final picked = await showTimePicker(
+                    context: context,
+                    initialTime:
+                        _scheduledTime ?? const TimeOfDay(hour: 9, minute: 0),
+                  );
+                  if (picked != null) {
+                    setState(() => _scheduledTime = picked);
+                  }
+                },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: 'Scheduled Time',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: _scheduledTime != null
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () =>
+                                setState(() => _scheduledTime = null),
+                          )
+                        : const Icon(Icons.access_time),
+                  ),
+                  child: Text(
+                    _scheduledTime != null
+                        ? _scheduledTime!.format(context)
+                        : 'No time set',
+                    style: _scheduledTime == null
+                        ? theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
+                            ),
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+
             const SizedBox(height: 24),
 
             // Action buttons

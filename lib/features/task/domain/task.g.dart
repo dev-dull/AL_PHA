@@ -24,6 +24,8 @@ _Task _$TaskFromJson(Map<String, dynamic> json) => _Task(
       : DateTime.parse(json['deadline'] as String),
   migratedFromBoardId: json['migratedFromBoardId'] as String?,
   migratedFromTaskId: json['migratedFromTaskId'] as String?,
+  isEvent: json['isEvent'] as bool? ?? false,
+  scheduledTime: json['scheduledTime'] as String?,
 );
 
 Map<String, dynamic> _$TaskToJson(_Task instance) => <String, dynamic>{
@@ -39,6 +41,8 @@ Map<String, dynamic> _$TaskToJson(_Task instance) => <String, dynamic>{
   'deadline': instance.deadline?.toIso8601String(),
   'migratedFromBoardId': instance.migratedFromBoardId,
   'migratedFromTaskId': instance.migratedFromTaskId,
+  'isEvent': instance.isEvent,
+  'scheduledTime': instance.scheduledTime,
 };
 
 const _$TaskStateEnumMap = {

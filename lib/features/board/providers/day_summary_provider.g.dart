@@ -6,7 +6,7 @@ part of 'day_summary_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$daySummariesHash() => r'c74f200268a01939c01d3826c771f81f0c701e8b';
+String _$daySummariesHash() => r'bbcca90c263bb13a6ba0b8160fcbc6717654a7f7';
 
 /// Copied from Dart SDK
 class _SystemHash {
