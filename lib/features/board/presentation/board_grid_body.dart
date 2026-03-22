@@ -17,6 +17,7 @@ import 'package:alpha/features/board/providers/board_providers.dart';
 import 'package:alpha/features/task/domain/task_sort.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
@@ -230,19 +231,24 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   // ----------------------------------------------------------
 
   Set<int> _computePastDayPositions() {
+    final firstDay =
+        ref.watch(preferencesProvider).firstDayOfWeek;
     final boardAsync = ref.watch(boardProvider(widget.boardId));
     final board = boardAsync.valueOrNull;
     if (board == null) return {};
-    final weekStart = board.weekStart ?? mondayOfWeek(board.createdAt);
+    final weekStart = board.weekStart ??
+        startOfWeek(board.createdAt, firstDay: firstDay);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final currentMonday = mondayOfWeek(today);
-    if (weekStart.isBefore(currentMonday)) {
+    final currentWeekStart =
+        startOfWeek(today, firstDay: firstDay);
+    if (weekStart.isBefore(currentWeekStart)) {
       // Past week — all day positions are past.
       return {0, 1, 2, 3, 4, 5, 6};
-    } else if (weekStart == currentMonday) {
-      // Current week — positions before today's weekday.
-      return {for (var i = 0; i < now.weekday - 1; i++) i};
+    } else if (weekStart == currentWeekStart) {
+      // Current week — positions before today's offset.
+      final todayOffset = (now.weekday - firstDay + 7) % 7;
+      return {for (var i = 0; i < todayOffset; i++) i};
     }
     return {};
   }

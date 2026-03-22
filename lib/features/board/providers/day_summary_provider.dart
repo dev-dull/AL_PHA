@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:alpha/features/board/domain/board_type.dart';
 import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
@@ -44,11 +45,13 @@ Future<Map<DateTime, DaySummary>> daySummaries(
 
   final result = <DateTime, DaySummary>{};
 
-  // Find all Mondays that overlap with the date range.
-  var monday = mondayOfWeek(rangeStart);
-  while (monday.isBefore(rangeEnd)) {
+  final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
+
+  // Find all week starts that overlap with the date range.
+  var weekStart = startOfWeek(rangeStart, firstDay: firstDay);
+  while (weekStart.isBefore(rangeEnd)) {
     final board = await boardRepo.getByPeriodStart(
-      monday,
+      weekStart,
       BoardType.weekly,
     );
 
@@ -59,7 +62,7 @@ Future<Map<DateTime, DaySummary>> daySummaries(
       for (final col in columns) {
         if (col.type != ColumnType.date) continue;
 
-        final date = monday.add(Duration(days: col.position));
+        final date = weekStart.add(Duration(days: col.position));
         if (date.isBefore(rangeStart) || !date.isBefore(rangeEnd)) continue;
 
         final dayKey = DateTime(date.year, date.month, date.day);
@@ -98,7 +101,7 @@ Future<Map<DateTime, DaySummary>> daySummaries(
     }
 
     // Use calendar arithmetic instead of Duration to avoid DST shifts.
-    monday = DateTime(monday.year, monday.month, monday.day + 7);
+    weekStart = DateTime(weekStart.year, weekStart.month, weekStart.day + 7);
   }
 
   return result;

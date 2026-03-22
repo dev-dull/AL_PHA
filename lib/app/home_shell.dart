@@ -15,13 +15,13 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
-  DateTime? _targetMonday;
+  DateTime? _targetWeekStart;
   int _weekNavKey = 0;
 
   /// Called by monthly/yearly views to jump to a specific week.
-  void _navigateToWeek(DateTime monday) {
+  void _navigateToWeek(DateTime weekStart) {
     setState(() {
-      _targetMonday = monday;
+      _targetWeekStart = weekStart;
       _weekNavKey++;
       _currentIndex = 0;
     });
@@ -32,7 +32,7 @@ class _HomeShellState extends State<HomeShell> {
       case 0:
         return WeeklyViewScreen(
           key: ValueKey('week_$_weekNavKey'),
-          initialMonday: _targetMonday,
+          initialWeekStart: _targetWeekStart,
         );
       case 1:
         return MonthlyViewScreen(onDayTap: _navigateToWeek);
@@ -54,7 +54,7 @@ class _HomeShellState extends State<HomeShell> {
             setState(() {
               if (i == 0 && _currentIndex != 0) {
                 // Reset to current week when returning via tab bar.
-                _targetMonday = null;
+                _targetWeekStart = null;
                 _weekNavKey++;
               }
               _currentIndex = i;

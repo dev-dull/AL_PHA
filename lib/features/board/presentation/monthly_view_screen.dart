@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alpha/features/board/providers/day_summary_provider.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/shared/period_utils.dart';
 import 'package:alpha/shared/week_utils.dart';
 
@@ -74,6 +75,7 @@ class _MonthlyViewScreenState
           month: _currentMonth,
           summaries: summaries,
           onDayTap: widget.onDayTap,
+          firstDay: ref.watch(preferencesProvider).firstDayOfWeek,
         ),
         loading: () =>
             const Center(child: CircularProgressIndicator()),
@@ -86,21 +88,32 @@ class _MonthlyViewScreenState
 class _MonthGrid extends StatelessWidget {
   final DateTime month;
   final Map<DateTime, DaySummary> summaries;
-  final void Function(DateTime monday) onDayTap;
+  final void Function(DateTime weekStart) onDayTap;
+  final int firstDay;
 
   const _MonthGrid({
     required this.month,
     required this.summaries,
     required this.onDayTap,
+    required this.firstDay,
   });
+
+  /// Day-of-week header labels rotated for the configured first day.
+  static const _allLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  List<String> get _dayLabels {
+    if (firstDay == DateTime.sunday) {
+      return const ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    }
+    return _allLabels;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brightness = theme.brightness;
     final numDays = daysInMonth(month);
-    // weekday: 1=Mon..7=Sun → offset for grid
-    final startOffset = firstWeekdayOfMonth(month) - 1;
+    final startOffset =
+        firstWeekdayOffset(month, firstDay: firstDay);
     final today = DateTime.now();
     final todayKey = DateTime(today.year, today.month, today.day);
 
@@ -112,7 +125,7 @@ class _MonthGrid extends StatelessWidget {
         children: [
           // Day-of-week header row.
           Row(
-            children: ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+            children: _dayLabels
                 .map(
                   (d) => Expanded(
                     child: Center(
@@ -161,7 +174,8 @@ class _MonthGrid extends StatelessWidget {
                   isPast: isPast,
                   isFuture: isFuture,
                   brightness: brightness,
-                  onTap: () => onDayTap(mondayOfWeek(date)),
+                  onTap: () => onDayTap(
+                      startOfWeek(date, firstDay: firstDay)),
                 );
               },
             ),

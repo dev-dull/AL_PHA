@@ -54,7 +54,7 @@ class AlphaTheme {
 
   // ── Theme builders ──────────────────────────────────────────────────
 
-  static ThemeData light() {
+  static ThemeData light({String? fontFamily = 'PatrickHand'}) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _accentLight,
       brightness: Brightness.light,
@@ -62,10 +62,10 @@ class AlphaTheme {
       onSurface: inkLight,
       surfaceContainerHighest: paperLightVariant,
     );
-    return _buildTheme(colorScheme);
+    return _buildTheme(colorScheme, fontFamily: fontFamily);
   }
 
-  static ThemeData dark() {
+  static ThemeData dark({String? fontFamily = 'PatrickHand'}) {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _accentDark,
       brightness: Brightness.dark,
@@ -73,15 +73,19 @@ class AlphaTheme {
       onSurface: inkDark,
       surfaceContainerHighest: paperDarkVariant,
     );
-    return _buildTheme(colorScheme);
+    return _buildTheme(colorScheme, fontFamily: fontFamily);
   }
 
-  static ThemeData _buildTheme(ColorScheme colorScheme) {
-    const fontFamily = 'PatrickHand';
+  static ThemeData _buildTheme(
+    ColorScheme colorScheme, {
+    String? fontFamily = 'PatrickHand',
+  }) {
     final baseTextTheme = ThemeData(colorScheme: colorScheme).textTheme;
-    final textTheme = baseTextTheme
-        .apply(fontFamily: fontFamily)
-        .apply(
+    var textTheme = baseTextTheme;
+    if (fontFamily != null) {
+      textTheme = textTheme.apply(fontFamily: fontFamily);
+    }
+    textTheme = textTheme.apply(
           bodyColor: colorScheme.onSurface,
           displayColor: colorScheme.onSurface,
         );

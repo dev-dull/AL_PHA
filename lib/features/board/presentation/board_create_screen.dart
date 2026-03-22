@@ -10,6 +10,7 @@ import 'package:alpha/features/board/providers/board_providers.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
 class BoardCreateScreen extends ConsumerStatefulWidget {
@@ -44,16 +45,19 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
     setState(() => _isCreating = true);
 
     try {
+      final firstDay =
+          ref.read(preferencesProvider).firstDayOfWeek;
       const uuid = Uuid();
       final now = DateTime.now();
       final boardId = uuid.v4();
-      final monday = mondayOfWeek(now);
+      final weekStart =
+          startOfWeek(now, firstDay: firstDay);
 
       final board = Board(
         id: boardId,
         name: _nameController.text.trim(),
         type: BoardType.weekly,
-        weekStart: monday,
+        weekStart: weekStart,
         createdAt: now,
         updatedAt: now,
       );
@@ -61,7 +65,7 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
       await ref.read(boardActionsProvider).create(board);
 
       final columnActions = ref.read(columnActionsProvider);
-      for (final col in weeklyColumnDefs) {
+      for (final col in weeklyColumnDefs(firstDay: firstDay)) {
         await columnActions.create(
           BoardColumn(
             id: uuid.v4(),

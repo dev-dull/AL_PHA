@@ -6,7 +6,7 @@ part of 'weekly_board_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$weeklyBoardHash() => r'e5775526185e6128389a0410d1bc261f4790dfd8';
+String _$weeklyBoardHash() => r'd978c9efa700fee16fd1f85e81a78fa5d1ceb92f';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -29,37 +29,37 @@ class _SystemHash {
   }
 }
 
-/// Looks up a weekly board by its Monday date, creating one
+/// Looks up a weekly board by its week-start date, creating one
 /// (with columns) if none exists. Returns the board ID.
 ///
 /// Copied from [weeklyBoard].
 @ProviderFor(weeklyBoard)
 const weeklyBoardProvider = WeeklyBoardFamily();
 
-/// Looks up a weekly board by its Monday date, creating one
+/// Looks up a weekly board by its week-start date, creating one
 /// (with columns) if none exists. Returns the board ID.
 ///
 /// Copied from [weeklyBoard].
 class WeeklyBoardFamily extends Family<AsyncValue<String>> {
-  /// Looks up a weekly board by its Monday date, creating one
+  /// Looks up a weekly board by its week-start date, creating one
   /// (with columns) if none exists. Returns the board ID.
   ///
   /// Copied from [weeklyBoard].
   const WeeklyBoardFamily();
 
-  /// Looks up a weekly board by its Monday date, creating one
+  /// Looks up a weekly board by its week-start date, creating one
   /// (with columns) if none exists. Returns the board ID.
   ///
   /// Copied from [weeklyBoard].
-  WeeklyBoardProvider call(DateTime monday) {
-    return WeeklyBoardProvider(monday);
+  WeeklyBoardProvider call(DateTime weekStart) {
+    return WeeklyBoardProvider(weekStart);
   }
 
   @override
   WeeklyBoardProvider getProviderOverride(
     covariant WeeklyBoardProvider provider,
   ) {
-    return call(provider.monday);
+    return call(provider.weekStart);
   }
 
   static const Iterable<ProviderOrFamily>? _dependencies = null;
@@ -77,18 +77,18 @@ class WeeklyBoardFamily extends Family<AsyncValue<String>> {
   String? get name => r'weeklyBoardProvider';
 }
 
-/// Looks up a weekly board by its Monday date, creating one
+/// Looks up a weekly board by its week-start date, creating one
 /// (with columns) if none exists. Returns the board ID.
 ///
 /// Copied from [weeklyBoard].
 class WeeklyBoardProvider extends AutoDisposeFutureProvider<String> {
-  /// Looks up a weekly board by its Monday date, creating one
+  /// Looks up a weekly board by its week-start date, creating one
   /// (with columns) if none exists. Returns the board ID.
   ///
   /// Copied from [weeklyBoard].
-  WeeklyBoardProvider(DateTime monday)
+  WeeklyBoardProvider(DateTime weekStart)
     : this._internal(
-        (ref) => weeklyBoard(ref as WeeklyBoardRef, monday),
+        (ref) => weeklyBoard(ref as WeeklyBoardRef, weekStart),
         from: weeklyBoardProvider,
         name: r'weeklyBoardProvider',
         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -96,7 +96,7 @@ class WeeklyBoardProvider extends AutoDisposeFutureProvider<String> {
             : _$weeklyBoardHash,
         dependencies: WeeklyBoardFamily._dependencies,
         allTransitiveDependencies: WeeklyBoardFamily._allTransitiveDependencies,
-        monday: monday,
+        weekStart: weekStart,
       );
 
   WeeklyBoardProvider._internal(
@@ -106,10 +106,10 @@ class WeeklyBoardProvider extends AutoDisposeFutureProvider<String> {
     required super.allTransitiveDependencies,
     required super.debugGetCreateSourceHash,
     required super.from,
-    required this.monday,
+    required this.weekStart,
   }) : super.internal();
 
-  final DateTime monday;
+  final DateTime weekStart;
 
   @override
   Override overrideWith(
@@ -124,7 +124,7 @@ class WeeklyBoardProvider extends AutoDisposeFutureProvider<String> {
         dependencies: null,
         allTransitiveDependencies: null,
         debugGetCreateSourceHash: null,
-        monday: monday,
+        weekStart: weekStart,
       ),
     );
   }
@@ -136,13 +136,13 @@ class WeeklyBoardProvider extends AutoDisposeFutureProvider<String> {
 
   @override
   bool operator ==(Object other) {
-    return other is WeeklyBoardProvider && other.monday == monday;
+    return other is WeeklyBoardProvider && other.weekStart == weekStart;
   }
 
   @override
   int get hashCode {
     var hash = _SystemHash.combine(0, runtimeType.hashCode);
-    hash = _SystemHash.combine(hash, monday.hashCode);
+    hash = _SystemHash.combine(hash, weekStart.hashCode);
 
     return _SystemHash.finish(hash);
   }
@@ -151,8 +151,8 @@ class WeeklyBoardProvider extends AutoDisposeFutureProvider<String> {
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 mixin WeeklyBoardRef on AutoDisposeFutureProviderRef<String> {
-  /// The parameter `monday` of this provider.
-  DateTime get monday;
+  /// The parameter `weekStart` of this provider.
+  DateTime get weekStart;
 }
 
 class _WeeklyBoardProviderElement
@@ -161,7 +161,7 @@ class _WeeklyBoardProviderElement
   _WeeklyBoardProviderElement(super.provider);
 
   @override
-  DateTime get monday => (origin as WeeklyBoardProvider).monday;
+  DateTime get weekStart => (origin as WeeklyBoardProvider).weekStart;
 }
 
 // ignore_for_file: type=lint

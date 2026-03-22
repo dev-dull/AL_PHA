@@ -32,6 +32,12 @@ int firstWeekdayOfMonth(DateTime monthStart) {
   return DateTime(monthStart.year, monthStart.month, 1).weekday;
 }
 
+/// Grid offset for the first day of the month, relative to [firstDay].
+int firstWeekdayOffset(DateTime monthStart, {int firstDay = DateTime.monday}) {
+  final wd = DateTime(monthStart.year, monthStart.month, 1).weekday;
+  return (wd - firstDay + 7) % 7;
+}
+
 // ── Yearly ──────────────────────────────────────────────────
 
 /// Returns January 1 of the year containing [date].

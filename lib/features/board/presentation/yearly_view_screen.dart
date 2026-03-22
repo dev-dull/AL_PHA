@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:alpha/features/board/providers/day_summary_provider.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/shared/period_utils.dart';
 import 'package:alpha/shared/week_utils.dart';
 
@@ -75,6 +76,7 @@ class _YearlyViewScreenState
           year: _currentYear,
           summaries: summaries,
           onDayTap: widget.onDayTap,
+          firstDay: ref.watch(preferencesProvider).firstDayOfWeek,
         ),
         loading: () =>
             const Center(child: CircularProgressIndicator()),
@@ -87,12 +89,14 @@ class _YearlyViewScreenState
 class _YearGrid extends StatelessWidget {
   final DateTime year;
   final Map<DateTime, DaySummary> summaries;
-  final void Function(DateTime monday) onDayTap;
+  final void Function(DateTime weekStart) onDayTap;
+  final int firstDay;
 
   const _YearGrid({
     required this.year,
     required this.summaries,
     required this.onDayTap,
+    required this.firstDay,
   });
 
   @override
@@ -115,6 +119,7 @@ class _YearGrid extends StatelessWidget {
             monthStart: monthStart,
             summaries: summaries,
             onDayTap: onDayTap,
+            firstDay: firstDay,
           );
         },
       ),
@@ -125,12 +130,14 @@ class _YearGrid extends StatelessWidget {
 class _MiniMonth extends StatelessWidget {
   final DateTime monthStart;
   final Map<DateTime, DaySummary> summaries;
-  final void Function(DateTime monday) onDayTap;
+  final void Function(DateTime weekStart) onDayTap;
+  final int firstDay;
 
   const _MiniMonth({
     required this.monthStart,
     required this.summaries,
     required this.onDayTap,
+    required this.firstDay,
   });
 
   @override
@@ -138,7 +145,8 @@ class _MiniMonth extends StatelessWidget {
     final theme = Theme.of(context);
     final brightness = theme.brightness;
     final numDays = daysInMonth(monthStart);
-    final startOffset = firstWeekdayOfMonth(monthStart) - 1;
+    final startOffset =
+        firstWeekdayOffset(monthStart, firstDay: firstDay);
     final today = DateTime.now();
     final todayKey = DateTime(today.year, today.month, today.day);
     final monthName = DateFormat.MMM().format(monthStart);
@@ -183,7 +191,8 @@ class _MiniMonth extends StatelessWidget {
                 isToday: isToday,
                 isPast: dateKey.isBefore(todayKey),
                 brightness: brightness,
-                onTap: () => onDayTap(mondayOfWeek(date)),
+                onTap: () => onDayTap(
+                    startOfWeek(date, firstDay: firstDay)),
               );
             },
           ),

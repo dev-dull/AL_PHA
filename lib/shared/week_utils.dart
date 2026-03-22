@@ -1,30 +1,36 @@
 import 'package:intl/intl.dart';
 
-/// Returns Monday 00:00:00 of the week containing [date].
-DateTime mondayOfWeek(DateTime date) {
+/// Returns the start-of-week (midnight) for the week containing [date].
+///
+/// [firstDay] is the first day of the week: 1 = Monday (ISO default),
+/// 7 = Sunday. Uses calendar arithmetic to avoid DST issues.
+DateTime startOfWeek(DateTime date, {int firstDay = DateTime.monday}) {
   final d = DateTime(date.year, date.month, date.day);
-  return d.subtract(Duration(days: d.weekday - 1));
+  final diff = (d.weekday - firstDay + 7) % 7;
+  return DateTime(d.year, d.month, d.day - diff);
 }
 
+/// Convenience alias — returns Monday of the week containing [date].
+DateTime mondayOfWeek(DateTime date) => startOfWeek(date);
+
 /// Human-readable board name for a week, e.g. "Week of Mar 17".
-String weekBoardName(DateTime monday) {
-  return 'Week of ${DateFormat.MMMd().format(monday)}';
+String weekBoardName(DateTime weekStart) {
+  return 'Week of ${DateFormat.MMMd().format(weekStart)}';
 }
 
 /// Center index for the virtual PageView.
 const int weekPageCenter = 5200;
 
-/// Maps a PageView page index to the Monday of that week.
-DateTime mondayFromPageIndex(int index) {
+/// Maps a PageView page index to the start-of-week date.
+DateTime weekFromPageIndex(int index, {int firstDay = DateTime.monday}) {
   final today = DateTime.now();
-  final currentMonday = mondayOfWeek(today);
-  final offset = index - weekPageCenter;
-  return currentMonday.add(Duration(days: offset * 7));
+  final current = startOfWeek(today, firstDay: firstDay);
+  return DateTime(current.year, current.month, current.day + (index - weekPageCenter) * 7);
 }
 
-/// Maps a Monday back to a PageView index.
-int pageIndexFromMonday(DateTime monday) {
-  final currentMonday = mondayOfWeek(DateTime.now());
-  final diff = monday.difference(currentMonday).inDays;
+/// Maps a week start date back to a PageView index.
+int pageIndexFromWeek(DateTime weekStart, {int firstDay = DateTime.monday}) {
+  final current = startOfWeek(DateTime.now(), firstDay: firstDay);
+  final diff = weekStart.difference(current).inDays;
   return weekPageCenter + (diff ~/ 7);
 }

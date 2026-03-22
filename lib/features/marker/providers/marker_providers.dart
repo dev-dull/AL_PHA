@@ -10,6 +10,7 @@ import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
@@ -245,13 +246,15 @@ class MarkerActions {
     return col.type != ColumnType.date;
   }
 
-  /// Looks up or creates a weekly board for the given Monday,
+  /// Looks up or creates a weekly board for the given week start,
   /// bypassing the Riverpod provider to avoid caching issues.
-  Future<String> _getOrCreateWeeklyBoard(DateTime monday) async {
+  Future<String> _getOrCreateWeeklyBoard(DateTime weekStart) async {
     final boardRepo = _ref.read(boardRepositoryProvider);
-    final existing = await boardRepo.getByWeekStart(monday);
+    final existing = await boardRepo.getByWeekStart(weekStart);
     if (existing != null) return existing.id;
 
+    final firstDay =
+        _ref.read(preferencesProvider).firstDayOfWeek;
     final columnRepo = _ref.read(columnRepositoryProvider);
     final boardId = _uuid.v4();
     final now = DateTime.now();
@@ -259,15 +262,15 @@ class MarkerActions {
     await boardRepo.create(
       Board(
         id: boardId,
-        name: weekBoardName(monday),
+        name: weekBoardName(weekStart),
         type: BoardType.weekly,
-        weekStart: monday,
+        weekStart: weekStart,
         createdAt: now,
         updatedAt: now,
       ),
     );
 
-    for (final col in weeklyColumnDefs) {
+    for (final col in weeklyColumnDefs(firstDay: firstDay)) {
       await columnRepo.create(
         BoardColumn(
           id: _uuid.v4(),
@@ -300,13 +303,20 @@ class MarkerActions {
       return;
     }
 
+    final firstDay =
+        _ref.read(preferencesProvider).firstDayOfWeek;
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
-    final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
-    final nextMonday =
-        DateTime(boardMonday.year, boardMonday.month, boardMonday.day + 7);
+    final boardWeekStart = board.weekStart ??
+        startOfWeek(board.createdAt, firstDay: firstDay);
+    final nextWeekStart = DateTime(
+      boardWeekStart.year,
+      boardWeekStart.month,
+      boardWeekStart.day + 7,
+    );
 
-    final targetBoardId = await _getOrCreateWeeklyBoard(nextMonday);
+    final targetBoardId =
+        await _getOrCreateWeeklyBoard(nextWeekStart);
 
     final targetTasks = await taskRepo.getByBoard(targetBoardId);
     final alreadyMigrated = targetTasks.any(
@@ -380,16 +390,23 @@ class MarkerActions {
     required String boardId,
     required String taskId,
   }) async {
+    final firstDay =
+        _ref.read(preferencesProvider).firstDayOfWeek;
     final taskRepo = _ref.read(taskRepositoryProvider);
     final boardRepo = _ref.read(boardRepositoryProvider);
 
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
-    final boardMonday = board.weekStart ?? mondayOfWeek(board.createdAt);
-    final nextMonday =
-        DateTime(boardMonday.year, boardMonday.month, boardMonday.day + 7);
+    final boardWeekStart = board.weekStart ??
+        startOfWeek(board.createdAt, firstDay: firstDay);
+    final nextWeekStart = DateTime(
+      boardWeekStart.year,
+      boardWeekStart.month,
+      boardWeekStart.day + 7,
+    );
 
-    final targetBoard = await boardRepo.getByWeekStart(nextMonday);
+    final targetBoard =
+        await boardRepo.getByWeekStart(nextWeekStart);
     if (targetBoard == null) return;
 
     final targetTasks = await taskRepo.getByBoard(targetBoard.id);
@@ -424,6 +441,8 @@ class MarkerActions {
     final markerRepo = _ref.read(markerRepositoryProvider);
     final taskRepo = _ref.read(taskRepositoryProvider);
 
+    final firstDay =
+        _ref.read(preferencesProvider).firstDayOfWeek;
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
 
@@ -435,19 +454,18 @@ class MarkerActions {
     final today = DateTime(now.year, now.month, now.day);
 
     final boardWeekStart = board.weekStart ??
-        DateTime(
-          board.createdAt.year,
-          board.createdAt.month,
-          board.createdAt.day,
-        ).subtract(Duration(days: board.createdAt.weekday - 1));
-    final currentMonday = mondayOfWeek(today);
+        startOfWeek(board.createdAt, firstDay: firstDay);
+    final currentWeekStart =
+        startOfWeek(today, firstDay: firstDay);
+
+    final todayOffset = (now.weekday - firstDay + 7) % 7;
 
     Iterable<dynamic> pastDayColumns;
-    if (boardWeekStart.isBefore(currentMonday)) {
+    if (boardWeekStart.isBefore(currentWeekStart)) {
       pastDayColumns = dayColumns;
-    } else if (boardWeekStart == currentMonday) {
+    } else if (boardWeekStart == currentWeekStart) {
       pastDayColumns =
-          dayColumns.where((c) => c.position < (now.weekday - 1));
+          dayColumns.where((c) => c.position < todayOffset);
     } else {
       return;
     }
@@ -479,14 +497,14 @@ class MarkerActions {
       }
     }
 
-    final isPastWeek = boardWeekStart.isBefore(currentMonday);
+    final isPastWeek = boardWeekStart.isBefore(currentWeekStart);
 
     if (migratedTaskIds.isEmpty && !isPastWeek) return;
 
     final updatedMarkers = await markerRepo.getByBoard(boardId);
 
     final futureDayColumns = dayColumns.where(
-      (c) => c.position >= (now.weekday - 1),
+      (c) => c.position >= todayOffset,
     );
 
     final tasksToMigrate = <String>{};
@@ -527,15 +545,16 @@ class MarkerActions {
       }
     }
 
-    final targetMonday = isPastWeek
-        ? currentMonday
+    final targetWeekStart = isPastWeek
+        ? currentWeekStart
         : DateTime(
-            currentMonday.year,
-            currentMonday.month,
-            currentMonday.day + 7,
+            currentWeekStart.year,
+            currentWeekStart.month,
+            currentWeekStart.day + 7,
           );
 
-    final targetBoardId = await _getOrCreateWeeklyBoard(targetMonday);
+    final targetBoardId =
+        await _getOrCreateWeeklyBoard(targetWeekStart);
 
     final targetTasks = await taskRepo.getByBoard(targetBoardId);
     final existingMigrationSources = targetTasks
@@ -674,22 +693,21 @@ class MarkerActions {
     final markerRepo = _ref.read(markerRepositoryProvider);
     final taskRepo = _ref.read(taskRepositoryProvider);
 
+    final firstDay =
+        _ref.read(preferencesProvider).firstDayOfWeek;
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
 
     final boardWeekStart = board.weekStart ??
-        DateTime(
-          board.createdAt.year,
-          board.createdAt.month,
-          board.createdAt.day,
-        ).subtract(Duration(days: board.createdAt.weekday - 1));
+        startOfWeek(board.createdAt, firstDay: firstDay);
 
-    final prevMonday = DateTime(
+    final prevWeekStart = DateTime(
       boardWeekStart.year,
       boardWeekStart.month,
       boardWeekStart.day - 7,
     );
-    final prevBoard = await boardRepo.getByWeekStart(prevMonday);
+    final prevBoard =
+        await boardRepo.getByWeekStart(prevWeekStart);
     if (prevBoard == null) return;
 
     final prevTasks = await taskRepo.getByBoard(prevBoard.id);

@@ -53,4 +53,5 @@ const _$TaskStateEnumMap = {
   TaskState.complete: 'complete',
   TaskState.migrated: 'migrated',
   TaskState.cancelled: 'cancelled',
+  TaskState.wontDo: 'wontDo',
 };

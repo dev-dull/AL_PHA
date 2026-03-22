@@ -1,13 +1,21 @@
 import 'package:alpha/features/column/domain/column_type.dart';
 
-/// The fixed weekly columns: M T W T F S S >
-const weeklyColumnDefs = [
-  (label: 'M', position: 0, type: ColumnType.date),
-  (label: 'T', position: 1, type: ColumnType.date),
-  (label: 'W', position: 2, type: ColumnType.date),
-  (label: 'T', position: 3, type: ColumnType.date),
-  (label: 'F', position: 4, type: ColumnType.date),
-  (label: 'S', position: 5, type: ColumnType.date),
-  (label: 'S', position: 6, type: ColumnType.date),
-  (label: '>', position: 7, type: ColumnType.custom),
-];
+/// Day labels starting from Monday.
+const _mondayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+/// Day labels starting from Sunday.
+const _sundayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+/// Returns the fixed weekly column definitions for the given
+/// [firstDay] (1 = Monday, 7 = Sunday).
+List<({String label, int position, ColumnType type})> weeklyColumnDefs({
+  int firstDay = DateTime.monday,
+}) {
+  final labels =
+      firstDay == DateTime.sunday ? _sundayLabels : _mondayLabels;
+  return [
+    for (var i = 0; i < 7; i++)
+      (label: labels[i], position: i, type: ColumnType.date),
+    (label: '>', position: 7, type: ColumnType.custom),
+  ];
+}

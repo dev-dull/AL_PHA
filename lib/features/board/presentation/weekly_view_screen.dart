@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alpha/features/board/data/data_export.dart';
 import 'package:alpha/features/board/presentation/board_grid_body.dart';
 import 'package:alpha/features/board/presentation/marker_legend_dialog.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
 /// The primary weekly view: auto-creates boards per week and
 /// navigates between weeks via chevron buttons.
 class WeeklyViewScreen extends ConsumerStatefulWidget {
-  final DateTime? initialMonday;
+  final DateTime? initialWeekStart;
 
-  const WeeklyViewScreen({super.key, this.initialMonday});
+  const WeeklyViewScreen({super.key, this.initialWeekStart});
 
   @override
   ConsumerState<WeeklyViewScreen> createState() => _WeeklyViewScreenState();
 }
 
 class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
-  late DateTime _currentMonday;
+  late DateTime _currentWeekStart;
 
   static const _seenLegendKey = 'alpha_seen_legend';
 
   @override
   void initState() {
     super.initState();
-    _currentMonday = widget.initialMonday ?? mondayOfWeek(DateTime.now());
+    final firstDay =
+        ref.read(preferencesProvider).firstDayOfWeek;
+    _currentWeekStart = widget.initialWeekStart ??
+        startOfWeek(DateTime.now(), firstDay: firstDay);
     _showLegendOnFirstLaunch();
   }
 
@@ -41,13 +46,13 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   }
 
   /// Runs auto-fill on the board being left, then navigates.
-  Future<void> _changeWeek(DateTime newMonday) async {
-    final oldMonday = _currentMonday;
+  Future<void> _changeWeek(DateTime newWeekStart) async {
+    final oldWeekStart = _currentWeekStart;
 
     // Run auto-fill on the board being navigated away from
     // so any new dots on past days get migrated.
     final oldBoardId = ref
-        .read(weeklyBoardProvider(oldMonday))
+        .read(weeklyBoardProvider(oldWeekStart))
         .valueOrNull;
     if (oldBoardId != null) {
       await ref
@@ -56,22 +61,24 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
     }
 
     if (mounted) {
-      setState(() => _currentMonday = newMonday);
+      setState(() => _currentWeekStart = newWeekStart);
     }
   }
 
   void _goToPreviousWeek() {
-    final m = _currentMonday;
+    final m = _currentWeekStart;
     _changeWeek(DateTime(m.year, m.month, m.day - 7));
   }
 
   void _goToNextWeek() {
-    final m = _currentMonday;
+    final m = _currentWeekStart;
     _changeWeek(DateTime(m.year, m.month, m.day + 7));
   }
 
   void _goToToday() {
-    _changeWeek(mondayOfWeek(DateTime.now()));
+    final firstDay =
+        ref.read(preferencesProvider).firstDayOfWeek;
+    _changeWeek(startOfWeek(DateTime.now(), firstDay: firstDay));
   }
 
   Future<void> _exportData() async {
@@ -85,8 +92,11 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = weekBoardName(_currentMonday);
-    final isCurrentWeek = _currentMonday == mondayOfWeek(DateTime.now());
+    final firstDay =
+        ref.watch(preferencesProvider).firstDayOfWeek;
+    final title = weekBoardName(_currentWeekStart);
+    final isCurrentWeek = _currentWeekStart ==
+        startOfWeek(DateTime.now(), firstDay: firstDay);
 
     return Scaffold(
       appBar: AppBar(
@@ -115,8 +125,18 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
             onSelected: (value) {
               if (value == 'export') _exportData();
               if (value == 'help') showMarkerLegend(context);
+              if (value == 'settings') context.pushNamed('preferences');
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'settings',
+                child: ListTile(
+                  leading: Icon(Icons.settings_outlined),
+                  title: Text('Settings'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               PopupMenuItem(
                 value: 'help',
                 child: ListTile(
@@ -139,7 +159,7 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
           ),
         ],
       ),
-      body: _WeekPage(key: ValueKey(_currentMonday), monday: _currentMonday),
+      body: _WeekPage(key: ValueKey(_currentWeekStart), weekStart: _currentWeekStart),
     );
   }
 }
@@ -147,13 +167,13 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
 /// A single week page that resolves the board ID and shows
 /// the board grid.
 class _WeekPage extends ConsumerWidget {
-  final DateTime monday;
+  final DateTime weekStart;
 
-  const _WeekPage({super.key, required this.monday});
+  const _WeekPage({super.key, required this.weekStart});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final boardIdAsync = ref.watch(weeklyBoardProvider(monday));
+    final boardIdAsync = ref.watch(weeklyBoardProvider(weekStart));
 
     return boardIdAsync.when(
       data: (boardId) =>
