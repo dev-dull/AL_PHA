@@ -48,7 +48,8 @@ class BoardRepository {
     final exact = await getByPeriodStart(weekStart, BoardType.weekly);
     if (exact != null) return exact;
 
-    // Scan for an overlapping board (covers Monday↔Sunday shift).
+    // Find the closest weekly board within 1 day of the target.
+    // Monday-start and Sunday-start differ by exactly 1 day.
     final query = _db.select(_db.boards)
       ..where(
         (b) =>
@@ -56,13 +57,12 @@ class BoardRepository {
             b.archived.equals(false),
       );
     final rows = await query.get();
-    final target = weekStart.millisecondsSinceEpoch;
-    const sixDays = 6 * 24 * 60 * 60 * 1000; // 6 days in ms
+    final targetMs = weekStart.millisecondsSinceEpoch;
+    const oneDay = 24 * 60 * 60 * 1000;
     for (final row in rows) {
       final ws = row.weekStart;
       if (ws == null) continue;
-      final diff = (ws.millisecondsSinceEpoch - target).abs();
-      if (diff <= sixDays) {
+      if ((ws.millisecondsSinceEpoch - targetMs).abs() <= oneDay) {
         return _boardDataToBoard(row);
       }
     }
