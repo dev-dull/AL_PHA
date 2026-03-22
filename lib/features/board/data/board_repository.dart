@@ -37,35 +37,36 @@ class BoardRepository {
     return board;
   }
 
-  /// Looks up a weekly board whose 7-day window contains any of
-  /// the same days as the week starting at [weekStart].
+  /// Looks up a weekly board that overlaps the week starting at
+  /// [weekStart].
   ///
-  /// First tries an exact match, then falls back to a range query
-  /// that finds boards created with a different first-day-of-week
-  /// preference (e.g. Monday-start boards when the user has
-  /// switched to Sunday-start, and vice versa).
+  /// First tries an exact match. If none is found, scans all
+  /// non-archived weekly boards for one whose stored weekStart
+  /// is within 6 days of the requested date. This handles boards
+  /// created under a different first-day-of-week preference.
   Future<Board?> getByWeekStart(DateTime weekStart) async {
     final exact = await getByPeriodStart(weekStart, BoardType.weekly);
     if (exact != null) return exact;
 
-    // Range query: find any weekly board whose weekStart is within
-    // 6 days of the requested date (covers Monday↔Sunday overlap).
-    final lo = weekStart.millisecondsSinceEpoch -
-        const Duration(days: 6).inMilliseconds;
-    final hi = weekStart.millisecondsSinceEpoch +
-        const Duration(days: 6).inMilliseconds;
+    // Scan for an overlapping board (covers Monday↔Sunday shift).
     final query = _db.select(_db.boards)
       ..where(
         (b) =>
-            b.weekStart.isBiggerOrEqualValue(DateTime.fromMillisecondsSinceEpoch(lo)) &
-            b.weekStart.isSmallerOrEqualValue(DateTime.fromMillisecondsSinceEpoch(hi)) &
             b.type.equals(BoardType.weekly.name) &
             b.archived.equals(false),
-      )
-      ..limit(1);
-    final row = await query.getSingleOrNull();
-    if (row == null) return null;
-    return _boardDataToBoard(row);
+      );
+    final rows = await query.get();
+    final target = weekStart.millisecondsSinceEpoch;
+    const sixDays = 6 * 24 * 60 * 60 * 1000; // 6 days in ms
+    for (final row in rows) {
+      final ws = row.weekStart;
+      if (ws == null) continue;
+      final diff = (ws.millisecondsSinceEpoch - target).abs();
+      if (diff <= sixDays) {
+        return _boardDataToBoard(row);
+      }
+    }
+    return null;
   }
 
   Future<Board?> getByPeriodStart(
