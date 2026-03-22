@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:alpha/features/task/domain/task.dart';
+import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/shared/providers.dart';
 
 part 'task_providers.g.dart';
@@ -44,6 +45,14 @@ class TaskActions {
   Future<void> reorder(String boardId, List<String> taskIds) async {
     final repo = _ref.read(taskRepositoryProvider);
     await repo.reorder(boardId, taskIds);
+  }
+
+  Future<Task> wontDo(String id) async {
+    final repo = _ref.read(taskRepositoryProvider);
+    final task = await repo.getById(id);
+    if (task == null) throw StateError('Task $id not found');
+    final updated = task.copyWith(state: TaskState.wontDo);
+    return repo.update(updated);
   }
 
   Future<void> delete(String id) async {

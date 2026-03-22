@@ -53,43 +53,6 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   // Task actions
   // ----------------------------------------------------------
 
-  Future<void> _completeTask(Task task) async {
-    final previousState = task.state;
-    await ref.read(taskActionsProvider).complete(task.id);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${task.title}" completed'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => _restoreTaskState(task, previousState),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _cancelTask(Task task) async {
-    final previousState = task.state;
-    await ref.read(taskActionsProvider).cancel(task.id);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('"${task.title}" cancelled'),
-        action: SnackBarAction(
-          label: 'Undo',
-          onPressed: () => _restoreTaskState(task, previousState),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _restoreTaskState(Task task, TaskState previousState) async {
-    final updated = task.copyWith(state: previousState, completedAt: null);
-    await ref.read(taskActionsProvider).update(updated);
-  }
-
   void _openTaskDetailSheet(Task task) {
     TaskDetailSheet.show(
       context: context,
@@ -103,6 +66,11 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       onDelete: () async {
         await ref.read(taskActionsProvider).delete(task.id);
       },
+      onWontDo: task.state.isTerminal
+          ? null
+          : () async {
+              await ref.read(taskActionsProvider).wontDo(task.id);
+            },
     );
   }
 
@@ -387,8 +355,6 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           index: i,
           canReorder: canReorder,
           pastDayPositions: pastDayPositions,
-          onComplete: () => _completeTask(task),
-          onCancel: () => _cancelTask(task),
           onTap: () => _openTaskDetailSheet(task),
         );
       },
@@ -526,8 +492,6 @@ class BoardRow extends StatelessWidget {
   final int index;
   final bool canReorder;
   final Set<int> pastDayPositions;
-  final VoidCallback onComplete;
-  final VoidCallback onCancel;
   final VoidCallback onTap;
 
   const BoardRow({
@@ -538,17 +502,16 @@ class BoardRow extends StatelessWidget {
     required this.index,
     this.canReorder = true,
     this.pastDayPositions = const {},
-    required this.onComplete,
-    required this.onCancel,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isCancelled = task.state == TaskState.cancelled;
+    final isStrikethrough = task.state == TaskState.cancelled ||
+        task.state == TaskState.wontDo;
     final theme = Theme.of(context);
 
-    Widget row = GestureDetector(
+    return GestureDetector(
       onTap: onTap,
       child: SizedBox(
         height: MarkerCell.cellSize,
@@ -594,7 +557,7 @@ class BoardRow extends StatelessWidget {
                         Icons.event,
                         size: 14,
                         color: theme.colorScheme.primary
-                            .withValues(alpha: isCancelled ? 0.4 : 0.7),
+                            .withValues(alpha: isStrikethrough ? 0.4 : 0.7),
                       ),
                       const SizedBox(width: 4),
                     ],
@@ -604,10 +567,10 @@ class BoardRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          decoration: isCancelled
+                          decoration: isStrikethrough
                               ? TextDecoration.lineThrough
                               : null,
-                          color: isCancelled
+                          color: isStrikethrough
                               ? theme.colorScheme.onSurface
                                   .withValues(alpha: 0.4)
                               : null,
@@ -621,7 +584,7 @@ class BoardRow extends StatelessWidget {
                           task.scheduledTime!,
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.onSurface
-                                .withValues(alpha: isCancelled ? 0.3 : 0.5),
+                                .withValues(alpha: isStrikethrough ? 0.3 : 0.5),
                           ),
                         ),
                       ),
@@ -634,31 +597,5 @@ class BoardRow extends StatelessWidget {
       ),
     );
 
-    if (isCancelled) return row;
-
-    return Dismissible(
-      key: ValueKey('dismiss_${task.id}'),
-      background: Container(
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 16),
-        color: Colors.green,
-        child: const Icon(Icons.check, color: Colors.white),
-      ),
-      secondaryBackground: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 16),
-        color: Colors.red,
-        child: const Icon(Icons.close, color: Colors.white),
-      ),
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          onComplete();
-        } else {
-          onCancel();
-        }
-        return false;
-      },
-      child: row,
-    );
   }
 }

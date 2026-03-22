@@ -8,10 +8,11 @@ void main() {
       expect(TaskState.inProgress.isTerminal, isFalse);
     });
 
-    test('complete, migrated, cancelled should be terminal', () {
+    test('complete, migrated, cancelled, wontDo should be terminal', () {
       expect(TaskState.complete.isTerminal, isTrue);
       expect(TaskState.migrated.isTerminal, isTrue);
       expect(TaskState.cancelled.isTerminal, isTrue);
+      expect(TaskState.wontDo.isTerminal, isTrue);
     });
 
     test('all states should have display names', () {

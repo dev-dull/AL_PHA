@@ -3,7 +3,8 @@ enum TaskState {
   inProgress,
   complete,
   migrated,
-  cancelled;
+  cancelled,
+  wontDo;
 
   String get displayName {
     switch (this) {
@@ -17,11 +18,14 @@ enum TaskState {
         return 'Migrated';
       case TaskState.cancelled:
         return 'Cancelled';
+      case TaskState.wontDo:
+        return "Won't Do";
     }
   }
 
   bool get isTerminal =>
       this == TaskState.complete ||
       this == TaskState.migrated ||
-      this == TaskState.cancelled;
+      this == TaskState.cancelled ||
+      this == TaskState.wontDo;
 }

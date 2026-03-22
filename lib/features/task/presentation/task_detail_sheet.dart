@@ -16,11 +16,15 @@ class TaskDetailSheet extends StatefulWidget {
   /// Called when the user confirms deletion.
   final VoidCallback onDelete;
 
+  /// Called when the user marks the task as "Won't Do".
+  final VoidCallback? onWontDo;
+
   const TaskDetailSheet({
     super.key,
     required this.task,
     required this.onSave,
     required this.onDelete,
+    this.onWontDo,
   });
 
   /// Show the sheet and return the result.
@@ -29,13 +33,18 @@ class TaskDetailSheet extends StatefulWidget {
     required Task task,
     required ValueChanged<Task> onSave,
     required VoidCallback onDelete,
+    VoidCallback? onWontDo,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) =>
-          TaskDetailSheet(task: task, onSave: onSave, onDelete: onDelete),
+      builder: (_) => TaskDetailSheet(
+        task: task,
+        onSave: onSave,
+        onDelete: onDelete,
+        onWontDo: onWontDo,
+      ),
     );
   }
 
@@ -498,6 +507,21 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                     foregroundColor: theme.colorScheme.error,
                   ),
                 ),
+                if (widget.onWontDo != null) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      widget.onWontDo!();
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.block),
+                    label: const Text("Won't Do"),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.onSurface
+                          .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
                 const Spacer(),
                 // Save button
                 FilledButton(onPressed: _save, child: const Text('Save')),
