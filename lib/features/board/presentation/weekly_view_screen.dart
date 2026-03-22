@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:alpha/features/board/data/data_export.dart';
 import 'package:alpha/features/board/presentation/board_grid_body.dart';
+import 'package:alpha/features/board/presentation/marker_legend_dialog.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
 import 'package:alpha/shared/providers.dart';
@@ -21,10 +23,21 @@ class WeeklyViewScreen extends ConsumerStatefulWidget {
 class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   late DateTime _currentMonday;
 
+  static const _seenLegendKey = 'alpha_seen_legend';
+
   @override
   void initState() {
     super.initState();
     _currentMonday = widget.initialMonday ?? mondayOfWeek(DateTime.now());
+    _showLegendOnFirstLaunch();
+  }
+
+  Future<void> _showLegendOnFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_seenLegendKey) == true) return;
+    await prefs.setBool(_seenLegendKey, true);
+    if (!mounted) return;
+    showMarkerLegend(context);
   }
 
   /// Runs auto-fill on the board being left, then navigates.
@@ -101,8 +114,18 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
             icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               if (value == 'export') _exportData();
+              if (value == 'help') showMarkerLegend(context);
             },
             itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'help',
+                child: ListTile(
+                  leading: Icon(Icons.help_outline),
+                  title: Text('How It Works'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
               PopupMenuItem(
                 value: 'export',
                 child: ListTile(
