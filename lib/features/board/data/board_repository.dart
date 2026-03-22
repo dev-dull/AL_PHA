@@ -45,11 +45,8 @@ class BoardRepository {
   /// is within 6 days of the requested date. This handles boards
   /// created under a different first-day-of-week preference.
   Future<Board?> getByWeekStart(DateTime weekStart) async {
-    final exact = await getByPeriodStart(weekStart, BoardType.weekly);
-    if (exact != null) return exact;
-
-    // Find the closest weekly board within 1 day of the target.
-    // Monday-start and Sunday-start differ by exactly 1 day.
+    // Collect all non-archived weekly boards within 1 day of the
+    // target (covers Monday↔Sunday shift). Then pick the best one.
     final query = _db.select(_db.boards)
       ..where(
         (b) =>
@@ -59,14 +56,36 @@ class BoardRepository {
     final rows = await query.get();
     final targetMs = weekStart.millisecondsSinceEpoch;
     const oneDay = 24 * 60 * 60 * 1000;
+
+    final candidates = <BoardRow>[];
     for (final row in rows) {
       final ws = row.weekStart;
       if (ws == null) continue;
       if ((ws.millisecondsSinceEpoch - targetMs).abs() <= oneDay) {
-        return _boardDataToBoard(row);
+        candidates.add(row);
       }
     }
-    return null;
+
+    if (candidates.isEmpty) return null;
+    if (candidates.length == 1) return _boardDataToBoard(candidates.first);
+
+    // Multiple boards within 1 day (e.g. an empty Sunday board and
+    // a Monday board with tasks from before a first-day switch).
+    // Prefer the one that has tasks.
+    for (final row in candidates) {
+      final taskQuery = _db.select(_db.tasks)
+        ..where((t) => t.boardId.equals(row.id))
+        ..limit(1);
+      final hasTask = await taskQuery.getSingleOrNull();
+      if (hasTask != null) return _boardDataToBoard(row);
+    }
+    // All empty — return the exact match or first candidate.
+    final exact = candidates.where(
+      (r) => r.weekStart?.millisecondsSinceEpoch == targetMs,
+    );
+    return _boardDataToBoard(
+      exact.isNotEmpty ? exact.first : candidates.first,
+    );
   }
 
   Future<Board?> getByPeriodStart(
