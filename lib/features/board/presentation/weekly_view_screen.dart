@@ -7,6 +7,7 @@ import 'package:alpha/features/board/presentation/board_grid_body.dart';
 import 'package:alpha/features/board/presentation/marker_legend_dialog.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/preferences/domain/app_preferences.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
@@ -35,6 +36,18 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
     _currentWeekStart = widget.initialWeekStart ??
         startOfWeek(DateTime.now(), firstDay: firstDay);
     _showLegendOnFirstLaunch();
+  }
+
+  /// Recalculates the displayed week when the first-day
+  /// preference changes (e.g. from settings screen).
+  void _onPrefsChanged(AppPreferences? prev, AppPreferences next) {
+    if (prev?.firstDayOfWeek == next.firstDayOfWeek) return;
+    // Recompute the week start for the same calendar date.
+    final midWeek = _currentWeekStart.add(const Duration(days: 3));
+    setState(() {
+      _currentWeekStart =
+          startOfWeek(midWeek, firstDay: next.firstDayOfWeek);
+    });
   }
 
   Future<void> _showLegendOnFirstLaunch() async {
@@ -92,6 +105,7 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(preferencesProvider, _onPrefsChanged);
     final firstDay =
         ref.watch(preferencesProvider).firstDayOfWeek;
     final title = weekBoardName(_currentWeekStart);

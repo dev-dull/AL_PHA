@@ -37,28 +37,35 @@ class BoardRepository {
     return board;
   }
 
-  /// Looks up a weekly board by its week-start date.
-  /// Falls back to checking ±1 day to find boards created with
-  /// a different first-day-of-week preference (Monday vs Sunday).
+  /// Looks up a weekly board whose 7-day window contains any of
+  /// the same days as the week starting at [weekStart].
+  ///
+  /// First tries an exact match, then falls back to a range query
+  /// that finds boards created with a different first-day-of-week
+  /// preference (e.g. Monday-start boards when the user has
+  /// switched to Sunday-start, and vice versa).
   Future<Board?> getByWeekStart(DateTime weekStart) async {
     final exact = await getByPeriodStart(weekStart, BoardType.weekly);
     if (exact != null) return exact;
 
-    // Check for a board created with the alternate first-day
-    // convention. Monday-start and Sunday-start differ by 1 day.
-    final dayBefore = DateTime(
-      weekStart.year,
-      weekStart.month,
-      weekStart.day - 1,
-    );
-    final dayAfter = DateTime(
-      weekStart.year,
-      weekStart.month,
-      weekStart.day + 1,
-    );
-    final alt = await getByPeriodStart(dayBefore, BoardType.weekly);
-    if (alt != null) return alt;
-    return getByPeriodStart(dayAfter, BoardType.weekly);
+    // Range query: find any weekly board whose weekStart is within
+    // 6 days of the requested date (covers Monday↔Sunday overlap).
+    final lo = weekStart.millisecondsSinceEpoch -
+        const Duration(days: 6).inMilliseconds;
+    final hi = weekStart.millisecondsSinceEpoch +
+        const Duration(days: 6).inMilliseconds;
+    final query = _db.select(_db.boards)
+      ..where(
+        (b) =>
+            b.weekStart.isBiggerOrEqualValue(DateTime.fromMillisecondsSinceEpoch(lo)) &
+            b.weekStart.isSmallerOrEqualValue(DateTime.fromMillisecondsSinceEpoch(hi)) &
+            b.type.equals(BoardType.weekly.name) &
+            b.archived.equals(false),
+      )
+      ..limit(1);
+    final row = await query.getSingleOrNull();
+    if (row == null) return null;
+    return _boardDataToBoard(row);
   }
 
   Future<Board?> getByPeriodStart(
