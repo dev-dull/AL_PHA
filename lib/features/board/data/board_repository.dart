@@ -37,8 +37,28 @@ class BoardRepository {
     return board;
   }
 
-  Future<Board?> getByWeekStart(DateTime monday) async {
-    return getByPeriodStart(monday, BoardType.weekly);
+  /// Looks up a weekly board by its week-start date.
+  /// Falls back to checking ±1 day to find boards created with
+  /// a different first-day-of-week preference (Monday vs Sunday).
+  Future<Board?> getByWeekStart(DateTime weekStart) async {
+    final exact = await getByPeriodStart(weekStart, BoardType.weekly);
+    if (exact != null) return exact;
+
+    // Check for a board created with the alternate first-day
+    // convention. Monday-start and Sunday-start differ by 1 day.
+    final dayBefore = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day - 1,
+    );
+    final dayAfter = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day + 1,
+    );
+    final alt = await getByPeriodStart(dayBefore, BoardType.weekly);
+    if (alt != null) return alt;
+    return getByPeriodStart(dayAfter, BoardType.weekly);
   }
 
   Future<Board?> getByPeriodStart(

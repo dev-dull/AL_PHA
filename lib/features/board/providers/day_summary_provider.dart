@@ -1,5 +1,4 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
 import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
@@ -50,10 +49,7 @@ Future<Map<DateTime, DaySummary>> daySummaries(
   // Find all week starts that overlap with the date range.
   var weekStart = startOfWeek(rangeStart, firstDay: firstDay);
   while (weekStart.isBefore(rangeEnd)) {
-    final board = await boardRepo.getByPeriodStart(
-      weekStart,
-      BoardType.weekly,
-    );
+    final board = await boardRepo.getByWeekStart(weekStart);
 
     if (board != null) {
       final columns = await columnRepo.getByBoard(board.id);
