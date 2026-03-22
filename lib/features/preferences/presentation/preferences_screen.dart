@@ -88,8 +88,8 @@ class PreferencesScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Affects weekly board columns and calendar grids. '
-              'New weeks will use the updated start day.',
+              'Affects calendar overviews and new weekly boards. '
+              'Existing boards keep their original column layout.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurface
                     .withValues(alpha: 0.5),

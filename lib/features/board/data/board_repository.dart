@@ -44,48 +44,28 @@ class BoardRepository {
   /// non-archived weekly boards for one whose stored weekStart
   /// is within 6 days of the requested date. This handles boards
   /// created under a different first-day-of-week preference.
+  /// Finds a weekly board that covers the same calendar week as
+  /// [weekStart]. Handles boards created under a different
+  /// first-day-of-week convention by checking ±1 day.
   Future<Board?> getByWeekStart(DateTime weekStart) async {
-    // Collect all non-archived weekly boards within 1 day of the
-    // target (covers Monday↔Sunday shift). Then pick the best one.
-    final query = _db.select(_db.boards)
-      ..where(
-        (b) =>
-            b.type.equals(BoardType.weekly.name) &
-            b.archived.equals(false),
-      );
-    final rows = await query.get();
-    final targetMs = weekStart.millisecondsSinceEpoch;
-    const oneDay = 24 * 60 * 60 * 1000;
+    final exact = await getByPeriodStart(weekStart, BoardType.weekly);
+    if (exact != null) return exact;
 
-    final candidates = <BoardRow>[];
-    for (final row in rows) {
-      final ws = row.weekStart;
-      if (ws == null) continue;
-      if ((ws.millisecondsSinceEpoch - targetMs).abs() <= oneDay) {
-        candidates.add(row);
-      }
-    }
-
-    if (candidates.isEmpty) return null;
-    if (candidates.length == 1) return _boardDataToBoard(candidates.first);
-
-    // Multiple boards within 1 day (e.g. an empty Sunday board and
-    // a Monday board with tasks from before a first-day switch).
-    // Prefer the one that has tasks.
-    for (final row in candidates) {
-      final taskQuery = _db.select(_db.tasks)
-        ..where((t) => t.boardId.equals(row.id))
-        ..limit(1);
-      final hasTask = await taskQuery.getSingleOrNull();
-      if (hasTask != null) return _boardDataToBoard(row);
-    }
-    // All empty — return the exact match or first candidate.
-    final exact = candidates.where(
-      (r) => r.weekStart?.millisecondsSinceEpoch == targetMs,
+    // Check ±1 day for boards created with the alternate convention.
+    final dayBefore = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day - 1,
     );
-    return _boardDataToBoard(
-      exact.isNotEmpty ? exact.first : candidates.first,
+    final alt = await getByPeriodStart(dayBefore, BoardType.weekly);
+    if (alt != null) return alt;
+
+    final dayAfter = DateTime(
+      weekStart.year,
+      weekStart.month,
+      weekStart.day + 1,
     );
+    return getByPeriodStart(dayAfter, BoardType.weekly);
   }
 
   Future<Board?> getByPeriodStart(

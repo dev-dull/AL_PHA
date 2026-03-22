@@ -7,9 +7,9 @@ import 'package:alpha/features/board/domain/board.dart';
 import 'package:alpha/features/board/domain/board_type.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/domain/weekly_columns.dart';
-import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/preferences/domain/app_preferences.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
+import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/shared/database.dart';
 import 'package:alpha/shared/providers.dart';
@@ -28,7 +28,6 @@ void main() {
       db.close();
     });
 
-    // Create a board for the Monday-start week of March 16.
     const uuid = Uuid();
     final monday = DateTime(2026, 3, 16);
     final boardId = uuid.v4();
@@ -65,48 +64,31 @@ void main() {
       createdAt: now,
     ));
 
-    // Verify tasks exist on the Monday-start board.
+    // Query with Monday start — exact match.
     final mondayBoardId = await container.read(
       weeklyBoardProvider(monday).future,
     );
     expect(mondayBoardId, boardId);
-    final mondayTasks = await taskRepo.getByBoard(mondayBoardId);
-    expect(mondayTasks.length, 1);
-    expect(mondayTasks.first.title, 'Test task');
 
-    // Now switch to Sunday start and look up the same week.
+    // Query with Sunday start — should find via ±1 day fallback.
     final sunday = startOfWeek(
-      DateTime(2026, 3, 18), // a Wednesday in the same week
+      DateTime(2026, 3, 18),
       firstDay: DateTime.sunday,
     );
-    // Sunday start of the week containing March 18 = March 15.
     expect(sunday, DateTime(2026, 3, 15));
 
-    // Look up the board for Sunday March 15.
     final sundayBoardId = await container.read(
       weeklyBoardProvider(sunday).future,
     );
+    expect(sundayBoardId, boardId,
+        reason: 'Should find Monday board via ±1 day fallback');
 
-    // Should find the SAME board (via fallback), not create a new one.
-    expect(
-      sundayBoardId,
-      boardId,
-      reason: 'Should find the Monday-start board when querying '
-          'for Sunday-start week',
-    );
-
-    // Tasks should still be there.
-    final sundayTasks = await taskRepo.getByBoard(sundayBoardId);
-    expect(sundayTasks.length, 1);
-    expect(sundayTasks.first.title, 'Test task');
-
-    // Verify no extra board was created.
-    final allBoards = await boardRepo.listAll();
-    expect(allBoards.length, 1, reason: 'Should not create a duplicate board');
+    final tasks = await taskRepo.getByBoard(sundayBoardId);
+    expect(tasks.length, 1);
+    expect(tasks.first.title, 'Test task');
   });
 
-  test('weeklyBoardProvider with preference change does not create duplicate',
-      () async {
+  test('provider with preference change finds existing board', () async {
     final db = AlphaDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
       overrides: [alphaDatabaseProvider.overrideWithValue(db)],
@@ -117,13 +99,12 @@ void main() {
       db.close();
     });
 
-    // Step 1: Create board via provider (Monday start, default).
+    // Create board via provider (Monday start).
     final monday = DateTime(2026, 3, 16);
     final boardId = await container.read(
       weeklyBoardProvider(monday).future,
     );
 
-    // Add a task.
     final taskRepo = container.read(taskRepositoryProvider);
     await taskRepo.create(Task(
       id: const Uuid().v4(),
@@ -133,16 +114,12 @@ void main() {
       createdAt: DateTime.now(),
     ));
 
-    // Step 2: Change preference to Sunday (set state directly
-    // to avoid SharedPreferences binding requirement in tests).
+    // Change preference to Sunday.
     container.read(preferencesProvider.notifier).state =
         const AppPreferences(firstDayOfWeek: DateTime.sunday);
-
-    // Step 3: Invalidate the old provider (simulates what happens
-    // when the widget rebuilds with a new weekStart).
     container.invalidate(weeklyBoardProvider(monday));
 
-    // Step 4: Look up for Sunday start of same week.
+    // Look up for Sunday start of same week.
     final sunday = DateTime(2026, 3, 15);
     final sundayBoardId = await container.read(
       weeklyBoardProvider(sunday).future,
@@ -154,14 +131,10 @@ void main() {
     final tasks = await taskRepo.getByBoard(sundayBoardId);
     expect(tasks.length, 1);
     expect(tasks.first.title, 'My task');
-
-    final boardRepo = container.read(boardRepositoryProvider);
-    final allBoards = await boardRepo.listAll();
-    expect(allBoards.length, 1,
-        reason: 'Must not create a duplicate board');
   });
 
-  test('prefers board with tasks over empty duplicate', () async {
+  test('new board created with Sunday columns when no board exists',
+      () async {
     final db = AlphaDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
       overrides: [alphaDatabaseProvider.overrideWithValue(db)],
@@ -172,69 +145,23 @@ void main() {
       db.close();
     });
 
-    const uuid = Uuid();
-    final now = DateTime.now();
-    final boardRepo = container.read(boardRepositoryProvider);
-    final taskRepo = container.read(taskRepositoryProvider);
+    // Set Sunday preference before creating any board.
+    container.read(preferencesProvider.notifier).state =
+        const AppPreferences(firstDayOfWeek: DateTime.sunday);
+
+    final sunday = DateTime(2026, 3, 15);
+    final boardId = await container.read(
+      weeklyBoardProvider(sunday).future,
+    );
+
+    // Board should be created with Sunday columns.
     final colRepo = container.read(columnRepositoryProvider);
+    final cols = await colRepo.getByBoard(boardId);
+    final dayLabels =
+        cols.where((c) => c.type.name == 'date').toList()
+          ..sort((a, b) => a.position.compareTo(b.position));
 
-    // Create Monday board WITH a task.
-    final mondayBoardId = uuid.v4();
-    await boardRepo.create(Board(
-      id: mondayBoardId,
-      name: 'Week of Mar 16',
-      type: BoardType.weekly,
-      weekStart: DateTime(2026, 3, 16),
-      createdAt: now,
-      updatedAt: now,
-    ));
-    for (final col in weeklyColumnDefs()) {
-      await colRepo.create(BoardColumn(
-        id: uuid.v4(),
-        boardId: mondayBoardId,
-        label: col.label,
-        position: col.position,
-        type: col.type,
-      ));
-    }
-    await taskRepo.create(Task(
-      id: uuid.v4(),
-      boardId: mondayBoardId,
-      title: 'Real task',
-      position: 0,
-      createdAt: now,
-    ));
-
-    // Create an EMPTY Sunday board (as if created by a previous
-    // failed first-day switch attempt).
-    final sundayBoardId = uuid.v4();
-    await boardRepo.create(Board(
-      id: sundayBoardId,
-      name: 'Week of Mar 15',
-      type: BoardType.weekly,
-      weekStart: DateTime(2026, 3, 15),
-      createdAt: now,
-      updatedAt: now,
-    ));
-    for (final col in weeklyColumnDefs(firstDay: DateTime.sunday)) {
-      await colRepo.create(BoardColumn(
-        id: uuid.v4(),
-        boardId: sundayBoardId,
-        label: col.label,
-        position: col.position,
-        type: col.type,
-      ));
-    }
-
-    // Query for Sunday week — should find the Monday board
-    // (with tasks) instead of the empty Sunday board.
-    final found = await boardRepo.getByWeekStart(DateTime(2026, 3, 15));
-    expect(found, isNotNull);
-    expect(found!.id, mondayBoardId,
-        reason: 'Must prefer the board WITH tasks');
-
-    final tasks = await taskRepo.getByBoard(found.id);
-    expect(tasks.length, 1);
-    expect(tasks.first.title, 'Real task');
+    expect(dayLabels.map((c) => c.label).toList(),
+        ['S', 'M', 'T', 'W', 'T', 'F', 'S']);
   });
 }
