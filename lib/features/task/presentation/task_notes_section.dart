@@ -54,17 +54,19 @@ class _TaskNotesSectionState extends ConsumerState<TaskNotesSection> {
             Expanded(
               child: TextField(
                 controller: _controller,
+                maxLines: 3,
+                minLines: 1,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   hintText: 'Add a note...',
                   border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
                   isDense: true,
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
                 ),
-                onSubmitted: (_) => _addNote(),
               ),
             ),
             const SizedBox(width: 8),
