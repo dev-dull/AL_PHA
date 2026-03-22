@@ -295,6 +295,10 @@ class MarkerActions {
 
     final task = await taskRepo.getById(taskId);
     if (task == null) return;
+    if (task.state == TaskState.wontDo ||
+        task.state == TaskState.cancelled) {
+      return;
+    }
 
     final board = await boardRepo.getById(boardId);
     if (board == null) return;
