@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import 'package:alpha/design_system/widgets/dot_grid_background.dart';
 import 'package:alpha/features/column/domain/board_column.dart';
 import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
@@ -275,6 +276,62 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     return best;
   }
 
+  /// Reorders and relabels columns so they display with the
+  /// preferred first-day-of-week, even if the board was created
+  /// with a different convention.
+  List<BoardColumn> _reorderColumns(List<BoardColumn> columns) {
+    final firstDay =
+        ref.watch(preferencesProvider).firstDayOfWeek;
+    final boardAsync = ref.watch(boardProvider(widget.boardId));
+    final board = boardAsync.valueOrNull;
+    if (board == null) return columns;
+
+    // Detect the board's original first day from its weekStart.
+    final ws = board.weekStart;
+    if (ws == null) return columns;
+    final boardFirstDay = ws.weekday; // 1=Mon, 7=Sun
+
+    if (boardFirstDay == firstDay) return columns;
+
+    // Compute how many positions to rotate. E.g. Monday(1)→Sunday(7):
+    // Sunday is at position 6 in a Monday-start board, so rotate by 6.
+    final shift = (boardFirstDay - firstDay + 7) % 7;
+
+    final dateColumns = columns
+        .where((c) => c.type == ColumnType.date)
+        .toList()
+      ..sort((a, b) => a.position.compareTo(b.position));
+    final nonDateColumns = columns
+        .where((c) => c.type != ColumnType.date)
+        .toList();
+
+    if (dateColumns.length != 7) return columns;
+
+    // Build the preferred label order.
+    final labels =
+        weeklyColumnDefs(firstDay: firstDay)
+            .where((d) => d.type == ColumnType.date)
+            .map((d) => d.label)
+            .toList();
+
+    // Rotate: new visual position i gets data from
+    // old position (i + shift) % 7.
+    final reordered = <BoardColumn>[];
+    for (var i = 0; i < 7; i++) {
+      final srcIdx = (i + shift) % 7;
+      final src = dateColumns[srcIdx];
+      reordered.add(BoardColumn(
+        id: src.id,
+        boardId: src.boardId,
+        label: labels[i],
+        position: src.position,
+        type: src.type,
+      ));
+    }
+
+    return [...reordered, ...nonDateColumns];
+  }
+
   Widget _buildGrid(
     BuildContext context,
     List<Task> tasks,
@@ -283,6 +340,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     if (tasks.isEmpty && columns.isEmpty) {
       return _buildEmptyState(context);
     }
+
+    // Reorder columns if the board's first-day differs from the
+    // user's preference (e.g. Mon-start board with Sun preference).
+    columns = _reorderColumns(columns);
 
     final theme = Theme.of(context);
     final markerColumnsWidth = columns.length * MarkerCell.cellSize;

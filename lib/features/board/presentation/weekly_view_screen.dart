@@ -42,7 +42,6 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   /// preference changes (e.g. from settings screen).
   void _onPrefsChanged(AppPreferences? prev, AppPreferences next) {
     if (prev?.firstDayOfWeek == next.firstDayOfWeek) return;
-    // Recompute the week start for the same calendar date.
     final midWeek = _currentWeekStart.add(const Duration(days: 3));
     setState(() {
       _currentWeekStart =

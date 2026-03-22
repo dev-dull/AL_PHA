@@ -50,8 +50,6 @@ class BoardRepository {
   Future<Board?> getByWeekStart(DateTime weekStart) async {
     final exact = await getByPeriodStart(weekStart, BoardType.weekly);
 
-    // Check ±1 day for boards created with the alternate
-    // first-day-of-week convention.
     final dayBefore = DateTime(
       weekStart.year, weekStart.month, weekStart.day - 1);
     final dayAfter = DateTime(

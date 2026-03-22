@@ -27,11 +27,6 @@ int daysInMonth(DateTime monthStart) {
   return DateTime(monthStart.year, monthStart.month + 1, 0).day;
 }
 
-/// The weekday (1=Mon, 7=Sun) of the first day of the month.
-int firstWeekdayOfMonth(DateTime monthStart) {
-  return DateTime(monthStart.year, monthStart.month, 1).weekday;
-}
-
 /// Grid offset for the first day of the month, relative to [firstDay].
 int firstWeekdayOffset(DateTime monthStart, {int firstDay = DateTime.monday}) {
   final wd = DateTime(monthStart.year, monthStart.month, 1).weekday;

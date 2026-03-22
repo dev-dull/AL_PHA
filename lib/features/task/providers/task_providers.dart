@@ -32,16 +32,6 @@ class TaskActions {
     return repo.update(task);
   }
 
-  Future<Task> complete(String id) async {
-    final repo = _ref.read(taskRepositoryProvider);
-    return repo.complete(id);
-  }
-
-  Future<Task> cancel(String id) async {
-    final repo = _ref.read(taskRepositoryProvider);
-    return repo.cancel(id);
-  }
-
   Future<void> reorder(String boardId, List<String> taskIds) async {
     final repo = _ref.read(taskRepositoryProvider);
     await repo.reorder(boardId, taskIds);
