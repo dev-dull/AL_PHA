@@ -4,6 +4,7 @@ import 'package:alpha/features/board/data/board_repository.dart';
 import 'package:alpha/features/task/data/task_repository.dart';
 import 'package:alpha/features/column/data/column_repository.dart';
 import 'package:alpha/features/marker/data/marker_repository.dart';
+import 'package:alpha/features/task/data/task_note_repository.dart';
 
 part 'providers.g.dart';
 
@@ -36,4 +37,10 @@ ColumnRepository columnRepository(ColumnRepositoryRef ref) {
 MarkerRepository markerRepository(MarkerRepositoryRef ref) {
   final db = ref.watch(alphaDatabaseProvider);
   return MarkerRepository(db);
+}
+
+@Riverpod(keepAlive: true)
+TaskNoteRepository taskNoteRepository(TaskNoteRepositoryRef ref) {
+  final db = ref.watch(alphaDatabaseProvider);
+  return TaskNoteRepository(db);
 }

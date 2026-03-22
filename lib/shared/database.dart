@@ -75,14 +75,26 @@ class Markers extends Table {
   ];
 }
 
-@DriftDatabase(tables: [Boards, BoardColumns, Tasks, Markers])
+@DataClassName('TaskNoteRow')
+class TaskNotes extends Table {
+  TextColumn get id => text()();
+  TextColumn get taskId => text().references(Tasks, #id)();
+  TextColumn get content => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Boards, BoardColumns, Tasks, Markers, TaskNotes])
 class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase() : super(_openConnection());
 
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -126,6 +138,9 @@ class AlphaDatabase extends _$AlphaDatabase {
         await customStatement(
           'ALTER TABLE tasks ADD COLUMN recurrence_rule TEXT',
         );
+      }
+      if (from < 6) {
+        await migrator.createTable(taskNotes);
       }
     },
   );

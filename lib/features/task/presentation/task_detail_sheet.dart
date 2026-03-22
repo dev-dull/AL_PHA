@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/recurrence.dart';
+import 'package:alpha/features/task/presentation/task_notes_section.dart';
 
 enum _SeriesChoice { thisEvent, allEvents }
 
@@ -472,6 +473,16 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                 ),
               ),
             ],
+
+            const SizedBox(height: 12),
+
+            // Notes
+            Divider(
+              color: theme.colorScheme.onSurface
+                  .withValues(alpha: 0.12),
+            ),
+            const SizedBox(height: 8),
+            TaskNotesSection(taskId: widget.task.id),
 
             const SizedBox(height: 24),
 

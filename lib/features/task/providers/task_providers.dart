@@ -47,6 +47,8 @@ class TaskActions {
   }
 
   Future<void> delete(String id) async {
+    final noteRepo = _ref.read(taskNoteRepositoryProvider);
+    await noteRepo.deleteByTask(id);
     final repo = _ref.read(taskRepositoryProvider);
     await repo.delete(id);
   }
