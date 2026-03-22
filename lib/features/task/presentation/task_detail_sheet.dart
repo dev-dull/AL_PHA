@@ -19,12 +19,16 @@ class TaskDetailSheet extends StatefulWidget {
   /// Called when the user marks the task as "Won't Do".
   final VoidCallback? onWontDo;
 
+  /// Called when the user reopens a won't-do or cancelled task.
+  final VoidCallback? onReopen;
+
   const TaskDetailSheet({
     super.key,
     required this.task,
     required this.onSave,
     required this.onDelete,
     this.onWontDo,
+    this.onReopen,
   });
 
   /// Show the sheet and return the result.
@@ -34,6 +38,7 @@ class TaskDetailSheet extends StatefulWidget {
     required ValueChanged<Task> onSave,
     required VoidCallback onDelete,
     VoidCallback? onWontDo,
+    VoidCallback? onReopen,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -44,6 +49,7 @@ class TaskDetailSheet extends StatefulWidget {
         onSave: onSave,
         onDelete: onDelete,
         onWontDo: onWontDo,
+        onReopen: onReopen,
       ),
     );
   }
@@ -519,6 +525,20 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                     style: TextButton.styleFrom(
                       foregroundColor: theme.colorScheme.onSurface
                           .withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+                if (widget.onReopen != null) ...[
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () {
+                      widget.onReopen!();
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.replay),
+                    label: const Text('Reopen'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.primary,
                     ),
                   ),
                 ],

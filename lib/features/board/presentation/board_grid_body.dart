@@ -71,6 +71,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           : () async {
               await ref.read(taskActionsProvider).wontDo(task.id);
             },
+      onReopen: (task.state == TaskState.wontDo ||
+              task.state == TaskState.cancelled)
+          ? () async {
+              await ref.read(taskActionsProvider).reopen(task.id);
+            }
+          : null,
     );
   }
 

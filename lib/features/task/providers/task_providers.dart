@@ -47,6 +47,17 @@ class TaskActions {
     await repo.reorder(boardId, taskIds);
   }
 
+  Future<Task> reopen(String id) async {
+    final repo = _ref.read(taskRepositoryProvider);
+    final task = await repo.getById(id);
+    if (task == null) throw StateError('Task $id not found');
+    final updated = task.copyWith(
+      state: TaskState.open,
+      completedAt: null,
+    );
+    return repo.update(updated);
+  }
+
   Future<Task> wontDo(String id) async {
     final repo = _ref.read(taskRepositoryProvider);
     final task = await repo.getById(id);
