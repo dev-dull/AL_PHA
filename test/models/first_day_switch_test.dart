@@ -133,6 +133,67 @@ void main() {
     expect(tasks.first.title, 'My task');
   });
 
+  test('prefers board with tasks and cleans up empty duplicate',
+      () async {
+    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final container = ProviderContainer(
+      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+    );
+    addTearDown(() {
+      container.dispose();
+      db.close();
+    });
+
+    const uuid = Uuid();
+    final now = DateTime.now();
+    final boardRepo = container.read(boardRepositoryProvider);
+    final colRepo = container.read(columnRepositoryProvider);
+    final taskRepo = container.read(taskRepositoryProvider);
+
+    // Monday board WITH tasks.
+    final mondayId = uuid.v4();
+    await boardRepo.create(Board(
+      id: mondayId,
+      name: 'Week of Mar 16',
+      type: BoardType.weekly,
+      weekStart: DateTime(2026, 3, 16),
+      createdAt: now,
+      updatedAt: now,
+    ));
+    for (final col in weeklyColumnDefs()) {
+      await colRepo.create(BoardColumn(
+        id: uuid.v4(), boardId: mondayId,
+        label: col.label, position: col.position, type: col.type,
+      ));
+    }
+    await taskRepo.create(Task(
+      id: uuid.v4(), boardId: mondayId, title: 'Real task',
+      position: 0, createdAt: now,
+    ));
+
+    // Empty Sunday board (stale duplicate).
+    final sundayId = uuid.v4();
+    await boardRepo.create(Board(
+      id: sundayId,
+      name: 'Week of Mar 15',
+      type: BoardType.weekly,
+      weekStart: DateTime(2026, 3, 15),
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    // Query for Sunday — should prefer Monday board (has tasks)
+    // and delete the empty Sunday board.
+    final found = await boardRepo.getByWeekStart(DateTime(2026, 3, 15));
+    expect(found, isNotNull);
+    expect(found!.id, mondayId);
+
+    // Empty board should be cleaned up.
+    final all = await boardRepo.listAll();
+    expect(all.length, 1);
+    expect(all.first.id, mondayId);
+  });
+
   test('new board created with Sunday columns when no board exists',
       () async {
     final db = AlphaDatabase.forTesting(NativeDatabase.memory());

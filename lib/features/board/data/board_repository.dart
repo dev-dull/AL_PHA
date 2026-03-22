@@ -49,23 +49,52 @@ class BoardRepository {
   /// first-day-of-week convention by checking ±1 day.
   Future<Board?> getByWeekStart(DateTime weekStart) async {
     final exact = await getByPeriodStart(weekStart, BoardType.weekly);
-    if (exact != null) return exact;
 
-    // Check ±1 day for boards created with the alternate convention.
+    // Check ±1 day for boards created with the alternate
+    // first-day-of-week convention.
     final dayBefore = DateTime(
-      weekStart.year,
-      weekStart.month,
-      weekStart.day - 1,
-    );
-    final alt = await getByPeriodStart(dayBefore, BoardType.weekly);
-    if (alt != null) return alt;
-
+      weekStart.year, weekStart.month, weekStart.day - 1);
     final dayAfter = DateTime(
-      weekStart.year,
-      weekStart.month,
-      weekStart.day + 1,
-    );
-    return getByPeriodStart(dayAfter, BoardType.weekly);
+      weekStart.year, weekStart.month, weekStart.day + 1);
+    final neighbor =
+        await getByPeriodStart(dayBefore, BoardType.weekly) ??
+        await getByPeriodStart(dayAfter, BoardType.weekly);
+
+    if (exact == null) return neighbor;
+    if (neighbor == null) return exact;
+
+    // Both exist (duplicate from a previous first-day switch).
+    // Prefer whichever has tasks; delete the empty duplicate.
+    final exactQuery = _db.select(_db.tasks)
+      ..where((t) => t.boardId.equals(exact.id));
+    final neighborQuery = _db.select(_db.tasks)
+      ..where((t) => t.boardId.equals(neighbor.id));
+    final exactCount = (await exactQuery.get()).length;
+    final neighborCount = (await neighborQuery.get()).length;
+
+    if (exactCount >= neighborCount) {
+      await _deleteBoardCascade(neighbor.id);
+      return exact;
+    } else {
+      await _deleteBoardCascade(exact.id);
+      return neighbor;
+    }
+  }
+
+  /// Removes a board and all its columns, markers, and tasks.
+  Future<void> _deleteBoardCascade(String boardId) async {
+    await (_db.delete(_db.markers)
+          ..where((m) => m.boardId.equals(boardId)))
+        .go();
+    await (_db.delete(_db.tasks)
+          ..where((t) => t.boardId.equals(boardId)))
+        .go();
+    await (_db.delete(_db.boardColumns)
+          ..where((c) => c.boardId.equals(boardId)))
+        .go();
+    await (_db.delete(_db.boards)
+          ..where((b) => b.id.equals(boardId)))
+        .go();
   }
 
   Future<Board?> getByPeriodStart(
