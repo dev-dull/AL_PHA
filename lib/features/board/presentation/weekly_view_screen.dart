@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:alpha/features/board/data/data_export.dart';
 import 'package:alpha/features/board/presentation/board_grid_body.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
 /// The primary weekly view: auto-creates boards per week and
@@ -85,6 +87,31 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
             icon: const Icon(Icons.chevron_right),
             tooltip: 'Next week',
             onPressed: _goToNextWeek,
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              if (value == 'export') {
+                final db = ref.read(alphaDatabaseProvider);
+                final path = await exportDataAsJson(db);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Exported to $path')),
+                  );
+                }
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'export',
+                child: ListTile(
+                  leading: Icon(Icons.download),
+                  title: Text('Export Data'),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
         ],
       ),
