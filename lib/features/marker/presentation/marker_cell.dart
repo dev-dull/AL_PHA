@@ -166,7 +166,7 @@ class MarkerCell extends ConsumerWidget {
     final isMigration = columnType != ColumnType.date;
     final renderBox = context.findRenderObject() as RenderBox;
     final cellCenter = renderBox.localToGlobal(
-      Offset(cellSize / 2, cellSize / 2),
+      const Offset(cellSize / 2, cellSize / 2),
     );
 
     Navigator.of(context).push(

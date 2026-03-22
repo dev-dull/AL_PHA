@@ -61,6 +61,15 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
     _changeWeek(mondayOfWeek(DateTime.now()));
   }
 
+  Future<void> _exportData() async {
+    final db = ref.read(alphaDatabaseProvider);
+    final path = await exportDataAsJson(db);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Exported to $path')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title = weekBoardName(_currentMonday);
@@ -90,16 +99,8 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
-            onSelected: (value) async {
-              if (value == 'export') {
-                final db = ref.read(alphaDatabaseProvider);
-                final path = await exportDataAsJson(db);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Exported to $path')),
-                  );
-                }
-              }
+            onSelected: (value) {
+              if (value == 'export') _exportData();
             },
             itemBuilder: (_) => const [
               PopupMenuItem(
