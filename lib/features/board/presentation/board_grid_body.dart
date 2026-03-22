@@ -532,6 +532,8 @@ class BoardRow extends StatelessWidget {
                 isEvent: task.isEvent,
                 isPastDay: col.type == ColumnType.date &&
                     pastDayPositions.contains(col.position),
+                isLocked: task.state == TaskState.wontDo ||
+                    task.state == TaskState.cancelled,
                 isRecurring: task.isEvent &&
                     task.recurrenceRule != null &&
                     task.recurrenceRule!.contains('FREQ='),

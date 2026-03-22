@@ -20,6 +20,7 @@ class MarkerCell extends ConsumerWidget {
   final ColumnType columnType;
   final bool isEvent;
   final bool isPastDay;
+  final bool isLocked;
 
   /// Whether the event has a recurring schedule (FREQ= in RRULE).
   final bool isRecurring;
@@ -39,6 +40,7 @@ class MarkerCell extends ConsumerWidget {
     this.columnType = ColumnType.date,
     this.isEvent = false,
     this.isPastDay = false,
+    this.isLocked = false,
     this.isRecurring = false,
     this.onEventTap,
   });
@@ -132,6 +134,7 @@ class MarkerCell extends ConsumerWidget {
   }
 
   void _onTap(BuildContext context, WidgetRef ref, Marker? marker) {
+    if (isLocked) return;
     final isMigration = columnType != ColumnType.date;
 
     if (isMigration) {
