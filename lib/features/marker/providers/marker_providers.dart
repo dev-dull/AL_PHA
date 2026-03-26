@@ -619,15 +619,12 @@ class MarkerActions {
       }
     }
 
-    // Recurring events: always carry forward even if fully completed.
+    // Recurring items: always carry forward even if fully completed.
     if (isPastWeek) {
       final allTasks = await taskRepo.getByBoard(boardId);
-      final recurringEvents = allTasks.where((t) =>
-          t.isEvent &&
-          t.recurrenceRule != null &&
-          t.recurrenceRule!.contains('FREQ='));
+      final recurringItems = allTasks.where((t) => t.isRecurring);
 
-      for (final task in recurringEvents) {
+      for (final task in recurringItems) {
         if (existingMigrationSources.contains(task.id)) continue;
         if (tasksToMigrate.contains(task.id)) continue;
 
@@ -645,7 +642,7 @@ class MarkerActions {
             deadline: task.deadline,
             migratedFromBoardId: boardId,
             migratedFromTaskId: task.id,
-            isEvent: true,
+            isEvent: task.isEvent,
             scheduledTime: task.scheduledTime,
             recurrenceRule: task.recurrenceRule,
           ),
@@ -653,7 +650,8 @@ class MarkerActions {
         nextPosition++;
         didMigrate = true;
 
-        // Place event markers on scheduled days.
+        final markerSym =
+            task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
         if (days.isNotEmpty) {
           final targetColumns =
               await columnRepo.getByBoard(targetBoardId);
@@ -666,7 +664,7 @@ class MarkerActions {
                   taskId: newTaskId,
                   columnId: targetCol.id,
                   boardId: targetBoardId,
-                  symbol: MarkerSymbol.event,
+                  symbol: markerSym,
                   updatedAt: now,
                 ),
               );
@@ -711,12 +709,9 @@ class MarkerActions {
     if (prevBoard == null) return;
 
     final prevTasks = await taskRepo.getByBoard(prevBoard.id);
-    final recurringEvents = prevTasks.where((t) =>
-        t.isEvent &&
-        t.recurrenceRule != null &&
-        t.recurrenceRule!.contains('FREQ='));
+    final recurringItems = prevTasks.where((t) => t.isRecurring);
 
-    if (recurringEvents.isEmpty) return;
+    if (recurringItems.isEmpty) return;
 
     final currentTasks = await taskRepo.getByBoard(boardId);
     final alreadyMigrated = currentTasks
@@ -728,7 +723,7 @@ class MarkerActions {
     final now = DateTime.now();
     var didAdd = false;
 
-    for (final task in recurringEvents) {
+    for (final task in recurringItems) {
       if (alreadyMigrated.contains(task.id)) continue;
 
       final (_, days) = parseRRule(task.recurrenceRule);
@@ -745,7 +740,7 @@ class MarkerActions {
           deadline: task.deadline,
           migratedFromBoardId: prevBoard.id,
           migratedFromTaskId: task.id,
-          isEvent: true,
+          isEvent: task.isEvent,
           scheduledTime: task.scheduledTime,
           recurrenceRule: task.recurrenceRule,
         ),
@@ -753,6 +748,8 @@ class MarkerActions {
       nextPosition++;
       didAdd = true;
 
+      final markerSym =
+          task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
       if (days.isNotEmpty) {
         final targetColumns = await columnRepo.getByBoard(boardId);
         for (final col in targetColumns) {
@@ -764,7 +761,7 @@ class MarkerActions {
                 taskId: newTaskId,
                 columnId: col.id,
                 boardId: boardId,
-                symbol: MarkerSymbol.event,
+                symbol: markerSym,
                 updatedAt: now,
               ),
             );

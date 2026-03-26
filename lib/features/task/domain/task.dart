@@ -6,6 +6,8 @@ part 'task.g.dart';
 
 @freezed
 abstract class Task with _$Task {
+  const Task._();
+
   const factory Task({
     required String id,
     required String boardId,
@@ -25,6 +27,10 @@ abstract class Task with _$Task {
     /// iCal RRULE string, e.g. "FREQ=WEEKLY;BYDAY=MO,WE,FR".
     String? recurrenceRule,
   }) = _Task;
+
+  /// Whether this task has an active recurrence schedule.
+  bool get isRecurring =>
+      recurrenceRule != null && recurrenceRule!.contains('FREQ=');
 
   factory Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);
 }

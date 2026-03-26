@@ -224,8 +224,8 @@ return $default(_that.id,_that.boardId,_that.title,_that.description,_that.state
 /// @nodoc
 @JsonSerializable()
 
-class _Task implements Task {
-  const _Task({required this.id, required this.boardId, required this.title, this.description = '', this.state = TaskState.open, this.priority = 0, required this.position, required this.createdAt, this.completedAt, this.deadline, this.migratedFromBoardId, this.migratedFromTaskId, this.isEvent = false, this.scheduledTime, this.recurrenceRule});
+class _Task extends Task {
+  const _Task({required this.id, required this.boardId, required this.title, this.description = '', this.state = TaskState.open, this.priority = 0, required this.position, required this.createdAt, this.completedAt, this.deadline, this.migratedFromBoardId, this.migratedFromTaskId, this.isEvent = false, this.scheduledTime, this.recurrenceRule}): super._();
   factory _Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);
 
 @override final  String id;

@@ -61,8 +61,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       task: task,
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
-        if (updated.isEvent) {
-          await _syncEventMarkers(updated);
+        if (updated.isRecurring || updated.isEvent) {
+          await _syncRecurrenceMarkers(updated);
         }
       },
       onDelete: () async {
@@ -82,9 +82,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     );
   }
 
-  /// Syncs the event markers on day columns to match the task's
-  /// scheduled days (derived from its recurrence rule).
-  Future<void> _syncEventMarkers(Task task) async {
+  /// Syncs markers on day columns to match the task's scheduled
+  /// days (derived from its recurrence rule). Uses event markers
+  /// for events and dot markers for recurring tasks.
+  Future<void> _syncRecurrenceMarkers(Task task) async {
     final columnsAsync = ref.read(columnListProvider(widget.boardId));
     final columns = columnsAsync.valueOrNull;
     if (columns == null) return;
@@ -92,6 +93,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final (_, days) = parseRRule(task.recurrenceRule);
     final markerActions = ref.read(markerActionsProvider);
     final markerRepo = ref.read(markerRepositoryProvider);
+    final sym =
+        task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
 
     for (final col in columns) {
       if (col.type != ColumnType.date) continue;
@@ -104,11 +107,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           boardId: widget.boardId,
           taskId: task.id,
           columnId: col.id,
-          symbol: MarkerSymbol.event,
+          symbol: sym,
         );
       } else if (!shouldHaveMarker &&
           existing != null &&
-          existing.symbol == MarkerSymbol.event) {
+          (existing.symbol == MarkerSymbol.event ||
+              existing.symbol == MarkerSymbol.dot)) {
         await markerActions.setMarker(
           boardId: widget.boardId,
           taskId: task.id,
@@ -601,9 +605,7 @@ class BoardRow extends StatelessWidget {
                     pastDayPositions.contains(col.position),
                 isLocked: task.state == TaskState.wontDo ||
                     task.state == TaskState.cancelled,
-                isRecurring: task.isEvent &&
-                    task.recurrenceRule != null &&
-                    task.recurrenceRule!.contains('FREQ='),
+                isRecurring: task.isRecurring,
                 onEventTap: task.isEvent ? onTap : null,
               ),
             ),

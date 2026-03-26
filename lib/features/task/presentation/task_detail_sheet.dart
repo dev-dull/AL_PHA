@@ -67,6 +67,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late TimeOfDay? _scheduledTime;
   late RecurrenceFrequency _recurrence;
   late Set<int> _scheduledDays;
+  late bool _showRecurrence;
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -82,6 +83,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
     final (freq, days) = parseRRule(widget.task.recurrenceRule);
     _recurrence = freq;
+    _showRecurrence = widget.task.isRecurring;
     _scheduledDays = freq == RecurrenceFrequency.daily
         ? {0, 1, 2, 3, 4, 5, 6}
         : days;
@@ -122,12 +124,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       isEvent: _isEvent,
       scheduledTime: _isEvent ? _formatTime(_scheduledTime) : null,
       recurrenceRule:
-          _isEvent ? buildRRule(_recurrence, _scheduledDays) : null,
+          (_isEvent || _recurrence != RecurrenceFrequency.none)
+              ? buildRRule(_recurrence, _scheduledDays)
+              : null,
     );
 
-    // If the original task is a recurring event, ask whether to
+    // If the original task is recurring, ask whether to
     // update this single occurrence or the entire series.
-    if (widget.task.isEvent && widget.task.recurrenceRule != null) {
+    if (widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Edit');
       if (choice == null) return; // cancelled
       if (choice == _SeriesChoice.thisEvent) {
@@ -148,8 +152,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Future<void> _confirmDelete() async {
-    // For recurring events, ask about series scope first.
-    if (widget.task.isEvent && widget.task.recurrenceRule != null) {
+    // For recurring items, ask about series scope first.
+    if (widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Delete');
       if (choice == null) return;
       if (choice == _SeriesChoice.thisEvent) {
@@ -195,13 +199,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Future<_SeriesChoice?> _showSeriesPrompt(String action) {
+    final kind = widget.task.isEvent ? 'Event' : 'Task';
     return showDialog<_SeriesChoice>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('$action Recurring Event'),
-        content: const Text(
-          'This event is part of a series. Do you want to '
-          'update this event only, or all events in the series?',
+        title: Text('$action Recurring $kind'),
+        content: Text(
+          'This $kind is part of a series. Do you want to '
+          'update this one only, or the entire series?',
         ),
         actions: [
           TextButton(
@@ -211,7 +216,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           OutlinedButton(
             onPressed: () =>
                 Navigator.of(ctx).pop(_SeriesChoice.thisEvent),
-            child: const Text('This Event'),
+            child: const Text('This One'),
           ),
           FilledButton(
             onPressed: () =>
@@ -234,6 +239,127 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     if (picked != null) {
       setState(() => _deadline = picked);
     }
+  }
+
+  Widget _buildDayPicker(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Scheduled Days', style: theme.textTheme.labelMedium),
+        const SizedBox(height: 8),
+        IgnorePointer(
+          ignoring: _recurrence == RecurrenceFrequency.daily,
+          child: Opacity(
+            opacity:
+                _recurrence == RecurrenceFrequency.daily ? 0.5 : 1.0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(7, (i) {
+                final selected = _scheduledDays.contains(i);
+                return GestureDetector(
+                  onTap: () => setState(() {
+                    if (selected) {
+                      _scheduledDays.remove(i);
+                    } else {
+                      _scheduledDays.add(i);
+                    }
+                  }),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.surfaceContainerHighest,
+                    child: Text(
+                      dayLabels[i].substring(0, 1),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: selected
+                            ? theme.colorScheme.onPrimary
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimePicker(ThemeData theme) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showTimePicker(
+          context: context,
+          initialTime:
+              _scheduledTime ?? const TimeOfDay(hour: 9, minute: 0),
+        );
+        if (picked != null) {
+          setState(() => _scheduledTime = picked);
+        }
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: 'Scheduled Time',
+          border: const OutlineInputBorder(),
+          suffixIcon: _scheduledTime != null
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () =>
+                      setState(() => _scheduledTime = null),
+                )
+              : const Icon(Icons.access_time),
+        ),
+        child: Text(
+          _scheduledTime != null
+              ? _scheduledTime!.format(context)
+              : 'No time set',
+          style: _scheduledTime == null
+              ? theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface
+                      .withValues(alpha: 0.5),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFrequencyDropdown() {
+    return InputDecorator(
+      decoration: const InputDecoration(
+        labelText: 'Repeat',
+        border: OutlineInputBorder(),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<RecurrenceFrequency>(
+          value: _recurrence,
+          isDense: true,
+          isExpanded: true,
+          items: RecurrenceFrequency.values
+              .map((f) => DropdownMenuItem(
+                    value: f,
+                    child: Text(f.displayName),
+                  ))
+              .toList(),
+          onChanged: (v) {
+            if (v != null) {
+              setState(() {
+                _recurrence = v;
+                if (v == RecurrenceFrequency.daily) {
+                  _scheduledDays
+                    ..clear()
+                    ..addAll({0, 1, 2, 3, 4, 5, 6});
+                }
+              });
+            }
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -367,126 +493,57 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
             // Event-specific fields
             if (_isEvent) ...[
               const SizedBox(height: 4),
+              _buildDayPicker(theme),
+              const SizedBox(height: 12),
+              _buildTimePicker(theme),
+              const SizedBox(height: 12),
+              _buildFrequencyDropdown(),
+            ],
 
-              // Day picker
-              Text(
-                'Scheduled Days',
-                style: theme.textTheme.labelMedium,
-              ),
-              const SizedBox(height: 8),
-              IgnorePointer(
-                ignoring: _recurrence == RecurrenceFrequency.daily,
-                child: Opacity(
-                  opacity: _recurrence == RecurrenceFrequency.daily
-                      ? 0.5
-                      : 1.0,
+            // Recurring task toggle (non-event only)
+            if (!_isEvent) ...[
+              InkWell(
+                onTap: () => setState(
+                    () => _showRecurrence = !_showRecurrence),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(7, (i) {
-                      final selected = _scheduledDays.contains(i);
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          if (selected) {
-                            _scheduledDays.remove(i);
-                          } else {
-                            _scheduledDays.add(i);
-                          }
-                        }),
-                        child: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: selected
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.surfaceContainerHighest,
+                    children: [
+                      Icon(
+                        _showRecurrence
+                            ? Icons.expand_more
+                            : Icons.chevron_right,
+                        size: 20,
+                        color: theme.colorScheme.onSurface
+                            .withValues(alpha: 0.6),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Repeat',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.7),
+                        ),
+                      ),
+                      if (_recurrence != RecurrenceFrequency.none)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8),
                           child: Text(
-                            dayLabels[i].substring(0, 1),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: selected
-                                  ? theme.colorScheme.onPrimary
-                                  : theme.colorScheme.onSurface,
+                            _recurrence.displayName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.primary,
                             ),
                           ),
                         ),
-                      );
-                    }),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // Time picker
-              InkWell(
-                onTap: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime:
-                        _scheduledTime ?? const TimeOfDay(hour: 9, minute: 0),
-                  );
-                  if (picked != null) {
-                    setState(() => _scheduledTime = picked);
-                  }
-                },
-                child: InputDecorator(
-                  decoration: InputDecoration(
-                    labelText: 'Scheduled Time',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: _scheduledTime != null
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () =>
-                                setState(() => _scheduledTime = null),
-                          )
-                        : const Icon(Icons.access_time),
-                  ),
-                  child: Text(
-                    _scheduledTime != null
-                        ? _scheduledTime!.format(context)
-                        : 'No time set',
-                    style: _scheduledTime == null
-                        ? theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.5,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Recurrence picker
-              InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Repeat',
-                  border: OutlineInputBorder(),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<RecurrenceFrequency>(
-                    value: _recurrence,
-                    isDense: true,
-                    isExpanded: true,
-                    items: RecurrenceFrequency.values
-                        .map((f) => DropdownMenuItem(
-                              value: f,
-                              child: Text(f.displayName),
-                            ))
-                        .toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          _recurrence = v;
-                          if (v == RecurrenceFrequency.daily) {
-                            _scheduledDays
-                              ..clear()
-                              ..addAll({0, 1, 2, 3, 4, 5, 6});
-                          }
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ),
+              if (_showRecurrence) ...[
+                _buildDayPicker(theme),
+                const SizedBox(height: 12),
+                _buildFrequencyDropdown(),
+              ],
             ],
 
             const SizedBox(height: 12),
