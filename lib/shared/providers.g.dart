@@ -109,5 +109,39 @@ final taskNoteRepositoryProvider = Provider<TaskNoteRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TaskNoteRepositoryRef = ProviderRef<TaskNoteRepository>;
+String _$tagRepositoryHash() => r'fd18a45347006fadd060177f2705f37ac7065cfd';
+
+/// See also [tagRepository].
+@ProviderFor(tagRepository)
+final tagRepositoryProvider = Provider<TagRepository>.internal(
+  tagRepository,
+  name: r'tagRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$tagRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TagRepositoryRef = ProviderRef<TagRepository>;
+String _$taskTagRepositoryHash() => r'e43ea996a51f6b5648a3d4e42851d43290111a3f';
+
+/// See also [taskTagRepository].
+@ProviderFor(taskTagRepository)
+final taskTagRepositoryProvider = Provider<TaskTagRepository>.internal(
+  taskTagRepository,
+  name: r'taskTagRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$taskTagRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef TaskTagRepositoryRef = ProviderRef<TaskTagRepository>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

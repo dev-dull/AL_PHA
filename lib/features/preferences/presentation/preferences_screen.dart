@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
+import 'package:alpha/features/tag/domain/tag.dart';
+import 'package:alpha/features/tag/domain/tag_palette.dart';
+import 'package:alpha/features/tag/providers/tag_providers.dart';
 
 class PreferencesScreen extends ConsumerWidget {
   const PreferencesScreen({super.key});
@@ -100,26 +103,9 @@ class PreferencesScreen extends ConsumerWidget {
 
           const Divider(),
 
-          // ── Categories (placeholder) ──────────────────
-          const _SectionHeader(title: 'Categories'),
-          ListTile(
-            leading: Icon(
-              Icons.category_outlined,
-              color: theme.colorScheme.onSurface
-                  .withValues(alpha: 0.4),
-            ),
-            title: Text(
-              'Color-coded task categories',
-              style: TextStyle(
-                color: theme.colorScheme.onSurface
-                    .withValues(alpha: 0.5),
-              ),
-            ),
-            trailing: const Chip(
-              label: Text('Coming soon'),
-              visualDensity: VisualDensity.compact,
-            ),
-          ),
+          // ── Tags ─────────────────────────────────────
+          const _SectionHeader(title: 'Tags'),
+          _TagManagementSection(),
         ],
       ),
     );
@@ -141,5 +127,183 @@ class _SectionHeader extends StatelessWidget {
             ),
       ),
     );
+  }
+}
+
+class _TagManagementSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final tagsAsync = ref.watch(tagListProvider);
+    final actions = ref.read(tagActionsProvider);
+
+    return tagsAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text('Error: $e'),
+      ),
+      data: (tags) => Column(
+        children: [
+          for (final tag in tags)
+            ListTile(
+              leading: CircleAvatar(
+                backgroundColor: TagPalette.colorFromValue(tag.color),
+                radius: 12,
+              ),
+              title: Text(tag.name),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline, size: 20),
+                onPressed: () => _confirmDelete(context, actions, tag),
+              ),
+              onTap: () => _showTagDialog(
+                context,
+                actions,
+                tags.length,
+                existing: tag,
+              ),
+            ),
+          if (tags.length < TagActions.maxTags)
+            ListTile(
+              leading: Icon(
+                Icons.add_circle_outline,
+                color: theme.colorScheme.primary,
+              ),
+              title: Text(
+                'Add Tag',
+                style: TextStyle(color: theme.colorScheme.primary),
+              ),
+              subtitle: Text(
+                '${tags.length}/${TagActions.maxTags}',
+                style: theme.textTheme.bodySmall,
+              ),
+              onTap: () => _showTagDialog(
+                context,
+                actions,
+                tags.length,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    TagActions actions,
+    Tag tag,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Tag'),
+        content: Text(
+          'Delete "${tag.name}"? It will be removed from all tasks.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await actions.delete(tag.id);
+  }
+
+  Future<void> _showTagDialog(
+    BuildContext context,
+    TagActions actions,
+    int currentCount, {
+    Tag? existing,
+  }) async {
+    final nameCtrl =
+        TextEditingController(text: existing?.name ?? '');
+    var selectedColor =
+        existing?.color ?? TagPalette.colors.first.value;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(existing != null ? 'Edit Tag' : 'New Tag'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Tag name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: TagPalette.colors.map((c) {
+                  final isSelected = c.value == selectedColor;
+                  return GestureDetector(
+                    onTap: () => setDialogState(
+                        () => selectedColor = c.value),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Color(c.value),
+                        shape: BoxShape.circle,
+                        border: isSelected
+                            ? Border.all(
+                                color: Theme.of(ctx)
+                                    .colorScheme
+                                    .onSurface,
+                                width: 2.5,
+                              )
+                            : null,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(existing != null ? 'Save' : 'Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      final name = nameCtrl.text.trim();
+      if (name.isEmpty) return;
+      if (existing != null) {
+        await actions.update(
+          existing.copyWith(name: name, color: selectedColor),
+        );
+      } else {
+        await actions.create(name: name, color: selectedColor);
+      }
+    }
+    nameCtrl.dispose();
   }
 }

@@ -8,6 +8,9 @@ import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
+import 'package:alpha/features/tag/domain/tag.dart';
+import 'package:alpha/features/tag/presentation/tag_badge.dart';
+import 'package:alpha/features/tag/providers/tag_providers.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
@@ -71,10 +74,23 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       }
     }
 
+    final allTags =
+        ref.read(tagListProvider).valueOrNull ?? [];
+    final taskTags = ref
+            .read(tagsByBoardProvider(widget.boardId))
+            .valueOrNull
+            ?[task.id] ??
+        [];
+
     TaskDetailSheet.show(
       context: context,
       task: task,
       markerPositions: markerPositions,
+      availableTags: allTags,
+      currentTags: taskTags,
+      onTagsChanged: (tagIds) {
+        ref.read(tagActionsProvider).setTagsForTask(task.id, tagIds);
+      },
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
         if (updated.isRecurring || updated.isEvent) {
@@ -214,12 +230,17 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final tasksAsync = ref.watch(taskListProvider(widget.boardId));
     final columnsAsync = ref.watch(columnListProvider(widget.boardId));
     ref.watch(markersByBoardProvider(widget.boardId));
+    final tagsMap = ref
+            .watch(tagsByBoardProvider(widget.boardId))
+            .valueOrNull ??
+        {};
 
     return Stack(
       children: [
         tasksAsync.when(
           data: (tasks) => columnsAsync.when(
-            data: (columns) => _buildGrid(context, tasks, columns),
+            data: (columns) =>
+                _buildGrid(context, tasks, columns, tagsMap),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, st) => Center(child: Text('Error: $e')),
           ),
@@ -365,6 +386,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     BuildContext context,
     List<Task> tasks,
     List<BoardColumn> columns,
+    Map<String, List<Tag>> tagsMap,
   ) {
     if (tasks.isEmpty && columns.isEmpty) {
       return _buildEmptyState(context);
@@ -419,6 +441,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                     columns,
                     markerColumnsWidth,
                     _computePastDayPositions(),
+                    tagsMap,
                   ),
           ),
         ],
@@ -431,6 +454,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     List<BoardColumn> columns,
     double markerColumnsWidth,
     Set<int> pastDayPositions,
+    Map<String, List<Tag>> tagsMap,
   ) {
     final canReorder = _sortMode == TaskSortMode.manual;
 
@@ -457,6 +481,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           index: i,
           canReorder: canReorder,
           pastDayPositions: pastDayPositions,
+          tags: tagsMap[task.id] ?? const [],
           onTap: () => _openTaskDetailSheet(task),
         );
       },
@@ -594,6 +619,7 @@ class BoardRow extends StatelessWidget {
   final int index;
   final bool canReorder;
   final Set<int> pastDayPositions;
+  final List<Tag> tags;
   final VoidCallback onTap;
 
   const BoardRow({
@@ -604,6 +630,7 @@ class BoardRow extends StatelessWidget {
     required this.index,
     this.canReorder = true,
     this.pastDayPositions = const {},
+    this.tags = const [],
     required this.onTap,
   });
 
@@ -651,6 +678,12 @@ class BoardRow extends StatelessWidget {
               )
             else
               const SizedBox(width: 8),
+            if (tags.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: TagBadge(tags: tags),
+              ),
+            ],
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(left: 4, right: 8),

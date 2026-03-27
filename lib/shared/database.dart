@@ -87,14 +87,36 @@ class TaskNotes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Boards, BoardColumns, Tasks, Markers, TaskNotes])
+@DataClassName('TagRow')
+class Tags extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withLength(min: 1, max: 30)();
+  IntColumn get color => integer()();
+  IntColumn get position => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('TaskTagRow')
+class TaskTags extends Table {
+  TextColumn get taskId => text().references(Tasks, #id)();
+  TextColumn get tagId => text().references(Tags, #id)();
+  IntColumn get slot => integer()();
+
+  @override
+  Set<Column> get primaryKey => {taskId, tagId};
+}
+
+@DriftDatabase(tables: [Boards, BoardColumns, Tasks, Markers, TaskNotes, Tags, TaskTags])
 class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase() : super(_openConnection());
 
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -141,6 +163,10 @@ class AlphaDatabase extends _$AlphaDatabase {
       }
       if (from < 6) {
         await migrator.createTable(taskNotes);
+      }
+      if (from < 7) {
+        await migrator.createTable(tags);
+        await migrator.createTable(taskTags);
       }
     },
   );

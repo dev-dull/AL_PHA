@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/recurrence.dart';
+import 'package:alpha/features/tag/domain/tag.dart';
+import 'package:alpha/features/tag/domain/tag_palette.dart';
 import 'package:alpha/features/task/presentation/task_notes_section.dart';
 
 enum _SeriesChoice { thisEvent, allEvents }
@@ -33,6 +35,15 @@ class TaskDetailSheet extends StatefulWidget {
   /// Called when "All" is chosen for a series delete.
   final VoidCallback? onDeleteAll;
 
+  /// Tags currently assigned to this task.
+  final List<Tag> currentTags;
+
+  /// All available tags the user has created.
+  final List<Tag> availableTags;
+
+  /// Called when the user changes tag assignments.
+  final ValueChanged<List<String>>? onTagsChanged;
+
   const TaskDetailSheet({
     super.key,
     required this.task,
@@ -43,6 +54,9 @@ class TaskDetailSheet extends StatefulWidget {
     this.markerPositions = const {},
     this.onSaveAll,
     this.onDeleteAll,
+    this.currentTags = const [],
+    this.availableTags = const [],
+    this.onTagsChanged,
   });
 
   /// Show the sheet and return the result.
@@ -56,6 +70,9 @@ class TaskDetailSheet extends StatefulWidget {
     Set<int> markerPositions = const {},
     ValueChanged<Task>? onSaveAll,
     VoidCallback? onDeleteAll,
+    List<Tag> currentTags = const [],
+    List<Tag> availableTags = const [],
+    ValueChanged<List<String>>? onTagsChanged,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -70,6 +87,9 @@ class TaskDetailSheet extends StatefulWidget {
         markerPositions: markerPositions,
         onSaveAll: onSaveAll,
         onDeleteAll: onDeleteAll,
+        currentTags: currentTags,
+        availableTags: availableTags,
+        onTagsChanged: onTagsChanged,
       ),
     );
   }
@@ -87,6 +107,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late TimeOfDay? _scheduledTime;
   late RecurrenceFrequency _recurrence;
   late Set<int> _scheduledDays;
+  late List<String> _selectedTagIds;
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -107,6 +128,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         : days.isNotEmpty
             ? days
             : Set<int>.from(widget.markerPositions);
+    _selectedTagIds = widget.currentTags.map((t) => t.id).toList();
   }
 
   static TimeOfDay? _parseTime(String? time) {
@@ -172,6 +194,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     } else {
       widget.onSave(updated);
     }
+
+    // Save tag assignments.
+    widget.onTagsChanged?.call(_selectedTagIds);
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -505,6 +530,40 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               ),
             ),
             const SizedBox(height: 12),
+
+            // Tags
+            if (widget.availableTags.isNotEmpty) ...[
+              Text('Tags', style: theme.textTheme.labelMedium),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: widget.availableTags.map((tag) {
+                  final selected = _selectedTagIds.contains(tag.id);
+                  final atMax = _selectedTagIds.length >= 4;
+                  return FilterChip(
+                    label: Text(tag.name),
+                    selected: selected,
+                    showCheckmark: false,
+                    avatar: CircleAvatar(
+                      backgroundColor:
+                          TagPalette.colorFromValue(tag.color),
+                      radius: 6,
+                    ),
+                    onSelected: (!selected && atMax)
+                        ? null
+                        : (v) => setState(() {
+                              if (v) {
+                                _selectedTagIds.add(tag.id);
+                              } else {
+                                _selectedTagIds.remove(tag.id);
+                              }
+                            }),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+            ],
 
             // Event toggle
             SwitchListTile(
