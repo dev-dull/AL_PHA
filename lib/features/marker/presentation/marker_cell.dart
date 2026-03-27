@@ -71,7 +71,7 @@ class MarkerCell extends ConsumerWidget {
       child = Icon(
         isRecurring ? Icons.event_repeat : Icons.event,
         size: 18,
-        color: iconColor.withValues(alpha: symbol != null ? 1.0 : 0.4),
+        color: iconColor,
       );
     } else if (isMigration && !isEvent && isRecurring) {
       final textColor = color ??
@@ -84,8 +84,7 @@ class MarkerCell extends ConsumerWidget {
           fontFamily: 'PatrickHand',
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: textColor.withValues(
-              alpha: symbol != null ? 1.0 : 0.4),
+          color: textColor,
           decoration: TextDecoration.none,
         ),
       );
@@ -153,7 +152,10 @@ class MarkerCell extends ConsumerWidget {
     if (isLocked) return;
     final isMigration = columnType != ColumnType.date;
 
-    if (isMigration) {
+    if (isMigration && isRecurring) {
+      // Recurring items auto-migrate; no manual toggle.
+      return;
+    } else if (isMigration) {
       // Migration column: simple toggle > ↔ empty.
       ref.read(markerActionsProvider).cycleMarker(
         boardId: boardId,

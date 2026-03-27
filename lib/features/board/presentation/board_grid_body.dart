@@ -83,14 +83,26 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         {};
     final taskTags = taskTagsMap[task.id] ?? [];
 
+    var seriesSaved = false;
+
     TaskDetailSheet.show(
       context: context,
       task: task,
       markerPositions: markerPositions,
       availableTags: allTags,
       currentTags: taskTags,
-      onTagsChanged: (tagIds) {
-        ref.read(tagActionsProvider).setTagsForTask(task.id, tagIds);
+      onTagsChanged: (tagIds) async {
+        if (seriesSaved) {
+          // Propagate tags to all instances in the series.
+          await ref.read(taskActionsProvider).updateSeries(
+                task,
+                tagIds: tagIds,
+              );
+        } else {
+          await ref
+              .read(tagActionsProvider)
+              .setTagsForTask(task.id, tagIds);
+        }
       },
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
@@ -99,6 +111,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         }
       },
       onSaveAll: (updated) async {
+        seriesSaved = true;
         await ref.read(taskActionsProvider).updateSeries(updated);
         if (updated.isRecurring || updated.isEvent) {
           await _syncRecurrenceMarkers(updated);
@@ -113,6 +126,27 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       onWontDo: task.state.isTerminal
           ? null
           : () async {
+              // If migrated (> is set), undo the migration first.
+              final cols = columns;
+              final migCol = cols
+                  .where((c) => c.type != ColumnType.date)
+                  .firstOrNull;
+              if (migCol != null) {
+                final markerRepo =
+                    ref.read(markerRepositoryProvider);
+                final migMarker =
+                    await markerRepo.get(task.id, migCol.id);
+                if (migMarker != null) {
+                  // Remove the > marker and undo the migration.
+                  await ref
+                      .read(markerActionsProvider)
+                      .cycleMarker(
+                        boardId: widget.boardId,
+                        taskId: task.id,
+                        columnId: migCol.id,
+                      );
+                }
+              }
               await ref.read(taskActionsProvider).wontDo(task.id);
             },
       onReopen: (task.state == TaskState.wontDo ||

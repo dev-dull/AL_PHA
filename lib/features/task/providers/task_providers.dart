@@ -68,8 +68,13 @@ class TaskActions {
   /// Updates all instances of a recurring series with the same
   /// title, description, priority, recurrence rule, etc.
   /// Preserves each instance's board, position, and state.
-  Future<void> updateSeries(Task updated) async {
+  /// If [tagIds] is provided, applies the same tags to all.
+  Future<void> updateSeries(
+    Task updated, {
+    List<String>? tagIds,
+  }) async {
     final repo = _ref.read(taskRepositoryProvider);
+    final tagRepo = _ref.read(taskTagRepositoryProvider);
     final instances = await repo.findSeriesInstances(updated);
     for (final instance in instances) {
       await repo.update(instance.copyWith(
@@ -81,6 +86,9 @@ class TaskActions {
         scheduledTime: updated.scheduledTime,
         recurrenceRule: updated.recurrenceRule,
       ));
+      if (tagIds != null) {
+        await tagRepo.setTagsForTask(instance.id, tagIds);
+      }
     }
   }
 

@@ -184,18 +184,21 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           ),
         );
       } else {
-        // Update all instances in the series.
+        // Update all instances in the series (including tags).
         if (widget.onSaveAll != null) {
           widget.onSaveAll!(updated);
         } else {
           widget.onSave(updated);
         }
+        widget.onTagsChanged?.call(_selectedTagIds);
+        if (mounted) Navigator.of(context).pop();
+        return;
       }
     } else {
       widget.onSave(updated);
     }
 
-    // Save tag assignments.
+    // Save tag assignments for this task only.
     widget.onTagsChanged?.call(_selectedTagIds);
 
     if (mounted) Navigator.of(context).pop();
