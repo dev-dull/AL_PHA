@@ -160,17 +160,23 @@ class MarkerCell extends ConsumerWidget {
         taskId: taskId,
         columnId: columnId,
       );
-    } else if ((isEvent || isRecurring) && onEventTap != null) {
-      // Recurring item on a day column — open the edit sheet.
+    } else if (isEvent && onEventTap != null) {
+      // Event on a day column — always open the edit sheet.
       onEventTap!();
     } else if (marker == null) {
-      // Empty day cell — set dot for tasks, circle for events.
-      ref.read(markerActionsProvider).setMarker(
-        boardId: boardId,
-        taskId: taskId,
-        columnId: columnId,
-        symbol: isEvent ? MarkerSymbol.event : MarkerSymbol.dot,
-      );
+      if (isRecurring && onEventTap != null) {
+        // Empty cell on a recurring task — open the edit sheet
+        // so the user can adjust the schedule.
+        onEventTap!();
+      } else {
+        // Empty day cell — set dot for tasks, circle for events.
+        ref.read(markerActionsProvider).setMarker(
+          boardId: boardId,
+          taskId: taskId,
+          columnId: columnId,
+          symbol: isEvent ? MarkerSymbol.event : MarkerSymbol.dot,
+        );
+      }
     } else {
       // Has a symbol — show radial menu.
       _showRadialMenu(context, ref, marker);
