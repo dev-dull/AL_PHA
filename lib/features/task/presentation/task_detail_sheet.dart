@@ -27,6 +27,12 @@ class TaskDetailSheet extends StatefulWidget {
   /// no recurrence rule exists yet.
   final Set<int> markerPositions;
 
+  /// Called when "All" is chosen for a series edit.
+  final ValueChanged<Task>? onSaveAll;
+
+  /// Called when "All" is chosen for a series delete.
+  final VoidCallback? onDeleteAll;
+
   const TaskDetailSheet({
     super.key,
     required this.task,
@@ -35,6 +41,8 @@ class TaskDetailSheet extends StatefulWidget {
     this.onWontDo,
     this.onReopen,
     this.markerPositions = const {},
+    this.onSaveAll,
+    this.onDeleteAll,
   });
 
   /// Show the sheet and return the result.
@@ -46,6 +54,8 @@ class TaskDetailSheet extends StatefulWidget {
     VoidCallback? onWontDo,
     VoidCallback? onReopen,
     Set<int> markerPositions = const {},
+    ValueChanged<Task>? onSaveAll,
+    VoidCallback? onDeleteAll,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -58,6 +68,8 @@ class TaskDetailSheet extends StatefulWidget {
         onWontDo: onWontDo,
         onReopen: onReopen,
         markerPositions: markerPositions,
+        onSaveAll: onSaveAll,
+        onDeleteAll: onDeleteAll,
       ),
     );
   }
@@ -150,7 +162,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           ),
         );
       } else {
-        widget.onSave(updated);
+        // Update all instances in the series.
+        if (widget.onSaveAll != null) {
+          widget.onSaveAll!(updated);
+        } else {
+          widget.onSave(updated);
+        }
       }
     } else {
       widget.onSave(updated);
@@ -171,8 +188,15 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         widget.onSave(
           widget.task.copyWith(recurrenceRule: buildByDayOnly(days)),
         );
+        // Continue to delete just this instance below.
+      } else {
+        // Delete all instances in the series.
+        if (widget.onDeleteAll != null) {
+          widget.onDeleteAll!();
+          if (mounted) Navigator.of(context).pop();
+          return;
+        }
       }
-      // Both choices ultimately delete from the current board.
     }
 
     if (!mounted) return;

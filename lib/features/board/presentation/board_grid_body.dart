@@ -81,8 +81,17 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           await _syncRecurrenceMarkers(updated);
         }
       },
+      onSaveAll: (updated) async {
+        await ref.read(taskActionsProvider).updateSeries(updated);
+        if (updated.isRecurring || updated.isEvent) {
+          await _syncRecurrenceMarkers(updated);
+        }
+      },
       onDelete: () async {
         await ref.read(taskActionsProvider).delete(task.id);
+      },
+      onDeleteAll: () async {
+        await ref.read(taskActionsProvider).deleteSeries(task);
       },
       onWontDo: task.state.isTerminal
           ? null
