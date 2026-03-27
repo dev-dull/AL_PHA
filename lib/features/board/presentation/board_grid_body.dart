@@ -74,13 +74,14 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       }
     }
 
+    // Use watch data (already loaded) rather than read (may be loading).
     final allTags =
         ref.read(tagListProvider).valueOrNull ?? [];
-    final taskTags = ref
+    final taskTagsMap = ref
             .read(tagsByBoardProvider(widget.boardId))
-            .valueOrNull
-            ?[task.id] ??
-        [];
+            .valueOrNull ??
+        {};
+    final taskTags = taskTagsMap[task.id] ?? [];
 
     TaskDetailSheet.show(
       context: context,
@@ -230,6 +231,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final tasksAsync = ref.watch(taskListProvider(widget.boardId));
     final columnsAsync = ref.watch(columnListProvider(widget.boardId));
     ref.watch(markersByBoardProvider(widget.boardId));
+    ref.watch(tagListProvider); // keep subscribed so data is ready
     final tagsMap = ref
             .watch(tagsByBoardProvider(widget.boardId))
             .valueOrNull ??
