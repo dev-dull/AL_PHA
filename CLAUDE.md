@@ -17,7 +17,7 @@ All 8 redesign phases are complete, plus additional post-MVP features:
 - **Phase 2:** Fixed weekly columns (M T W T F S S >), removed templates and column management
 - **Phase 3:** Grid layout flip — day columns on left, task names on right
 - **Phase 4:** Auto-fill logic — < for done early, > for missed days
-- **Phase 5:** Task sorting (manual, priority, deadline, date entered, alphabetical)
+- **Phase 5:** Task sorting (manual, A-Z, next scheduled, due date, priority, date entered)
 - **Phase 6:** Bullet journal theme (Patrick Hand font, cream paper palette, ink-like marker colors)
 - **Phase 7:** Migration simplification (auto-migration on week change, per-task dot schedule carry-over)
 - **Phase 8:** Monthly and yearly overview screens (calendar heatmaps, tap day → jump to weekly view)
@@ -26,24 +26,35 @@ The app includes:
 - Flutter project scaffold (feature-first, Riverpod, GoRouter, Freezed, Drift)
 - Auto-created weekly boards with chevron navigation between weeks
 - Monthly overview (calendar heatmap showing task completion per day, events excluded from color coding)
-- Yearly overview (12 mini-month grids with red→green completion gradient, events excluded)
+- Yearly overview (12 mini-month grids with day numbers, red→green completion gradient, events excluded)
 - Tap any day in monthly/yearly views to jump to that week's weekly view
 - Board grid/matrix view with day columns on left, task names on right
-- Radial/circular marker menu (tap empty → dot, tap existing → radial picker)
+- Hand-drawn markers: dot (CustomPaint filled circle), checkmark (painted stroke), event (open circle), text symbols (/, >, <) in Patrick Hand font
+- Radial marker menu with only manual symbols (dot, slash, done, clear); dot hidden on past days
 - Auto-fill markers: < (done early) and > (missed days), with per-task migration
-- Migration column as simple toggle (empty ↔ >) — manually setting > pushes task to next period; completed tasks can also be migrated, carrying dots for all marked days
-- Add/edit/delete tasks, drag-to-reorder, swipe-to-complete/cancel
+- Migration column as simple toggle (empty ↔ >) — completed tasks can also be migrated
+- Recurring tasks show » in migration column; recurring events show calendar icons
+- Won't Do state — tasks can be marked "Won't Do" from the editor (terminal state, strikethrough, locked markers, blocked from migration); can be reopened
+- Add/edit/delete tasks, drag-to-reorder
 - Full event system: dedicated event editor, day-of-week picker, scheduled time, iCal import/export
-- Recurring events with iCal RRULE support (daily, weekly with custom day selection)
-- Calendar icons on event marker cells in the board grid
+- Recurring events AND recurring tasks with iCal RRULE support (daily, weekly with custom day selection)
+- Recurring items auto-populate on new week boards with correct marker type (dots for tasks, circles for events)
+- Series edit/delete: "this one or all" prompt propagates changes across all instances on all boards
+- Task notes: timestamped freeform notes per task (multi-line, reverse chronological)
+- Color-coded tags: up to 12 user-defined tags with curated palette, max 4 per task, displayed as 2x2 colored badge in board rows
+- Tag management in Settings; tag picker (FilterChips) in task detail sheet
+- Preferences screen: font (handwritten/system), appearance (light/dark/system), first day of week (Monday/Sunday), tag management
+- First-day-of-week affects calendar overviews and new boards; existing boards keep their column layout but display reorders columns to match preference
+- JSON data export from overflow menu
+- First-run "How It Works" legend dialog (also accessible from overflow menu)
 - Bullet journal theme with handwritten font and ink-on-paper aesthetics
 - Local persistence with Drift (SQLite)
 - Dark mode with theme-aware marker colors
 - DST-safe week arithmetic (calendar date math instead of Duration-based millisecond offsets)
 - Basic CI pipeline (lint, test, build verification)
-- 87 tests (unit + widget)
+- 96 tests (unit + widget), zero analyzer issues
 
-**Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding, recurring tasks (non-event), task notes, color-coded task categories.
+**Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding.
 
 ## Architecture
 
@@ -61,8 +72,9 @@ The app includes:
 - Immutable models in `lib/features/<feature>/domain/`
 - JSON serialization for DB and future API compatibility
 
-### Local DB: Drift (SQLite) — Schema v5
+### Local DB: Drift (SQLite) — Schema v7
 - Isar was planned but has incompatible dependencies with Freezed v3 (source_gen conflict)
+- Tables: Boards, BoardColumns, Tasks, Markers, TaskNotes, Tags, TaskTags
 - Tables defined in `lib/shared/database.dart` with `@DataClassName('...Row')` to avoid name collisions
 - Drift data classes use `*Row` suffix (BoardRow, TaskRow, etc.), domain models are Freezed
 - Repository classes in `lib/features/<feature>/data/` convert between Row ↔ domain
@@ -114,15 +126,16 @@ lib/
 │   └── widgets/
 ├── features/
 │   ├── board/
-│   │   ├── data/           # Drift repositories
+│   │   ├── data/           # Drift repositories, data export
 │   │   ├── domain/         # Freezed models, enums
 │   │   ├── presentation/   # Screens, widgets
 │   │   └── providers/      # Riverpod providers
 │   ├── task/
 │   ├── marker/
 │   ├── column/
-│   ├── migration/
-│   └── views/              # Future view stubs (if any)
+│   ├── tag/                # Color-coded tags
+│   ├── preferences/        # Settings screen + persistence
+│   └── migration/
 ├── shared/                 # Cross-feature utilities (week_utils, period_utils, DB, providers)
 test/
 ├── models/
@@ -149,11 +162,11 @@ test/
 ### Testing
 - Test naming: `[unit] [condition] [expected behavior]`
 - Fixtures in `test/fixtures/`
-- Coverage target: 80% (MVP phase) — currently 87 tests (unit + widget)
+- Coverage target: 80% (MVP phase) — currently 96 tests (unit + widget)
 
 ### GitHub Issues
 - Issues prefixed with `ALP-` in titles where applicable
-- Labels: `mvp`, `frontend`, `backend`, `devops`, `design`, `bug`, `enhancement`
+- Labels: `mvp`, `frontend`, `backend`, `devops`, `design`, `bug`, `enhancement`, `post-mvp`, `infra`
 - Sub-agents file issues to exchange cross-cutting information
 
 ## AWS
@@ -167,6 +180,8 @@ test/
 - `docs/plan-aws-backend.md` — Backend architecture plan
 - `docs/plan-testing-strategy.md` — Testing strategy
 - `docs/plan-cicd-release.md` — CI/CD and release plan
+- `docs/android-device-testing.md` — Pixel 8 Pro USB/wireless testing
+- `docs/app-store-testing.md` — Play Store / TestFlight distribution
 - `docs/roles/` — Role-based implementation guides
 - `docs/vm-spec.md` — Agent runner VM specification
 
