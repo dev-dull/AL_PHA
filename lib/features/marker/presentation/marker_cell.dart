@@ -160,8 +160,8 @@ class MarkerCell extends ConsumerWidget {
         taskId: taskId,
         columnId: columnId,
       );
-    } else if (isEvent && onEventTap != null) {
-      // Event on a day column — open the edit sheet.
+    } else if ((isEvent || isRecurring) && onEventTap != null) {
+      // Recurring item on a day column — open the edit sheet.
       onEventTap!();
     } else if (marker == null) {
       // Empty day cell — set dot for tasks, circle for events.

@@ -622,7 +622,9 @@ class BoardRow extends StatelessWidget {
                 isLocked: task.state == TaskState.wontDo ||
                     task.state == TaskState.cancelled,
                 isRecurring: task.isRecurring,
-                onEventTap: task.isEvent ? onTap : null,
+                onEventTap: (task.isEvent || task.isRecurring)
+                    ? onTap
+                    : null,
               ),
             ),
             VerticalDivider(width: 1, color: theme.dividerColor),
