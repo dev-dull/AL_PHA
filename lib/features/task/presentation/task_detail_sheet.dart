@@ -5,7 +5,7 @@ import 'package:alpha/features/tag/domain/tag.dart';
 import 'package:alpha/features/tag/domain/tag_palette.dart';
 import 'package:alpha/features/task/presentation/task_notes_section.dart';
 
-enum _SeriesChoice { thisEvent, allEvents }
+enum _SeriesChoice { thisOne, all }
 
 /// Bottom sheet for editing task details: title, description,
 /// priority, deadline, event settings, and delete.
@@ -176,7 +176,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     if (widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Edit');
       if (choice == null) return; // cancelled
-      if (choice == _SeriesChoice.thisEvent) {
+      if (choice == _SeriesChoice.thisOne) {
         // Remove frequency but keep the scheduled days.
         widget.onSave(
           updated.copyWith(
@@ -209,7 +209,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     if (widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Delete');
       if (choice == null) return;
-      if (choice == _SeriesChoice.thisEvent) {
+      if (choice == _SeriesChoice.thisOne) {
         // Remove frequency so migration won't recreate it, but
         // keep days for display consistency.
         final (_, days) = parseRRule(widget.task.recurrenceRule);
@@ -259,13 +259,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Future<_SeriesChoice?> _showSeriesPrompt(String action) {
-    final kind = widget.task.isEvent ? 'Event' : 'Task';
     return showDialog<_SeriesChoice>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('$action Recurring $kind'),
-        content: Text(
-          'This $kind is part of a series. Do you want to '
+        title: Text('$action Series'),
+        content: const Text(
+          'This is part of a recurring series. Do you want to '
           'update this one only, or the entire series?',
         ),
         actions: [
@@ -275,12 +274,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           ),
           OutlinedButton(
             onPressed: () =>
-                Navigator.of(ctx).pop(_SeriesChoice.thisEvent),
+                Navigator.of(ctx).pop(_SeriesChoice.thisOne),
             child: const Text('This One'),
           ),
           FilledButton(
             onPressed: () =>
-                Navigator.of(ctx).pop(_SeriesChoice.allEvents),
+                Navigator.of(ctx).pop(_SeriesChoice.all),
             child: const Text('All Events'),
           ),
         ],
