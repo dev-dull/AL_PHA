@@ -56,9 +56,25 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   // ----------------------------------------------------------
 
   void _openTaskDetailSheet(Task task) {
+    // Collect which day-column positions have markers for this task.
+    final markersAsync =
+        ref.read(markersByBoardProvider(widget.boardId));
+    final allMarkers = markersAsync.valueOrNull ?? {};
+    final columnsAsync = ref.read(columnListProvider(widget.boardId));
+    final columns = columnsAsync.valueOrNull ?? [];
+    final markerPositions = <int>{};
+    for (final col in columns) {
+      if (col.type != ColumnType.date) continue;
+      final key = '${task.id}_${col.id}';
+      if (allMarkers.containsKey(key)) {
+        markerPositions.add(col.position);
+      }
+    }
+
     TaskDetailSheet.show(
       context: context,
       task: task,
+      markerPositions: markerPositions,
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
         if (updated.isRecurring || updated.isEvent) {

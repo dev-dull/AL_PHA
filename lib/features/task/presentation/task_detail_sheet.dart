@@ -22,6 +22,11 @@ class TaskDetailSheet extends StatefulWidget {
   /// Called when the user reopens a won't-do or cancelled task.
   final VoidCallback? onReopen;
 
+  /// Column positions (0–6) where the task currently has markers
+  /// on the board. Used to pre-populate the day picker when
+  /// no recurrence rule exists yet.
+  final Set<int> markerPositions;
+
   const TaskDetailSheet({
     super.key,
     required this.task,
@@ -29,6 +34,7 @@ class TaskDetailSheet extends StatefulWidget {
     required this.onDelete,
     this.onWontDo,
     this.onReopen,
+    this.markerPositions = const {},
   });
 
   /// Show the sheet and return the result.
@@ -39,6 +45,7 @@ class TaskDetailSheet extends StatefulWidget {
     required VoidCallback onDelete,
     VoidCallback? onWontDo,
     VoidCallback? onReopen,
+    Set<int> markerPositions = const {},
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -50,6 +57,7 @@ class TaskDetailSheet extends StatefulWidget {
         onDelete: onDelete,
         onWontDo: onWontDo,
         onReopen: onReopen,
+        markerPositions: markerPositions,
       ),
     );
   }
@@ -84,7 +92,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     _recurrence = freq;
     _scheduledDays = freq == RecurrenceFrequency.daily
         ? {0, 1, 2, 3, 4, 5, 6}
-        : days;
+        : days.isNotEmpty
+            ? days
+            : Set<int>.from(widget.markerPositions);
   }
 
   static TimeOfDay? _parseTime(String? time) {
@@ -127,9 +137,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               : null,
     );
 
-    // If either the original or updated task is recurring,
+    // If the task was already recurring before this edit,
     // ask whether to update this occurrence or the series.
-    if (widget.task.isRecurring || updated.isRecurring) {
+    if (widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Edit');
       if (choice == null) return; // cancelled
       if (choice == _SeriesChoice.thisEvent) {
