@@ -67,7 +67,6 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late TimeOfDay? _scheduledTime;
   late RecurrenceFrequency _recurrence;
   late Set<int> _scheduledDays;
-  late bool _showRecurrence;
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -83,7 +82,6 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
     final (freq, days) = parseRRule(widget.task.recurrenceRule);
     _recurrence = freq;
-    _showRecurrence = widget.task.isRecurring;
     _scheduledDays = freq == RecurrenceFrequency.daily
         ? {0, 1, 2, 3, 4, 5, 6}
         : days;
@@ -129,9 +127,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               : null,
     );
 
-    // If the original task is recurring, ask whether to
-    // update this single occurrence or the entire series.
-    if (widget.task.isRecurring) {
+    // If either the original or updated task is recurring,
+    // ask whether to update this occurrence or the series.
+    if (widget.task.isRecurring || updated.isRecurring) {
       final choice = await _showSeriesPrompt('Edit');
       if (choice == null) return; // cancelled
       if (choice == _SeriesChoice.thisEvent) {
@@ -500,50 +498,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
               _buildFrequencyDropdown(),
             ],
 
-            // Recurring task toggle (non-event only)
+            // Recurrence fields for non-event tasks.
             if (!_isEvent) ...[
-              InkWell(
-                onTap: () => setState(
-                    () => _showRecurrence = !_showRecurrence),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _showRecurrence
-                            ? Icons.expand_more
-                            : Icons.chevron_right,
-                        size: 20,
-                        color: theme.colorScheme.onSurface
-                            .withValues(alpha: 0.6),
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Repeat',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.7),
-                        ),
-                      ),
-                      if (_recurrence != RecurrenceFrequency.none)
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: Text(
-                            _recurrence.displayName,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_showRecurrence) ...[
-                _buildDayPicker(theme),
-                const SizedBox(height: 12),
-                _buildFrequencyDropdown(),
-              ],
+              const SizedBox(height: 4),
+              _buildDayPicker(theme),
+              const SizedBox(height: 12),
+              _buildFrequencyDropdown(),
             ],
 
             const SizedBox(height: 12),
