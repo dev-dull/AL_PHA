@@ -40,6 +40,9 @@ List<ParsedEvent> parseICalString(String icsContent) {
     final summary = component.summary ?? 'Untitled Event';
     final rawDescription = component.description ?? '';
     // Strip HTML tags if the description contains them.
+    // If a second use-case for HTML rendering arises, consider
+    // a proper widget instead of stripping. See:
+    // https://github.com/dev-dull/AL_PHA/issues/34
     final description = rawDescription.contains('<')
         ? rawDescription
             .replaceAll(RegExp(r'<br\s*/?>'), '\n')
