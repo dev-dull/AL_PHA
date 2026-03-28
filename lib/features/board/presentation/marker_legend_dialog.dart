@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:alpha/app/theme.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
+import 'package:alpha/features/tag/domain/tag.dart';
+import 'package:alpha/features/tag/domain/tag_palette.dart';
+import 'package:alpha/features/tag/presentation/tag_badge.dart';
 
 /// Shows a dialog explaining the app's features and workflow.
 Future<void> showMarkerLegend(BuildContext context) {
@@ -122,6 +125,37 @@ class _MarkerLegendDialog extends StatelessWidget {
               description: 'Auto-migrates each week',
             ),
 
+            // ── Tags ──────────────────────────────────
+            const SizedBox(height: 12),
+            Text('Tags', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                TagBadge(
+                  tags: [
+                    for (var i = 0; i < 4; i++)
+                      Tag(
+                        id: '$i',
+                        name: TagPalette.colors[i].name,
+                        color: TagPalette.colors[i].value,
+                        position: i,
+                        createdAt: DateTime.now(),
+                      ),
+                  ],
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'The colored square next to a task name '
+                    'shows its tags. Each quadrant is one tag '
+                    '(up to 4). Create tags in Settings.',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+
             // ── Features ─────────────────────────────
             const SizedBox(height: 12),
             Text('Features', style: theme.textTheme.titleSmall),
@@ -135,8 +169,6 @@ class _MarkerLegendDialog extends StatelessWidget {
               'recur weekly\n'
               "\u2022 Mark tasks as \"Won't Do\" from the "
               'edit sheet\n'
-              '\u2022 Color-coded tags \u2014 create in '
-              'Settings, assign up to 4 per task\n'
               '\u2022 Sort tasks via the button in the '
               'header row\n'
               '\u2022 Tasks auto-migrate when the week ends\n'
