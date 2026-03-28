@@ -38,7 +38,20 @@ List<ParsedEvent> parseICalString(String icsContent) {
     if (component is! VEvent) continue;
 
     final summary = component.summary ?? 'Untitled Event';
-    final description = component.description ?? '';
+    final rawDescription = component.description ?? '';
+    // Strip HTML tags if the description contains them.
+    final description = rawDescription.contains('<')
+        ? rawDescription
+            .replaceAll(RegExp(r'<br\s*/?>'), '\n')
+            .replaceAll(RegExp(r'<[^>]*>'), '')
+            .replaceAll(RegExp(r'&nbsp;'), ' ')
+            .replaceAll(RegExp(r'&amp;'), '&')
+            .replaceAll(RegExp(r'&lt;'), '<')
+            .replaceAll(RegExp(r'&gt;'), '>')
+            .replaceAll(RegExp(r'&quot;'), '"')
+            .replaceAll(RegExp(r'&#39;'), "'")
+            .trim()
+        : rawDescription;
 
     // Extract time from DTSTART.
     String? scheduledTime;

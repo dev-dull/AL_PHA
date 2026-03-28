@@ -30,6 +30,7 @@ class _EventScreenState extends ConsumerState<EventScreen> {
   static const _uuid = Uuid();
 
   final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
   final _selectedDays = <int>{};
   TimeOfDay? _scheduledTime;
   RecurrenceFrequency _recurrence = RecurrenceFrequency.none;
@@ -37,6 +38,7 @@ class _EventScreenState extends ConsumerState<EventScreen> {
   @override
   void dispose() {
     _titleCtrl.dispose();
+    _descCtrl.dispose();
     super.dispose();
   }
 
@@ -65,6 +67,7 @@ class _EventScreenState extends ConsumerState<EventScreen> {
             id: taskId,
             boardId: widget.boardId,
             title: title,
+            description: _descCtrl.text.trim(),
             position: currentCount,
             createdAt: DateTime.now(),
             isEvent: true,
@@ -136,15 +139,46 @@ class _EventScreenState extends ConsumerState<EventScreen> {
         return;
       }
 
+      if (events.length == 1) {
+        // Single event — populate the form for review/editing.
+        final event = events.first;
+        setState(() {
+          _titleCtrl.text = event.title;
+          _descCtrl.text = event.description;
+          _selectedDays
+            ..clear()
+            ..addAll(event.scheduledDays);
+          if (event.scheduledTime != null) {
+            final parts = event.scheduledTime!.split(':');
+            if (parts.length == 2) {
+              _scheduledTime = TimeOfDay(
+                hour: int.parse(parts[0]),
+                minute: int.parse(parts[1]),
+              );
+            }
+          }
+          if (event.recurrenceRule != null &&
+              event.recurrenceRule!.contains('FREQ=')) {
+            final (freq, _) = parseRRule(event.recurrenceRule);
+            _recurrence = freq;
+          }
+        });
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Event loaded — review and tap Create'),
+            ),
+          );
+        }
+        return;
+      }
+
+      // Multiple events — import all directly.
       final tasks = ref.read(taskListProvider(widget.boardId));
       var position = tasks.valueOrNull?.length ?? 0;
 
       for (final event in events) {
         final taskId = _uuid.v4();
-        String? timeStr;
-        if (event.scheduledTime != null) {
-          timeStr = event.scheduledTime;
-        }
 
         await ref.read(taskActionsProvider).create(
               Task(
@@ -155,7 +189,7 @@ class _EventScreenState extends ConsumerState<EventScreen> {
                 position: position++,
                 createdAt: DateTime.now(),
                 isEvent: true,
-                scheduledTime: timeStr,
+                scheduledTime: event.scheduledTime,
                 recurrenceRule: event.recurrenceRule,
                 priority: event.priority ?? 0,
               ),
@@ -170,11 +204,12 @@ class _EventScreenState extends ConsumerState<EventScreen> {
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              'Imported ${events.length} event'
-              '${events.length == 1 ? '' : 's'}',
+              'Imported ${events.length} events — '
+              'tap any to edit',
             ),
           ),
         );
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -272,6 +307,19 @@ class _EventScreenState extends ConsumerState<EventScreen> {
               decoration: const InputDecoration(
                 labelText: 'Event title',
                 border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Description
+            TextField(
+              controller: _descCtrl,
+              maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Description',
+                border: OutlineInputBorder(),
+                alignLabelWithHint: true,
               ),
             ),
             const SizedBox(height: 20),
