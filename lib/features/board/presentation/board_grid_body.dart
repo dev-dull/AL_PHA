@@ -669,12 +669,14 @@ class _SortableHeaderCorner extends StatelessWidget {
       padding: const EdgeInsets.only(left: 8),
       child: Row(
         children: [
-          Text(
-            'Tasks',
-            style: theme.textTheme.labelLarge
-                ?.copyWith(fontWeight: FontWeight.w600),
+          Flexible(
+            child: Text(
+              'Tasks',
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
           ),
-          const Spacer(),
           PopupMenuButton<TaskSortMode>(
             icon: Icon(
               Icons.sort,
