@@ -239,6 +239,18 @@ class MarkerActions {
     }
   }
 
+  /// Copies tag assignments from one task to another.
+  Future<void> _copyTags(String sourceTaskId, String destTaskId) async {
+    final tagRepo = _ref.read(taskTagRepositoryProvider);
+    final tags = await tagRepo.getTagsForTask(sourceTaskId);
+    if (tags.isNotEmpty) {
+      await tagRepo.setTagsForTask(
+        destTaskId,
+        tags.map((t) => t.id).toList(),
+      );
+    }
+  }
+
   Future<bool> _isMigrationColumn(String boardId, String columnId) async {
     final columnRepo = _ref.read(columnRepositoryProvider);
     final columns = await columnRepo.getByBoard(boardId);
@@ -357,6 +369,7 @@ class MarkerActions {
         recurrenceRule: task.recurrenceRule,
       ),
     );
+    await _copyTags(task.id, newTaskId);
 
     final markerSymbol =
         task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
@@ -593,6 +606,7 @@ class MarkerActions {
           recurrenceRule: task.recurrenceRule,
         ),
       );
+      await _copyTags(task.id, newTaskId);
       nextPosition++;
       didMigrate = true;
 
@@ -647,6 +661,7 @@ class MarkerActions {
             recurrenceRule: task.recurrenceRule,
           ),
         );
+        await _copyTags(task.id, newTaskId);
         nextPosition++;
         didMigrate = true;
 
@@ -745,6 +760,7 @@ class MarkerActions {
           recurrenceRule: task.recurrenceRule,
         ),
       );
+      await _copyTags(task.id, newTaskId);
       nextPosition++;
       didAdd = true;
 
