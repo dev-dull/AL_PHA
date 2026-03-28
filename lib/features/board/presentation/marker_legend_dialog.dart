@@ -96,6 +96,15 @@ class _MarkerLegendDialog extends StatelessWidget {
             ),
             _IconRow(
               icon: Icon(
+                Icons.event,
+                size: 18,
+                color: migrationColor,
+              ),
+              label: 'Event',
+              description: 'One-time event or appointment',
+            ),
+            _IconRow(
+              icon: Icon(
                 Icons.autorenew,
                 size: 18,
                 color: migrationColor,
