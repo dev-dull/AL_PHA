@@ -34,7 +34,7 @@ infra/
 - Custom attributes: plan_tier (free | sync | migrating)
 ```
 
-**Preference question:** Do you want Cognito-hosted UI for sign-in, or fully custom Flutter UI with Cognito API calls? Hosted UI is faster to ship but less control over appearance.
+Uses Cognito hosted UI for MVP (faster to ship). Custom Flutter sign-in screens can replace it later for better theming.
 
 ### RDS Postgres
 
@@ -68,12 +68,12 @@ Schema migrations are NOT managed by Terraform. See "Schema Migrations" section 
 
 ```hcl
 # lambda.tf
-- Runtime: provided.al2023 (Dart compiled to native via dart compile exe)
-  OR nodejs22.x if Dart Lambda support is too painful
+- Runtime: python3.12
 - Memory: 256MB
 - Timeout: 30s
 - VPC: yes (same VPC as RDS)
 - Environment: DB connection string from Secrets Manager
+- Dependencies: psycopg2-binary (Postgres), packaged as Lambda layer or zip
 ```
 
 **Preference question:** Dart or Node.js for Lambda? Dart keeps the codebase single-language but Lambda tooling is less mature. Node.js has first-class Lambda support and the pg library is battle-tested.
@@ -102,7 +102,7 @@ Schema migrations are NOT managed by Terraform. See "Schema Migrations" section 
 
 ### Migration Tool
 
-Use **Flyway** or **golang-migrate** for versioned SQL migrations. Each migration is a numbered SQL file checked into the repo:
+Use **Flyway** for versioned SQL migrations. Each migration is a numbered SQL file checked into the repo:
 
 ```
 infra/migrations/
@@ -112,9 +112,7 @@ infra/migrations/
 └── ...
 ```
 
-**Preference question:** Flyway (Java-based, mature, has Docker image) or golang-migrate (single binary, simpler)? Both support Postgres and can run in CI or as a Lambda/ECS task.
-
-Migrations run as a CI step or a dedicated Lambda triggered on deploy — never from the app itself.
+Flyway runs as `docker run flyway/flyway migrate` in CI (GitHub Actions) on merge to main. It tracks applied migrations in a `flyway_schema_history` table and provides validation and repair commands for production issues. Migrations run before deploying new Lambda code — never from the app itself.
 
 ### Initial Schema (V001)
 
@@ -235,12 +233,27 @@ Key differences from SQLite schema:
 - `updated_at` on tasks (already exists on markers/notes, added to tasks for conflict resolution)
 - `sync_cursors` tracks each device's last sync point
 
+### Lambda Directory Structure
+
+```
+lambda/
+├── requirements.txt       # psycopg2-binary, etc.
+├── sync_push.py           # POST /sync/push handler
+├── sync_pull.py           # POST /sync/pull handler
+├── sync_status.py         # GET /sync/status handler
+├── migrate_upload.py      # POST /migrate/upload handler
+├── migrate_download.py    # POST /migrate/download/{code} handler
+└── shared/
+    ├── db.py              # Postgres connection helper
+    └── auth.py            # JWT/Cognito helpers
+```
+
 ### Schema Versioning Strategy
 
 When a new app version adds columns or tables:
 
-1. Add a Flyway/migrate migration to Postgres (e.g., `V004__add_new_field.sql`)
-2. Run migration in CI before deploying new Lambda code
+1. Add a Flyway migration to Postgres (e.g., `V004__add_new_field.sql`)
+2. Run Flyway migration in CI before deploying new Lambda code
 3. Bump Drift schema version in the app (e.g., v7 → v8)
 4. The app's Drift migration handles the local SQLite change
 5. The sync protocol handles the new field — old devices ignore unknown columns, new devices send them
@@ -387,8 +400,8 @@ Device logic:
 ## Flutter Client Changes
 
 ### New Packages
-- `amazon_cognito_identity_dart_2` or `amplify_auth_cognito` for Cognito auth
-- `http` or `dio` for API calls (already may have one)
+- `amplify_auth_cognito` for Cognito hosted UI auth
+- `http` or `dio` for sync/migration API calls
 
 ### New Feature Directory
 
@@ -426,15 +439,7 @@ class SyncMeta extends Table {
 
 ### Change Tracking
 
-To know what to push, track local changes since last sync:
-
-**Option A: Changelog table** — trigger-like: every write appends to a `local_changes` table with `(table, row_id, timestamp)`. Push reads this table, then clears it after successful push.
-
-**Option B: Compare `updatedAt` against `lastSyncTime`** — scan all tables for rows where `updatedAt > lastSyncTime`. Simpler but requires a full scan.
-
-Option A is more efficient for ongoing sync. Option B is simpler and fine given the small data size.
-
-**Preference question:** Changelog table (more code, efficient) or timestamp scan (less code, full scan each sync)? Given your data is <10MB, the scan takes milliseconds either way.
+To know what to push, scan all tables for rows where `updatedAt > lastSyncTime`. Data is <10MB so the full scan takes milliseconds. A changelog table can be added later if performance requires it.
 
 ---
 
@@ -476,9 +481,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: |
-          # Run Flyway/golang-migrate against RDS
-          # Connection string from GitHub Secrets
-          migrate -path infra/migrations -database "$DB_URL" up
+          docker run --rm \
+            -v ${{ github.workspace }}/infra/migrations:/flyway/sql \
+            flyway/flyway \
+            -url="$FLYWAY_URL" \
+            -user="$FLYWAY_USER" \
+            -password="$FLYWAY_PASSWORD" \
+            migrate
+        env:
+          FLYWAY_URL: ${{ secrets.FLYWAY_URL }}
+          FLYWAY_USER: ${{ secrets.FLYWAY_USER }}
+          FLYWAY_PASSWORD: ${{ secrets.FLYWAY_PASSWORD }}
 ```
 
 ### Lambda Deploys
@@ -495,12 +508,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cd lambda && npm ci && npm run build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - run: |
-          zip -j function.zip lambda/dist/*
+          cd lambda
+          pip install -r requirements.txt -t package/
+          cd package && zip -r ../function.zip .
+          cd .. && zip function.zip *.py
+      - run: |
           aws lambda update-function-code \
             --function-name alpha-sync-push \
-            --zip-file fileb://function.zip
+            --zip-file fileb://lambda/function.zip
       # Repeat for each function, or use a matrix
 ```
 
@@ -555,10 +574,10 @@ jobs:
 
 ---
 
-## Open Questions
+## Decisions
 
-1. **Lambda runtime:** Dart (single language) or Node.js (better Lambda tooling)?
-2. **Migration tool:** Flyway or golang-migrate?
-3. **Cognito UI:** Hosted sign-in or custom Flutter UI?
-4. **Change tracking:** Changelog table or timestamp scan?
-5. **Team planners:** Do we need to plan the `board_members` table now, or add it as a future migration?
+1. **Lambda runtime:** Python (developer's primary backend language). If a strong reason to switch arises, Node.js as fallback.
+2. **Migration tool:** Flyway. Heavier than golang-migrate but validation/repair features are worth it for planned, infrequent migrations. Runs as Docker container in CI.
+3. **Cognito UI:** Hosted sign-in for faster implementation. Custom Flutter sign-in screens can replace it later.
+4. **Change tracking:** Timestamp scan (compare `updatedAt > lastSyncTime`). Simpler implementation; data is <10MB so full scan is milliseconds. Changelog table can be added later if needed.
+5. **Team planners:** Skip `board_members` table for now. Add as a future Flyway migration when the feature is designed.
