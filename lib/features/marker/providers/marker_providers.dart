@@ -728,11 +728,15 @@ class MarkerActions {
 
     // Scan back up to 4 weeks to find recurring tasks that
     // may have been skipped on intermediate weeks (biweekly, etc).
-    final seenTaskTitles = <String>{};
+    // Track titles we've already handled to avoid duplicates.
     final currentTasks = await taskRepo.getByBoard(boardId);
-    final allMigratedFrom = currentTasks
-        .map((t) => '${t.migratedFromBoardId}_${t.migratedFromTaskId}')
-        .toSet();
+    final handledTitles = <String>{};
+    // Pre-populate with recurring tasks already on this board.
+    for (final t in currentTasks) {
+      if (t.isRecurring || (t.migratedFromTaskId != null)) {
+        handledTitles.add(t.title);
+      }
+    }
 
     var nextPosition = currentTasks.length;
     final now = DateTime.now();
@@ -752,21 +756,22 @@ class MarkerActions {
       final recurringItems = prevTasks.where((t) => t.isRecurring);
 
       for (final task in recurringItems) {
-        // Skip if already populated from this or another source.
-        final key = '${prevBoard.id}_${task.id}';
-        if (allMigratedFrom.contains(key)) continue;
-        // Deduplicate by title — don't add the same recurring
-        // task twice from different source weeks.
-        if (seenTaskTitles.contains(task.title)) continue;
+        // Skip if this title is already on the current board
+        // (from a closer week or a previous scan iteration).
+        if (handledTitles.contains(task.title)) continue;
 
         // Check interval against the SOURCE week.
         final interval = rruleInterval(task.recurrenceRule);
         if (!shouldRecurOnWeek(
             prevWeekStart, boardWeekStart, interval)) {
+          // Mark as seen even if skipped — a closer week's
+          // copy would also fail the interval check, so we
+          // don't want an older copy to sneak through.
+          handledTitles.add(task.title);
           continue;
         }
 
-        seenTaskTitles.add(task.title);
+        handledTitles.add(task.title);
 
       final (_, days) = parseRRule(task.recurrenceRule);
       final newTaskId = _uuid.v4();
