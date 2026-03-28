@@ -295,8 +295,8 @@ class _TagManagementSection extends ConsumerWidget {
     );
 
     final name = nameCtrl.text.trim();
-    // Dispose after reading, before any async work.
-    nameCtrl.dispose();
+    // Don't manually dispose — the dialog animation may still
+    // reference the controller. Let GC handle it.
 
     if (result == true && name.isNotEmpty) {
       if (existing != null) {
