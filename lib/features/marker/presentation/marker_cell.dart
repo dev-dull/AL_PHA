@@ -89,7 +89,7 @@ class MarkerCell extends ConsumerWidget {
         ),
       );
     } else {
-      child = _buildMarkerWidget(symbol, color);
+      child = buildMarkerWidget(symbol, color);
     }
 
     return SizedBox(
@@ -108,7 +108,7 @@ class MarkerCell extends ConsumerWidget {
 
   /// Renders the marker symbol. Dot, checkmark, and event are
   /// painted for a hand-drawn feel; text symbols use Patrick Hand.
-  static Widget _buildMarkerWidget(MarkerSymbol? symbol, Color? color) {
+  static Widget buildMarkerWidget(MarkerSymbol? symbol, Color? color) {
     if (symbol == null) return const SizedBox.shrink();
 
     // Dot → small filled circle.
@@ -408,7 +408,7 @@ class _RadialMenuOverlay extends StatelessWidget {
           ),
           child: Center(
             child: item.symbol != null
-                ? MarkerCell._buildMarkerWidget(
+                ? MarkerCell.buildMarkerWidget(
                     item.symbol,
                     item.color,
                   )

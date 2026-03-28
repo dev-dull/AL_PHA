@@ -3,8 +3,7 @@ import 'package:alpha/app/theme.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/presentation/marker_cell.dart';
 
-/// Shows a dialog explaining the Alastair Method marker symbols
-/// and basic workflow.
+/// Shows a dialog explaining the app's features and workflow.
 Future<void> showMarkerLegend(BuildContext context) {
   return showDialog(
     context: context,
@@ -21,66 +20,105 @@ class _MarkerLegendDialog extends StatelessWidget {
     final brightness = theme.brightness;
 
     return AlertDialog(
-      title: const Text('The Alastair Method'),
+      title: const Text('How It Works'),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Markers ──────────────────────────────
             Text(
-              'Plan your week by scheduling dots on the days '
-              'you intend to work on each task. Update markers '
+              'Plan your week by placing dots on the days you '
+              'intend to work on each task, then update them '
               'as you go.',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            _LegendRow(
+            Text('Markers', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            _MarkerRow(
               symbol: MarkerSymbol.dot,
               brightness: brightness,
               label: 'Scheduled',
               description: 'Tap an empty cell to schedule',
             ),
-            _LegendRow(
+            _MarkerRow(
               symbol: MarkerSymbol.slash,
               brightness: brightness,
               label: 'In Progress',
               description: 'Started but not finished',
             ),
-            _LegendRow(
+            _MarkerRow(
               symbol: MarkerSymbol.x,
               brightness: brightness,
               label: 'Done',
               description: 'Task completed',
             ),
-            _LegendRow(
+            _MarkerRow(
               symbol: MarkerSymbol.migratedForward,
               brightness: brightness,
               label: 'Migrated',
-              description: 'Pushed to next week',
+              description: 'Pushed to next week (> column)',
             ),
-            _LegendRow(
+            _MarkerRow(
               symbol: MarkerSymbol.doneEarly,
               brightness: brightness,
               label: 'Done Early',
-              description: 'Auto-filled after completion',
+              description: 'Auto-filled after marking done',
             ),
-            _LegendRow(
+            _MarkerRow(
               symbol: MarkerSymbol.event,
               brightness: brightness,
               label: 'Event',
               description: 'Scheduled event or appointment',
             ),
+
+            // ── Migration column ─────────────────────
             const SizedBox(height: 12),
-            Text(
-              'Tips',
-              style: theme.textTheme.titleSmall,
-            ),
+            Text('Migration Column (>)',
+                style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
             Text(
-              '\u2022 Tap a marker to cycle or pick from the radial menu\n'
+              '\u2022 Tap > to push a task to next week\n'
+              '\u2022 Recurring tasks show \u00BB and '
+              'auto-migrate\n'
+              '\u2022 Recurring events show a calendar icon',
+              style: theme.textTheme.bodySmall,
+            ),
+
+            // ── Features ─────────────────────────────
+            const SizedBox(height: 12),
+            Text('Features', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              '\u2022 Tap a marker to cycle or pick from '
+              'the radial menu\n'
+              '\u2022 Tap a task name to edit details, add '
+              'notes, or set tags\n'
+              '\u2022 Set a repeat schedule to make tasks '
+              'recur weekly\n'
+              "\u2022 Mark tasks as \"Won't Do\" from the "
+              'edit sheet\n'
+              '\u2022 Color-coded tags \u2014 create in '
+              'Settings, assign up to 4 per task\n'
+              '\u2022 Sort tasks via the button in the '
+              'header row\n'
               '\u2022 Tasks auto-migrate when the week ends\n'
-              '\u2022 Tap the > column to manually push a task forward\n'
-              '\u2022 Use the sort button in the header to reorder',
+              '\u2022 Monthly and yearly views show '
+              'completion at a glance',
+              style: theme.textTheme.bodySmall,
+            ),
+
+            // ── Settings ─────────────────────────────
+            const SizedBox(height: 12),
+            Text('Settings', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              '\u2022 Font: handwritten or system default\n'
+              '\u2022 Appearance: light, dark, or system\n'
+              '\u2022 First day of week: Monday or Sunday\n'
+              '\u2022 Tag management: create, edit, delete\n'
+              '\u2022 Export data as JSON from the \u22EE menu',
               style: theme.textTheme.bodySmall,
             ),
           ],
@@ -96,13 +134,15 @@ class _MarkerLegendDialog extends StatelessWidget {
   }
 }
 
-class _LegendRow extends StatelessWidget {
+/// Renders a marker symbol + label + description row.
+/// Uses the same hand-drawn rendering as MarkerCell.
+class _MarkerRow extends StatelessWidget {
   final MarkerSymbol symbol;
   final Brightness brightness;
   final String label;
   final String description;
 
-  const _LegendRow({
+  const _MarkerRow({
     required this.symbol,
     required this.brightness,
     required this.label,
@@ -121,15 +161,7 @@ class _LegendRow extends StatelessWidget {
           SizedBox(
             width: MarkerCell.cellSize * 0.6,
             child: Center(
-              child: Text(
-                symbol.displayChar,
-                style: TextStyle(
-                  fontFamily: 'PatrickHand',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
+              child: MarkerCell.buildMarkerWidget(symbol, color),
             ),
           ),
           const SizedBox(width: 8),
