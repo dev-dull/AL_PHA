@@ -37,7 +37,8 @@ The app includes:
 - Won't Do state — tasks can be marked "Won't Do" from the editor (terminal state, strikethrough, locked markers, blocked from migration, unsets > if set); can be reopened
 - Auto-save on dismiss — swiping down or tapping outside saves; explicit Cancel button to discard
 - Add/edit/delete tasks, drag-to-reorder
-- Full event system: dedicated event editor, day-of-week picker, scheduled time, iCal import/export
+- Full event system: dedicated event editor with description, day-of-week picker, scheduled time, iCal import (single event populates form for review; multiple imports directly) and export
+- iCal import strips HTML descriptions to clean plain text (block elements, lists, entities)
 - Recurring events AND recurring tasks with iCal RRULE support (daily, weekly with custom day selection)
 - Recurring items auto-populate on new week boards with correct marker type (dots for tasks, circles for events)
 - Series edit/delete: "this one or all" prompt propagates changes across all instances on all boards
@@ -58,7 +59,7 @@ The app includes:
 - Basic CI pipeline (lint, test, build verification)
 - 95 tests (unit + widget), zero analyzer issues
 
-**Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding.
+**Planned (not yet implemented):** AWS backend (#29), auth (#30), cross-device sync (#31), one-time device migration (#35), subscriptions (#33), Terraform infra (#36), calendar integrations (#25). See `docs/plan-cloud-sync.md`.
 
 ## Architecture
 
@@ -166,7 +167,7 @@ test/
 ### Testing
 - Test naming: `[unit] [condition] [expected behavior]`
 - Fixtures in `test/fixtures/`
-- Coverage target: 80% (MVP phase) — currently 96 tests (unit + widget)
+- Coverage target: 80% (MVP phase) — currently 95 tests (unit + widget)
 
 ### GitHub Issues
 - Issues prefixed with `ALP-` in titles where applicable
@@ -181,7 +182,8 @@ test/
 ## Key Documentation
 - `docs/the-alastair-method.md` — Core method research
 - `docs/plan-flutter-app.md` — Frontend architecture plan
-- `docs/plan-aws-backend.md` — Backend architecture plan
+- `docs/plan-aws-backend.md` — Original backend architecture plan (superseded by plan-cloud-sync.md)
+- `docs/plan-cloud-sync.md` — Cloud sync & multi-device architecture (RDS Postgres, Lambda, Cognito, Terraform)
 - `docs/plan-testing-strategy.md` — Testing strategy
 - `docs/plan-cicd-release.md` — CI/CD and release plan
 - `docs/android-device-testing.md` — Pixel 8 Pro USB/wireless testing
