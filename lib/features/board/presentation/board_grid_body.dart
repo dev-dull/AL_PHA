@@ -489,7 +489,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           Divider(height: 1, color: theme.dividerColor),
           Expanded(
             child: filteredTasks.isEmpty
-                ? _buildEmptyState(context)
+                ? _buildEmptyState(context, filtered: _tagFilter.isNotEmpty)
                 : _buildTaskList(
                     filteredTasks,
                     columns,
@@ -612,7 +612,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, {bool filtered = false}) {
     final theme = Theme.of(context);
     return Center(
       child: Padding(
@@ -621,20 +621,22 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.grid_on_rounded,
+              filtered ? Icons.filter_list_off : Icons.grid_on_rounded,
               size: 64,
               color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
-              'No tasks yet',
+              filtered ? 'No matching tasks' : 'No tasks yet',
               style: theme.textTheme.titleMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Tap + to add your first task.',
+              filtered
+                  ? 'Clear the tag filter below to see all tasks.'
+                  : 'Tap + to add your first task.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
               ),
