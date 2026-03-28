@@ -666,10 +666,10 @@ class _SortableHeaderCorner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 4),
       child: Row(
         children: [
-          Flexible(
+          Expanded(
             child: Text(
               'Tasks',
               overflow: TextOverflow.ellipsis,
@@ -677,10 +677,14 @@ class _SortableHeaderCorner extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
-          PopupMenuButton<TaskSortMode>(
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: PopupMenuButton<TaskSortMode>(
+            iconSize: 16,
             icon: Icon(
               Icons.sort,
-              size: 18,
+              size: 16,
               color: theme.colorScheme.onSurface
                   .withValues(alpha: 0.5),
             ),
@@ -707,6 +711,7 @@ class _SortableHeaderCorner extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
           ),
         ],
       ),
