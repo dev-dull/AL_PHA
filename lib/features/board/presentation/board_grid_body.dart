@@ -469,34 +469,67 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
             return _tagFilter.every(taskTagIds.contains);
           }).toList();
 
+    // Minimum width: marker columns + divider + task name area.
+    final minWidth = markerColumnsWidth + 1 + 120;
+
     return DotGridBackground(
       child: Column(
         children: [
-          SizedBox(
-            height: _headerHeight,
-            child: Row(
-              children: [
-                ...columns.map((col) => ColumnHeader(column: col)),
-                VerticalDivider(width: 1, color: theme.dividerColor),
-                Expanded(child: _SortableHeaderCorner(
-                  sortMode: _sortMode,
-                  onSortChanged: (mode) =>
-                      setState(() => _sortMode = mode),
-                )),
-              ],
-            ),
-          ),
-          Divider(height: 1, color: theme.dividerColor),
           Expanded(
-            child: filteredTasks.isEmpty
-                ? _buildEmptyState(context, filtered: _tagFilter.isNotEmpty)
-                : _buildTaskList(
-                    filteredTasks,
-                    columns,
-                    markerColumnsWidth,
-                    _computePastDayPositions(),
-                    tagsMap,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final useScroll = constraints.maxWidth < minWidth;
+                final contentWidth =
+                    useScroll ? minWidth : constraints.maxWidth;
+
+                Widget content = SizedBox(
+                  width: contentWidth,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: _headerHeight,
+                        child: Row(
+                          children: [
+                            ...columns.map(
+                                (col) => ColumnHeader(column: col)),
+                            VerticalDivider(
+                                width: 1, color: theme.dividerColor),
+                            Expanded(
+                                child: _SortableHeaderCorner(
+                              sortMode: _sortMode,
+                              onSortChanged: (mode) =>
+                                  setState(() => _sortMode = mode),
+                            )),
+                          ],
+                        ),
+                      ),
+                      Divider(height: 1, color: theme.dividerColor),
+                      Expanded(
+                        child: filteredTasks.isEmpty
+                            ? _buildEmptyState(context,
+                                filtered: _tagFilter.isNotEmpty)
+                            : _buildTaskList(
+                                filteredTasks,
+                                columns,
+                                markerColumnsWidth,
+                                _computePastDayPositions(),
+                                tagsMap,
+                              ),
+                      ),
+                    ],
                   ),
+                );
+
+                if (useScroll) {
+                  content = SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: content,
+                  );
+                }
+
+                return content;
+              },
+            ),
           ),
           _buildTagLegend(theme),
         ],
