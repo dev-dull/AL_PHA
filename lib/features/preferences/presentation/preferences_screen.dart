@@ -243,6 +243,7 @@ class _TagManagementSection extends ConsumerWidget {
               TextField(
                 controller: nameCtrl,
                 autofocus: true,
+                maxLength: 30,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'Tag name',
@@ -293,9 +294,11 @@ class _TagManagementSection extends ConsumerWidget {
       ),
     );
 
-    if (result == true) {
-      final name = nameCtrl.text.trim();
-      if (name.isEmpty) return;
+    final name = nameCtrl.text.trim();
+    // Dispose after reading, before any async work.
+    nameCtrl.dispose();
+
+    if (result == true && name.isNotEmpty) {
       if (existing != null) {
         await actions.update(
           existing.copyWith(name: name, color: selectedColor),
@@ -304,6 +307,5 @@ class _TagManagementSection extends ConsumerWidget {
         await actions.create(name: name, color: selectedColor);
       }
     }
-    nameCtrl.dispose();
   }
 }
