@@ -176,7 +176,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       recurrenceRule:
           (_isEvent || _recurrence != RecurrenceFrequency.none)
               ? buildRRule(_recurrence, _scheduledDays)
-              : null,
+              : _scheduledDays.isNotEmpty
+                  ? buildByDayOnly(_scheduledDays)
+                  : null,
     );
 
     // If the task was already recurring before this edit,

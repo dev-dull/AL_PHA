@@ -112,7 +112,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       },
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
-        if (updated.isRecurring || updated.isEvent) {
+        if (updated.recurrenceRule != null) {
           await _syncRecurrenceMarkers(updated);
         }
       },
