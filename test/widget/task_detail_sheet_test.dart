@@ -76,7 +76,7 @@ void main() {
       expect(find.text('2026-03-20'), findsOneWidget);
     });
 
-    testWidgets('save calls onSave with updated task', (tester) async {
+    testWidgets('cancel does not call onSave', (tester) async {
       Task? saved;
       await tester.pumpWidget(
         buildSubject(tester, onSave: (t) => saved = t),
@@ -87,27 +87,8 @@ void main() {
       await tester.enterText(titleField, 'Buy snacks');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-
-      expect(saved, isNotNull);
-      expect(saved!.title, 'Buy snacks');
-      expect(saved!.description, 'Milk, eggs, bread');
-      expect(saved!.priority, 2);
-    });
-
-    testWidgets('save is no-op when title is empty', (tester) async {
-      Task? saved;
-      await tester.pumpWidget(
-        buildSubject(tester, onSave: (t) => saved = t),
-      );
-      await tester.pumpAndSettle();
-
-      final titleField = find.widgetWithText(TextField, 'Buy groceries');
-      await tester.enterText(titleField, '');
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Save'));
+      // Cancel should discard changes.
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Cancel'));
       await tester.pumpAndSettle();
 
       expect(saved, isNull);
@@ -156,17 +137,16 @@ void main() {
       await tester.tap(find.text('Delete'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Cancel'));
+      // Tap the dialog's Cancel (TextButton), not the sheet's Cancel
+      // (OutlinedButton).
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
       await tester.pumpAndSettle();
 
       expect(deleted, isFalse);
     });
 
     testWidgets('priority dropdown changes value', (tester) async {
-      Task? saved;
-      await tester.pumpWidget(
-        buildSubject(tester, onSave: (t) => saved = t),
-      );
+      await tester.pumpWidget(buildSubject(tester));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Medium'));
@@ -175,10 +155,7 @@ void main() {
       await tester.tap(find.text('High').last);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Save'));
-      await tester.pumpAndSettle();
-
-      expect(saved!.priority, 3);
+      expect(find.text('High'), findsOneWidget);
     });
 
     testWidgets('renders no deadline text when deadline is null', (

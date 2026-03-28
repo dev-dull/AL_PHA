@@ -108,6 +108,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   late RecurrenceFrequency _recurrence;
   late Set<int> _scheduledDays;
   late List<String> _selectedTagIds;
+  bool _cancelled = false;
+  bool _saved = false;
 
   static const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
@@ -154,7 +156,13 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     super.dispose();
   }
 
-  Future<void> _save() async {
+  /// Saves the task. Called explicitly via the series prompt or
+  /// automatically when the sheet is dismissed.
+  /// Does NOT pop — the caller handles navigation.
+  Future<void> _save({bool promptSeries = true}) async {
+    if (_saved || _cancelled) return;
+    _saved = true;
+
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) return;
 
@@ -173,18 +181,19 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
     // If the task was already recurring before this edit,
     // ask whether to update this occurrence or the series.
-    if (widget.task.isRecurring) {
+    if (promptSeries && widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Edit');
-      if (choice == null) return; // cancelled
+      if (choice == null) {
+        _saved = false; // allow retry
+        return;
+      }
       if (choice == _SeriesChoice.thisOne) {
-        // Remove frequency but keep the scheduled days.
         widget.onSave(
           updated.copyWith(
             recurrenceRule: buildByDayOnly(_scheduledDays),
           ),
         );
       } else {
-        // Update all instances in the series (including tags).
         if (widget.onSaveAll != null) {
           widget.onSaveAll!(updated);
         } else {
@@ -198,13 +207,19 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       widget.onSave(updated);
     }
 
-    // Save tag assignments for this task only.
     widget.onTagsChanged?.call(_selectedTagIds);
+  }
 
-    if (mounted) Navigator.of(context).pop();
+  /// Called when the sheet is dismissed (swipe, tap outside).
+  /// Auto-saves this instance without the series prompt.
+  void _onDismissed(bool didPop, Object? result) {
+    if (didPop && !_cancelled && !_saved) {
+      _save(promptSeries: false);
+    }
   }
 
   Future<void> _confirmDelete() async {
+    _saved = true; // prevent auto-save on dismiss
     // For recurring items, ask about series scope first.
     if (widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Delete');
@@ -425,7 +440,9 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return PopScope(
+      onPopInvokedWithResult: _onDismissed,
+      child: Padding(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -629,6 +646,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                   const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: () {
+                      _saved = true;
                       widget.onWontDo!();
                       Navigator.of(context).pop();
                     },
@@ -644,6 +662,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                   const SizedBox(width: 8),
                   TextButton.icon(
                     onPressed: () {
+                      _saved = true;
                       widget.onReopen!();
                       Navigator.of(context).pop();
                     },
@@ -655,13 +674,20 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                   ),
                 ],
                 const Spacer(),
-                // Save button
-                FilledButton(onPressed: _save, child: const Text('Save')),
+                // Cancel button — discards changes.
+                OutlinedButton(
+                  onPressed: () {
+                    _cancelled = true;
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
           ],
         ),
+      ),
       ),
     );
   }
