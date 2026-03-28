@@ -95,14 +95,10 @@ class _MarkerLegendDialog extends StatelessWidget {
               description: 'Tap to push a task to next week',
             ),
             _IconRow(
-              icon: Text(
-                '\u00BB',
-                style: TextStyle(
-                  fontFamily: 'PatrickHand',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: migrationColor,
-                ),
+              icon: Icon(
+                Icons.autorenew,
+                size: 18,
+                color: migrationColor,
               ),
               label: 'Recurring Task',
               description: 'Auto-migrates each week',

@@ -74,19 +74,14 @@ class MarkerCell extends ConsumerWidget {
         color: iconColor,
       );
     } else if (isMigration && !isEvent && isRecurring) {
-      final textColor = color ??
+      final iconColor = color ??
           (brightness == Brightness.dark
               ? const Color(0xFFA09A94)
               : const Color(0xFF6B6560));
-      child = Text(
-        '»',
-        style: TextStyle(
-          fontFamily: 'PatrickHand',
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: textColor,
-          decoration: TextDecoration.none,
-        ),
+      child = Icon(
+        Icons.autorenew,
+        size: 18,
+        color: iconColor,
       );
     } else {
       child = buildMarkerWidget(symbol, color);
