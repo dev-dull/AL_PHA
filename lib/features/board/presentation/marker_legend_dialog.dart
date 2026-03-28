@@ -18,6 +18,9 @@ class _MarkerLegendDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brightness = theme.brightness;
+    final migrationColor = brightness == Brightness.dark
+        ? const Color(0xFFA09A94)
+        : const Color(0xFF6B6560);
 
     return AlertDialog(
       title: const Text('How It Works'),
@@ -58,7 +61,7 @@ class _MarkerLegendDialog extends StatelessWidget {
               symbol: MarkerSymbol.migratedForward,
               brightness: brightness,
               label: 'Migrated',
-              description: 'Pushed to next week (> column)',
+              description: 'Missed day, auto-filled',
             ),
             _MarkerRow(
               symbol: MarkerSymbol.doneEarly,
@@ -75,15 +78,43 @@ class _MarkerLegendDialog extends StatelessWidget {
 
             // ── Migration column ─────────────────────
             const SizedBox(height: 12),
-            Text('Migration Column (>)',
+            Text('Migration Column',
                 style: theme.textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text(
-              '\u2022 Tap > to push a task to next week\n'
-              '\u2022 Recurring tasks show \u00BB and '
-              'auto-migrate\n'
-              '\u2022 Recurring events show a calendar icon',
-              style: theme.textTheme.bodySmall,
+            const SizedBox(height: 8),
+            _IconRow(
+              icon: Text(
+                '>',
+                style: TextStyle(
+                  fontFamily: 'PatrickHand',
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: migrationColor,
+                ),
+              ),
+              label: 'Migrate',
+              description: 'Tap to push a task to next week',
+            ),
+            _IconRow(
+              icon: Text(
+                '\u00BB',
+                style: TextStyle(
+                  fontFamily: 'PatrickHand',
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: migrationColor,
+                ),
+              ),
+              label: 'Recurring Task',
+              description: 'Auto-migrates each week',
+            ),
+            _IconRow(
+              icon: Icon(
+                Icons.event_repeat,
+                size: 18,
+                color: migrationColor,
+              ),
+              label: 'Recurring Event',
+              description: 'Auto-migrates each week',
             ),
 
             // ── Features ─────────────────────────────
@@ -163,6 +194,56 @@ class _MarkerRow extends StatelessWidget {
             child: Center(
               child: MarkerCell.buildMarkerWidget(symbol, color),
             ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Generic row with a custom icon widget + label + description.
+class _IconRow extends StatelessWidget {
+  final Widget icon;
+  final String label;
+  final String description;
+
+  const _IconRow({
+    required this.icon,
+    required this.label,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: MarkerCell.cellSize * 0.6,
+            child: Center(child: icon),
           ),
           const SizedBox(width: 8),
           Expanded(
