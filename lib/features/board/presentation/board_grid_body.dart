@@ -465,9 +465,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
             if (_tagFilter.contains(_untaggedFilter)) {
               return taskTags.isEmpty;
             }
-            return taskTags.any(
-              (t) => _tagFilter.contains(t.id),
-            );
+            final taskTagIds = taskTags.map((t) => t.id).toSet();
+            return _tagFilter.every(taskTagIds.contains);
           }).toList();
 
     return DotGridBackground(
