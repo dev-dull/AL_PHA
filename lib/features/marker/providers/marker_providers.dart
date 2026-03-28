@@ -642,6 +642,13 @@ class MarkerActions {
         if (existingMigrationSources.contains(task.id)) continue;
         if (tasksToMigrate.contains(task.id)) continue;
 
+        // Check interval (e.g., biweekly = every 2 weeks).
+        final interval = rruleInterval(task.recurrenceRule);
+        if (!shouldRecurOnWeek(
+            boardWeekStart, targetWeekStart, interval)) {
+          continue;
+        }
+
         final (_, days) = parseRRule(task.recurrenceRule);
         final newTaskId = _uuid.v4();
         await taskRepo.create(
@@ -740,6 +747,13 @@ class MarkerActions {
 
     for (final task in recurringItems) {
       if (alreadyMigrated.contains(task.id)) continue;
+
+      // Check interval (e.g., biweekly = every 2 weeks).
+      final interval = rruleInterval(task.recurrenceRule);
+      if (!shouldRecurOnWeek(
+          prevWeekStart, boardWeekStart, interval)) {
+        continue;
+      }
 
       final (_, days) = parseRRule(task.recurrenceRule);
       final newTaskId = _uuid.v4();

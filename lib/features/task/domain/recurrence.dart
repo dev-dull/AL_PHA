@@ -122,3 +122,26 @@ Set<int> scheduledDaysFromRRule(String? rrule) {
   final (_, days) = parseRRule(rrule);
   return days;
 }
+
+/// Returns the INTERVAL from an RRULE (defaults to 1).
+int rruleInterval(String? rrule) {
+  if (rrule == null) return 1;
+  final match = RegExp(r'INTERVAL=(\d+)').firstMatch(rrule);
+  return match != null ? (int.tryParse(match.group(1)!) ?? 1) : 1;
+}
+
+/// Whether a recurring task should appear on [targetWeekStart]
+/// given its source board's [sourceWeekStart] and RRULE interval.
+/// For INTERVAL=1 (weekly), always true.
+/// For INTERVAL=2 (biweekly), true every other week.
+bool shouldRecurOnWeek(
+  DateTime sourceWeekStart,
+  DateTime targetWeekStart,
+  int interval,
+) {
+  if (interval <= 1) return true;
+  final daysDiff =
+      targetWeekStart.difference(sourceWeekStart).inDays.abs();
+  final weeksDiff = (daysDiff / 7).round();
+  return weeksDiff % interval == 0;
+}
