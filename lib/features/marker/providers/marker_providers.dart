@@ -705,9 +705,11 @@ class MarkerActions {
     }
   }
 
-  /// Copies recurring events from the previous week's board into
-  /// [boardId] if they aren't already present.  Called when a board
-  /// is opened so that weekly/daily events appear automatically.
+  /// Copies recurring items from recent boards into [boardId]
+  /// if they aren't already present. Scans back up to 4 weeks
+  /// to find source tasks (handles biweekly+ intervals where
+  /// the task was correctly skipped on the immediately previous
+  /// week).
   Future<void> populateRecurringEvents({
     required String boardId,
   }) async {
@@ -724,39 +726,47 @@ class MarkerActions {
     final boardWeekStart = board.weekStart ??
         startOfWeek(board.createdAt, firstDay: firstDay);
 
-    final prevWeekStart = DateTime(
-      boardWeekStart.year,
-      boardWeekStart.month,
-      boardWeekStart.day - 7,
-    );
-    final prevBoard =
-        await boardRepo.getByWeekStart(prevWeekStart);
-    if (prevBoard == null) return;
-
-    final prevTasks = await taskRepo.getByBoard(prevBoard.id);
-    final recurringItems = prevTasks.where((t) => t.isRecurring);
-
-    if (recurringItems.isEmpty) return;
-
+    // Scan back up to 4 weeks to find recurring tasks that
+    // may have been skipped on intermediate weeks (biweekly, etc).
+    final seenTaskTitles = <String>{};
     final currentTasks = await taskRepo.getByBoard(boardId);
-    final alreadyMigrated = currentTasks
-        .where((t) => t.migratedFromBoardId == prevBoard.id)
-        .map((t) => t.migratedFromTaskId)
+    final allMigratedFrom = currentTasks
+        .map((t) => '${t.migratedFromBoardId}_${t.migratedFromTaskId}')
         .toSet();
 
     var nextPosition = currentTasks.length;
     final now = DateTime.now();
     var didAdd = false;
 
-    for (final task in recurringItems) {
-      if (alreadyMigrated.contains(task.id)) continue;
+    for (var weeksBack = 1; weeksBack <= 4; weeksBack++) {
+      final prevWeekStart = DateTime(
+        boardWeekStart.year,
+        boardWeekStart.month,
+        boardWeekStart.day - (7 * weeksBack),
+      );
+      final prevBoard =
+          await boardRepo.getByWeekStart(prevWeekStart);
+      if (prevBoard == null) continue;
 
-      // Check interval (e.g., biweekly = every 2 weeks).
-      final interval = rruleInterval(task.recurrenceRule);
-      if (!shouldRecurOnWeek(
-          prevWeekStart, boardWeekStart, interval)) {
-        continue;
-      }
+      final prevTasks = await taskRepo.getByBoard(prevBoard.id);
+      final recurringItems = prevTasks.where((t) => t.isRecurring);
+
+      for (final task in recurringItems) {
+        // Skip if already populated from this or another source.
+        final key = '${prevBoard.id}_${task.id}';
+        if (allMigratedFrom.contains(key)) continue;
+        // Deduplicate by title — don't add the same recurring
+        // task twice from different source weeks.
+        if (seenTaskTitles.contains(task.title)) continue;
+
+        // Check interval against the SOURCE week.
+        final interval = rruleInterval(task.recurrenceRule);
+        if (!shouldRecurOnWeek(
+            prevWeekStart, boardWeekStart, interval)) {
+          continue;
+        }
+
+        seenTaskTitles.add(task.title);
 
       final (_, days) = parseRRule(task.recurrenceRule);
       final newTaskId = _uuid.v4();
@@ -802,6 +812,7 @@ class MarkerActions {
         }
       }
     }
+    } // end weeksBack loop
 
     if (didAdd) {
       _ref.invalidate(taskListProvider(boardId));
