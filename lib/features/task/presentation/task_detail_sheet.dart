@@ -405,6 +405,16 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Widget _buildFrequencyDropdown() {
+    // For non-event tasks, only show frequencies that make sense
+    // on a weekly board: none, weekly, biweekly. Events get all.
+    final frequencies = _isEvent
+        ? RecurrenceFrequency.values
+        : [
+            RecurrenceFrequency.none,
+            RecurrenceFrequency.weekly,
+            RecurrenceFrequency.biweekly,
+          ];
+
     return InputDecorator(
       decoration: const InputDecoration(
         labelText: 'Repeat',
@@ -412,10 +422,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<RecurrenceFrequency>(
-          value: _recurrence,
+          value: frequencies.contains(_recurrence)
+              ? _recurrence
+              : RecurrenceFrequency.none,
           isDense: true,
           isExpanded: true,
-          items: RecurrenceFrequency.values
+          items: frequencies
               .map((f) => DropdownMenuItem(
                     value: f,
                     child: Text(f.displayName),
