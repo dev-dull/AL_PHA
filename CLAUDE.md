@@ -33,26 +33,30 @@ The app includes:
 - Radial marker menu with only manual symbols (dot, slash, done, clear); dot hidden on past days
 - Auto-fill markers: < (done early) and > (missed days), with per-task migration
 - Migration column as simple toggle (empty ↔ >) — completed tasks can also be migrated
-- Recurring tasks show » in migration column; recurring events show calendar icons
-- Won't Do state — tasks can be marked "Won't Do" from the editor (terminal state, strikethrough, locked markers, blocked from migration); can be reopened
+- Recurring tasks show autorenew icon in migration column; recurring events show calendar icons; non-tappable (auto-migrate only)
+- Won't Do state — tasks can be marked "Won't Do" from the editor (terminal state, strikethrough, locked markers, blocked from migration, unsets > if set); can be reopened
+- Auto-save on dismiss — swiping down or tapping outside saves; explicit Cancel button to discard
 - Add/edit/delete tasks, drag-to-reorder
 - Full event system: dedicated event editor, day-of-week picker, scheduled time, iCal import/export
 - Recurring events AND recurring tasks with iCal RRULE support (daily, weekly with custom day selection)
 - Recurring items auto-populate on new week boards with correct marker type (dots for tasks, circles for events)
 - Series edit/delete: "this one or all" prompt propagates changes across all instances on all boards
 - Task notes: timestamped freeform notes per task (multi-line, reverse chronological)
-- Color-coded tags: up to 12 user-defined tags with curated palette, max 4 per task, displayed as 2x2 colored badge in board rows
-- Tag management in Settings; tag picker (FilterChips) in task detail sheet
+- Color-coded tags: up to 12 user-defined tags (30 char max) with curated palette, max 4 per task, displayed as 2x2 colored badge in board rows
+- Tag management in Settings; tag picker (FilterChips) in task detail sheet; tags carry over on migration
+- Tag filtering: interactive legend bar at bottom of planner; tap tags to filter (AND logic); "Untagged" filter; "Clear" to reset
+- Tags propagate to all series instances when "All" is chosen
 - Preferences screen: font (handwritten/system), appearance (light/dark/system), first day of week (Monday/Sunday), tag management
 - First-day-of-week affects calendar overviews and new boards; existing boards keep their column layout but display reorders columns to match preference
 - JSON data export from overflow menu
-- First-run "How It Works" legend dialog (also accessible from overflow menu)
+- First-run "How It Works" dialog (markers, migration icons, tags key, features, settings); also accessible from overflow menu
+- Responsive layout: board grid scrolls horizontally at narrow/mobile widths
 - Bullet journal theme with handwritten font and ink-on-paper aesthetics
 - Local persistence with Drift (SQLite)
 - Dark mode with theme-aware marker colors
 - DST-safe week arithmetic (calendar date math instead of Duration-based millisecond offsets)
 - Basic CI pipeline (lint, test, build verification)
-- 96 tests (unit + widget), zero analyzer issues
+- 95 tests (unit + widget), zero analyzer issues
 
 **Not in scope yet:** AWS backend, auth, sync, subscriptions, onboarding.
 
