@@ -43,6 +43,11 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
   TaskSortMode _sortMode = TaskSortMode.manual;
 
+  /// Tag IDs to filter by. Empty means no filter (show all).
+  /// Contains a special '_none' value when filtering to untagged.
+  final Set<String> _tagFilter = {};
+  static const _untaggedFilter = '_none';
+
   @override
   void initState() {
     super.initState();
@@ -452,6 +457,19 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           _nextDotPosition(t.id, columns, markers),
     );
 
+    // Apply tag filter.
+    final filteredTasks = _tagFilter.isEmpty
+        ? sortedTasks
+        : sortedTasks.where((task) {
+            final taskTags = tagsMap[task.id] ?? [];
+            if (_tagFilter.contains(_untaggedFilter)) {
+              return taskTags.isEmpty;
+            }
+            return taskTags.any(
+              (t) => _tagFilter.contains(t.id),
+            );
+          }).toList();
+
     return DotGridBackground(
       child: Column(
         children: [
@@ -471,10 +489,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           ),
           Divider(height: 1, color: theme.dividerColor),
           Expanded(
-            child: sortedTasks.isEmpty
+            child: filteredTasks.isEmpty
                 ? _buildEmptyState(context)
                 : _buildTaskList(
-                    sortedTasks,
+                    filteredTasks,
                     columns,
                     markerColumnsWidth,
                     _computePastDayPositions(),
@@ -530,44 +548,67 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final tags = ref.watch(tagListProvider).valueOrNull ?? [];
     if (tags.isEmpty) return const SizedBox.shrink();
 
+    final isFiltering = _tagFilter.isNotEmpty;
+
     return Container(
-      height: 28,
+      height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(
-            color: theme.dividerColor,
-          ),
+          top: BorderSide(color: theme.dividerColor),
         ),
       ),
-      child: ListView.separated(
+      child: ListView(
         scrollDirection: Axis.horizontal,
-        itemCount: tags.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, i) {
-          final tag = tags[i];
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: TagPalette.colorFromValue(tag.color),
-                  borderRadius: BorderRadius.circular(2),
+        children: [
+          // "Untagged" filter chip.
+          _TagFilterChip(
+            label: 'Untagged',
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+            selected: _tagFilter.contains(_untaggedFilter),
+            onTap: () => setState(() {
+              if (_tagFilter.contains(_untaggedFilter)) {
+                _tagFilter.remove(_untaggedFilter);
+              } else {
+                // Untagged is exclusive — clear other filters.
+                _tagFilter
+                  ..clear()
+                  ..add(_untaggedFilter);
+              }
+            }),
+          ),
+          const SizedBox(width: 8),
+          // Tag chips.
+          for (final tag in tags) ...[
+            _TagFilterChip(
+              label: tag.name,
+              color: TagPalette.colorFromValue(tag.color),
+              selected: _tagFilter.contains(tag.id),
+              onTap: () => setState(() {
+                _tagFilter.remove(_untaggedFilter);
+                if (_tagFilter.contains(tag.id)) {
+                  _tagFilter.remove(tag.id);
+                } else if (_tagFilter.length < 4) {
+                  _tagFilter.add(tag.id);
+                }
+              }),
+            ),
+            const SizedBox(width: 8),
+          ],
+          // Clear filter button.
+          if (isFiltering)
+            GestureDetector(
+              onTap: () => setState(() => _tagFilter.clear()),
+              child: Center(
+                child: Text(
+                  'Clear',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ),
-              const SizedBox(width: 4),
-              Text(
-                tag.name,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurface
-                      .withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+        ],
       ),
     );
   }
@@ -696,6 +737,73 @@ class ColumnHeader extends StatelessWidget {
 
 /// A full board row: marker cells on the left, task name on
 /// the right with drag-to-reorder and swipe gestures.
+class _TagFilterChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TagFilterChip({
+    required this.label,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 2,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: selected
+                ? color.withValues(alpha: 0.2)
+                : Colors.transparent,
+            border: Border.all(
+              color: selected
+                  ? color
+                  : theme.colorScheme.onSurface
+                      .withValues(alpha: 0.15),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: selected
+                      ? color
+                      : theme.colorScheme.onSurface
+                          .withValues(alpha: 0.5),
+                  fontWeight:
+                      selected ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class BoardRow extends StatelessWidget {
   final String boardId;
   final Task task;
