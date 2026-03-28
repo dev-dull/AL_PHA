@@ -578,11 +578,14 @@ class MarkerActions {
     var didMigrate = false;
 
     // Migrate missed tasks (normal migration).
+    // Skip recurring tasks — they're handled by the recurring
+    // items section below, which respects INTERVAL.
     for (final taskId in tasksToMigrate) {
       if (existingMigrationSources.contains(taskId)) continue;
 
       final task = await taskRepo.getById(taskId);
       if (task == null) continue;
+      if (task.isRecurring) continue;
       if (task.state != TaskState.open &&
           task.state != TaskState.inProgress) {
         continue;
