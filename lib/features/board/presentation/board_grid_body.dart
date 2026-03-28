@@ -9,6 +9,7 @@ import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/column/providers/column_providers.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/tag/domain/tag.dart';
+import 'package:alpha/features/tag/domain/tag_palette.dart';
 import 'package:alpha/features/tag/presentation/tag_badge.dart';
 import 'package:alpha/features/tag/providers/tag_providers.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
@@ -480,6 +481,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                     tagsMap,
                   ),
           ),
+          _buildTagLegend(theme),
         ],
       ),
     );
@@ -521,6 +523,52 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           onTap: () => _openTaskDetailSheet(task),
         );
       },
+    );
+  }
+
+  Widget _buildTagLegend(ThemeData theme) {
+    final tags = ref.watch(tagListProvider).valueOrNull ?? [];
+    if (tags.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(
+            color: theme.dividerColor,
+          ),
+        ),
+      ),
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: tags.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (_, i) {
+          final tag = tags[i];
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: TagPalette.colorFromValue(tag.color),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                tag.name,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurface
+                      .withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
