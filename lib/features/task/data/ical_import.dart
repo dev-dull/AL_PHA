@@ -25,6 +25,74 @@ class ParsedEvent {
 
 const _uuid = Uuid();
 
+/// Converts an HTML string to readable plain text.
+///
+/// Handles block elements (p, div, h1-h6), line breaks (br),
+/// lists (ul/ol with li → bullet points), horizontal rules,
+/// inline formatting (stripped), and common HTML entities.
+/// Collapses excessive whitespace.
+String _htmlToPlainText(String html) {
+  if (!html.contains('<')) return html;
+
+  var text = html;
+
+  // Block elements → double newline.
+  text = text.replaceAll(
+      RegExp(r'</(p|div|h[1-6]|blockquote)>', caseSensitive: false), '\n\n');
+  text = text.replaceAll(
+      RegExp(r'<(p|div|h[1-6]|blockquote)\b[^>]*>', caseSensitive: false), '');
+
+  // Horizontal rules.
+  text = text.replaceAll(RegExp(r'<hr\s*/?>',caseSensitive: false), '\n---\n');
+
+  // Line breaks.
+  text = text.replaceAll(RegExp(r'<br\s*/?>',caseSensitive: false), '\n');
+
+  // List items → bullet points.
+  text = text.replaceAll(
+      RegExp(r'<li\b[^>]*>', caseSensitive: false), '\n\u2022 ');
+  text = text.replaceAll(RegExp(r'</li>', caseSensitive: false), '');
+
+  // List containers → newline.
+  text = text.replaceAll(
+      RegExp(r'</?[ou]l\b[^>]*>', caseSensitive: false), '\n');
+
+  // Strip all remaining tags.
+  text = text.replaceAll(RegExp(r'<[^>]*>'), '');
+
+  // Decode common HTML entities.
+  text = text
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&apos;', "'")
+      .replaceAll('&#x27;', "'")
+      .replaceAll('&mdash;', '\u2014')
+      .replaceAll('&ndash;', '\u2013')
+      .replaceAll('&hellip;', '\u2026')
+      .replaceAll('&copy;', '\u00A9')
+      .replaceAll('&reg;', '\u00AE')
+      .replaceAllMapped(RegExp(r'&#(\d+);'), (m) {
+        final code = int.tryParse(m.group(1)!);
+        return code != null ? String.fromCharCode(code) : m.group(0)!;
+      })
+      .replaceAllMapped(RegExp(r'&#x([0-9a-fA-F]+);'), (m) {
+        final code = int.tryParse(m.group(1)!, radix: 16);
+        return code != null ? String.fromCharCode(code) : m.group(0)!;
+      });
+
+  // Collapse whitespace: 3+ newlines → 2, trailing spaces per line.
+  text = text.replaceAll(RegExp(r' +'), ' ');
+  text = text.replaceAll(RegExp(r'\n '), '\n');
+  text = text.replaceAll(RegExp(r' \n'), '\n');
+  text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
+  return text.trim();
+}
+
 /// Parses an iCal (.ics) string and returns a list of events.
 List<ParsedEvent> parseICalString(String icsContent) {
   final calendar = VComponent.parse(icsContent);
@@ -39,22 +107,10 @@ List<ParsedEvent> parseICalString(String icsContent) {
 
     final summary = component.summary ?? 'Untitled Event';
     final rawDescription = component.description ?? '';
-    // Strip HTML tags if the description contains them.
-    // If a second use-case for HTML rendering arises, consider
-    // a proper widget instead of stripping. See:
-    // https://github.com/dev-dull/AL_PHA/issues/34
-    final description = rawDescription.contains('<')
-        ? rawDescription
-            .replaceAll(RegExp(r'<br\s*/?>'), '\n')
-            .replaceAll(RegExp(r'<[^>]*>'), '')
-            .replaceAll(RegExp(r'&nbsp;'), ' ')
-            .replaceAll(RegExp(r'&amp;'), '&')
-            .replaceAll(RegExp(r'&lt;'), '<')
-            .replaceAll(RegExp(r'&gt;'), '>')
-            .replaceAll(RegExp(r'&quot;'), '"')
-            .replaceAll(RegExp(r'&#39;'), "'")
-            .trim()
-        : rawDescription;
+    // Convert HTML to readable plain text. If a second use-case
+    // for HTML rendering arises, consider a proper widget instead.
+    // See: https://github.com/dev-dull/AL_PHA/issues/34
+    final description = _htmlToPlainText(rawDescription);
 
     // Extract time from DTSTART.
     String? scheduledTime;
