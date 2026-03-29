@@ -239,21 +239,42 @@ class MarkerCell extends ConsumerWidget {
     });
   }
 
-  /// Strips the FREQ from this task AND all instances in its
-  /// series so it stops being carried forward to new weeks.
+  /// Ends the recurring series: strips FREQ from this task and
+  /// all past instances, deletes all future instances.
   void _endRecurringSeries(WidgetRef ref) async {
     final taskRepo = ref.read(taskRepositoryProvider);
+    final boardRepo = ref.read(boardRepositoryProvider);
+    final noteRepo = ref.read(taskNoteRepositoryProvider);
+    final tagRepo = ref.read(taskTagRepositoryProvider);
+
     final task = await taskRepo.getById(taskId);
     if (task == null) return;
     final (_, days) = parseRRule(task.recurrenceRule);
     final byDayOnly = buildByDayOnly(days);
 
-    // Update all instances in the series.
+    // Find the current board's weekStart to determine
+    // which instances are "future".
+    final board = await boardRepo.getById(boardId);
+    final currentWeekStart = board?.weekStart;
+
     final series = await taskRepo.findSeriesInstances(task);
     for (final instance in series) {
-      await taskRepo.update(
-        instance.copyWith(recurrenceRule: byDayOnly),
-      );
+      final instBoard = await boardRepo.getById(instance.boardId);
+      final instWeekStart = instBoard?.weekStart;
+
+      // Delete future instances entirely.
+      if (currentWeekStart != null &&
+          instWeekStart != null &&
+          instWeekStart.isAfter(currentWeekStart)) {
+        await noteRepo.deleteByTask(instance.id);
+        await tagRepo.deleteByTask(instance.id);
+        await taskRepo.delete(instance.id);
+      } else {
+        // Strip FREQ from current and past instances.
+        await taskRepo.update(
+          instance.copyWith(recurrenceRule: byDayOnly),
+        );
+      }
     }
   }
 
