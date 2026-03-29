@@ -73,6 +73,26 @@ Future<String> exportDataAsJson(AlphaDatabase db) async {
               'updatedAt': n.updatedAt.toIso8601String(),
             })
         .toList(),
+    'recurring_series': (await db.select(db.recurringSeriesTable).get())
+        .map((s) => {
+              'id': s.id,
+              'title': s.title,
+              'description': s.description,
+              'priority': s.priority,
+              'recurrenceRule': s.recurrenceRule,
+              'isEvent': s.isEvent,
+              'scheduledTime': s.scheduledTime,
+              'createdAt': s.createdAt.toIso8601String(),
+              'endedAt': s.endedAt?.toIso8601String(),
+            })
+        .toList(),
+    'series_tags': (await db.select(db.seriesTags).get())
+        .map((st) => {
+              'seriesId': st.seriesId,
+              'tagId': st.tagId,
+              'slot': st.slot,
+            })
+        .toList(),
   };
 
   final dir = await getApplicationDocumentsDirectory();

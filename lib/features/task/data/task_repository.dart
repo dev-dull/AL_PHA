@@ -142,42 +142,4 @@ class TaskRepository {
     return query.watch().map((rows) => rows.map((r) => _rowToTask(r)).toList());
   }
 
-  /// Finds all tasks in the same recurring series as [task].
-  /// A series is linked via migratedFromTaskId chains — tasks
-  /// that share the same original ancestor or are direct
-  /// descendants of each other.
-  Future<List<Task>> findSeriesInstances(Task task) async {
-    final all = await _db.select(_db.tasks).get();
-    final allTasks = all.map((r) => _rowToTask(r)).toList();
-
-    // Build the set of all IDs in this series by walking the
-    // migration chain in both directions.
-    final seriesIds = <String>{task.id};
-
-    // Walk up: find ancestors.
-    var current = task;
-    while (current.migratedFromTaskId != null) {
-      seriesIds.add(current.migratedFromTaskId!);
-      final parent = allTasks
-          .where((t) => t.id == current.migratedFromTaskId)
-          .firstOrNull;
-      if (parent == null) break;
-      current = parent;
-    }
-    // Walk down: find all descendants of any series member.
-    var changed = true;
-    while (changed) {
-      changed = false;
-      for (final t in allTasks) {
-        if (seriesIds.contains(t.id)) continue;
-        if (t.migratedFromTaskId != null &&
-            seriesIds.contains(t.migratedFromTaskId)) {
-          seriesIds.add(t.id);
-          changed = true;
-        }
-      }
-    }
-
-    return allTasks.where((t) => seriesIds.contains(t.id)).toList();
-  }
 }

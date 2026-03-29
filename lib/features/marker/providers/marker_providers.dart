@@ -7,7 +7,6 @@ import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/column/domain/weekly_columns.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
@@ -367,6 +366,7 @@ class MarkerActions {
         isEvent: task.isEvent,
         scheduledTime: task.scheduledTime,
         recurrenceRule: task.recurrenceRule,
+        seriesId: task.seriesId,
       ),
     );
     await _copyTags(task.id, newTaskId);
@@ -487,10 +487,6 @@ class MarkerActions {
 
     final allMarkers = await markerRepo.getByBoard(boardId);
     final allTasks = await taskRepo.getByBoard(boardId);
-    final recurringTaskIds = allTasks
-        .where((t) => t.isRecurring)
-        .map((t) => t.id)
-        .toSet();
     final migratedTaskIds = <String>{};
     final taskDotPositions = <String, Set<int>>{};
 
@@ -502,9 +498,12 @@ class MarkerActions {
                 m.symbol == MarkerSymbol.event),
       );
       for (final marker in dotsInCol) {
-        // Don't convert recurring task dots to > — recurrence
-        // handles their carry-forward on its own schedule.
-        if (recurringTaskIds.contains(marker.taskId)) continue;
+        // Skip recurring tasks — the virtual instance system
+        // handles their carry-forward automatically.
+        final task = allTasks
+            .where((t) => t.id == marker.taskId)
+            .firstOrNull;
+        if (task != null && task.isRecurring) continue;
 
         await markerRepo.set(
           marker.copyWith(
@@ -521,7 +520,7 @@ class MarkerActions {
 
     final isPastWeek = boardWeekStart.isBefore(currentWeekStart);
 
-    if (migratedTaskIds.isEmpty && !isPastWeek) return;
+    if (migratedTaskIds.isEmpty) return;
 
     final updatedMarkers = await markerRepo.getByBoard(boardId);
 
@@ -586,9 +585,8 @@ class MarkerActions {
     var nextPosition = targetTasks.length;
     var didMigrate = false;
 
-    // Migrate missed tasks (normal migration).
-    // Skip recurring tasks — they're handled by the recurring
-    // items section below, which respects INTERVAL.
+    // Migrate missed non-recurring tasks. Recurring tasks are
+    // handled by the virtual instance system.
     for (final taskId in tasksToMigrate) {
       if (existingMigrationSources.contains(taskId)) continue;
 
@@ -616,6 +614,7 @@ class MarkerActions {
           isEvent: task.isEvent,
           scheduledTime: task.scheduledTime,
           recurrenceRule: task.recurrenceRule,
+          seriesId: task.seriesId,
         ),
       );
       await _copyTags(task.id, newTaskId);
@@ -645,189 +644,10 @@ class MarkerActions {
       }
     }
 
-    // Recurring items: always carry forward even if fully completed.
-    if (isPastWeek) {
-      final allTasks = await taskRepo.getByBoard(boardId);
-      final recurringItems = allTasks.where((t) => t.isRecurring);
-
-      for (final task in recurringItems) {
-        if (existingMigrationSources.contains(task.id)) continue;
-        if (tasksToMigrate.contains(task.id)) continue;
-
-        // Check interval (e.g., biweekly = every 2 weeks).
-        final interval = rruleInterval(task.recurrenceRule);
-        if (!shouldRecurOnWeek(
-            boardWeekStart, targetWeekStart, interval)) {
-          continue;
-        }
-
-        final (_, days) = parseRRule(task.recurrenceRule);
-        final newTaskId = _uuid.v4();
-        await taskRepo.create(
-          Task(
-            id: newTaskId,
-            boardId: targetBoardId,
-            title: task.title,
-            description: task.description,
-            priority: task.priority,
-            position: nextPosition,
-            createdAt: now,
-            deadline: task.deadline,
-            migratedFromBoardId: boardId,
-            migratedFromTaskId: task.id,
-            isEvent: task.isEvent,
-            scheduledTime: task.scheduledTime,
-            recurrenceRule: task.recurrenceRule,
-          ),
-        );
-        await _copyTags(task.id, newTaskId);
-        nextPosition++;
-        didMigrate = true;
-
-        final markerSym =
-            task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
-        if (days.isNotEmpty) {
-          final targetColumns =
-              await columnRepo.getByBoard(targetBoardId);
-          for (final targetCol in targetColumns) {
-            if (targetCol.type == ColumnType.date &&
-                days.contains(targetCol.position)) {
-              await markerRepo.set(
-                Marker(
-                  id: _uuid.v4(),
-                  taskId: newTaskId,
-                  columnId: targetCol.id,
-                  boardId: targetBoardId,
-                  symbol: markerSym,
-                  updatedAt: now,
-                ),
-              );
-            }
-          }
-        }
-      }
-    }
-
     if (didMigrate) {
       _ref.invalidate(taskListProvider(targetBoardId));
       _ref.invalidate(markersByBoardProvider(targetBoardId));
     }
   }
 
-  /// Copies recurring items from recent boards into [boardId]
-  /// if they aren't already present. Scans back up to 4 weeks
-  /// to find source tasks (handles biweekly+ intervals where
-  /// the task was correctly skipped on the immediately previous
-  /// week).
-  Future<void> populateRecurringEvents({
-    required String boardId,
-  }) async {
-    final boardRepo = _ref.read(boardRepositoryProvider);
-    final columnRepo = _ref.read(columnRepositoryProvider);
-    final markerRepo = _ref.read(markerRepositoryProvider);
-    final taskRepo = _ref.read(taskRepositoryProvider);
-
-    final firstDay =
-        _ref.read(preferencesProvider).firstDayOfWeek;
-    final board = await boardRepo.getById(boardId);
-    if (board == null) return;
-
-    final boardWeekStart = board.weekStart ??
-        startOfWeek(board.createdAt, firstDay: firstDay);
-
-    // Scan back up to 4 weeks to find recurring tasks that
-    // may have been skipped on intermediate weeks (biweekly, etc).
-    // Track titles we've already handled to avoid duplicates.
-    final currentTasks = await taskRepo.getByBoard(boardId);
-    final handledTitles = <String>{};
-    // Pre-populate with recurring tasks already on this board.
-    for (final t in currentTasks) {
-      if (t.isRecurring || (t.migratedFromTaskId != null)) {
-        handledTitles.add(t.title);
-      }
-    }
-
-    var nextPosition = currentTasks.length;
-    final now = DateTime.now();
-    var didAdd = false;
-
-    for (var weeksBack = 1; weeksBack <= 4; weeksBack++) {
-      final prevWeekStart = DateTime(
-        boardWeekStart.year,
-        boardWeekStart.month,
-        boardWeekStart.day - (7 * weeksBack),
-      );
-      final prevBoard =
-          await boardRepo.getByWeekStart(prevWeekStart);
-      if (prevBoard == null) continue;
-
-      final prevTasks = await taskRepo.getByBoard(prevBoard.id);
-      final recurringItems = prevTasks.where((t) => t.isRecurring);
-
-      for (final task in recurringItems) {
-        // Skip if this title is already on the current board
-        // (from a closer week or a previous scan iteration).
-        if (handledTitles.contains(task.title)) continue;
-
-        // Check interval against the SOURCE week.
-        final interval = rruleInterval(task.recurrenceRule);
-        if (!shouldRecurOnWeek(
-            prevWeekStart, boardWeekStart, interval)) {
-          handledTitles.add(task.title);
-          continue;
-        }
-
-        handledTitles.add(task.title);
-
-      final (_, days) = parseRRule(task.recurrenceRule);
-      final newTaskId = _uuid.v4();
-      await taskRepo.create(
-        Task(
-          id: newTaskId,
-          boardId: boardId,
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          position: nextPosition,
-          createdAt: now,
-          deadline: task.deadline,
-          migratedFromBoardId: prevBoard.id,
-          migratedFromTaskId: task.id,
-          isEvent: task.isEvent,
-          scheduledTime: task.scheduledTime,
-          recurrenceRule: task.recurrenceRule,
-        ),
-      );
-      await _copyTags(task.id, newTaskId);
-      nextPosition++;
-      didAdd = true;
-
-      final markerSym =
-          task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
-      if (days.isNotEmpty) {
-        final targetColumns = await columnRepo.getByBoard(boardId);
-        for (final col in targetColumns) {
-          if (col.type == ColumnType.date &&
-              days.contains(col.position)) {
-            await markerRepo.set(
-              Marker(
-                id: _uuid.v4(),
-                taskId: newTaskId,
-                columnId: col.id,
-                boardId: boardId,
-                symbol: markerSym,
-                updatedAt: now,
-              ),
-            );
-          }
-        }
-      }
-    }
-    } // end weeksBack loop
-
-    if (didAdd) {
-      _ref.invalidate(taskListProvider(boardId));
-      _ref.invalidate(markersByBoardProvider(boardId));
-    }
-  }
 }

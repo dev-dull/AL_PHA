@@ -7,6 +7,7 @@ import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/series/providers/series_providers.dart';
 import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/shared/providers.dart';
 
@@ -27,6 +28,9 @@ class MarkerCell extends ConsumerWidget {
   /// Whether the event has a recurring schedule (FREQ= in RRULE).
   final bool isRecurring;
 
+  /// The series ID for recurring tasks (used for ending series).
+  final String? seriesId;
+
   /// Called when an event cell is tapped on a day column, so the
   /// parent can open the task detail sheet instead of toggling markers.
   final VoidCallback? onEventTap;
@@ -44,6 +48,7 @@ class MarkerCell extends ConsumerWidget {
     this.isPastDay = false,
     this.isLocked = false,
     this.isRecurring = false,
+    this.seriesId,
     this.onEventTap,
   });
 
@@ -239,42 +244,21 @@ class MarkerCell extends ConsumerWidget {
     });
   }
 
-  /// Ends the recurring series: strips FREQ from this task and
-  /// all past instances, deletes all future instances.
+  /// Ends the recurring series via SeriesActions so no new
+  /// virtual instances are generated.
   void _endRecurringSeries(WidgetRef ref) async {
+    if (seriesId != null) {
+      await ref.read(seriesActionsProvider).endSeries(seriesId!);
+    }
+    // Also strip FREQ from the current task so it no longer
+    // displays as recurring.
     final taskRepo = ref.read(taskRepositoryProvider);
-    final boardRepo = ref.read(boardRepositoryProvider);
-    final noteRepo = ref.read(taskNoteRepositoryProvider);
-    final tagRepo = ref.read(taskTagRepositoryProvider);
-
     final task = await taskRepo.getById(taskId);
-    if (task == null) return;
-    final (_, days) = parseRRule(task.recurrenceRule);
-    final byDayOnly = buildByDayOnly(days);
-
-    // Find the current board's weekStart to determine
-    // which instances are "future".
-    final board = await boardRepo.getById(boardId);
-    final currentWeekStart = board?.weekStart;
-
-    final series = await taskRepo.findSeriesInstances(task);
-    for (final instance in series) {
-      final instBoard = await boardRepo.getById(instance.boardId);
-      final instWeekStart = instBoard?.weekStart;
-
-      // Delete future instances entirely.
-      if (currentWeekStart != null &&
-          instWeekStart != null &&
-          instWeekStart.isAfter(currentWeekStart)) {
-        await noteRepo.deleteByTask(instance.id);
-        await tagRepo.deleteByTask(instance.id);
-        await taskRepo.delete(instance.id);
-      } else {
-        // Strip FREQ from current and past instances.
-        await taskRepo.update(
-          instance.copyWith(recurrenceRule: byDayOnly),
-        );
-      }
+    if (task != null) {
+      final (_, days) = parseRRule(task.recurrenceRule);
+      await taskRepo.update(
+        task.copyWith(recurrenceRule: buildByDayOnly(days)),
+      );
     }
   }
 

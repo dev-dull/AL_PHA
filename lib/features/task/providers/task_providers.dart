@@ -65,41 +65,4 @@ class TaskActions {
     await repo.delete(id);
   }
 
-  /// Updates all instances of a recurring series with the same
-  /// title, description, priority, recurrence rule, etc.
-  /// Preserves each instance's board, position, and state.
-  /// If [tagIds] is provided, applies the same tags to all.
-  Future<void> updateSeries(
-    Task updated, {
-    List<String>? tagIds,
-  }) async {
-    final repo = _ref.read(taskRepositoryProvider);
-    final tagRepo = _ref.read(taskTagRepositoryProvider);
-    final instances = await repo.findSeriesInstances(updated);
-    for (final instance in instances) {
-      await repo.update(instance.copyWith(
-        title: updated.title,
-        description: updated.description,
-        priority: updated.priority,
-        deadline: updated.deadline,
-        isEvent: updated.isEvent,
-        scheduledTime: updated.scheduledTime,
-        recurrenceRule: updated.recurrenceRule,
-      ));
-      if (tagIds != null) {
-        await tagRepo.setTagsForTask(instance.id, tagIds);
-      }
-    }
-  }
-
-  /// Deletes all instances of a recurring series across all boards.
-  Future<void> deleteSeries(Task task) async {
-    final repo = _ref.read(taskRepositoryProvider);
-    final noteRepo = _ref.read(taskNoteRepositoryProvider);
-    final instances = await repo.findSeriesInstances(task);
-    for (final instance in instances) {
-      await noteRepo.deleteByTask(instance.id);
-      await repo.delete(instance.id);
-    }
-  }
 }
