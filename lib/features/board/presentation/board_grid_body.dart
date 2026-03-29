@@ -359,10 +359,13 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
       // Check if this series should appear this week.
       final interval = rruleInterval(series.recurrenceRule);
+      final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
       final sourceWeekStart = startOfWeek(
         series.createdAt,
-        firstDay: ref.read(preferencesProvider).firstDayOfWeek,
+        firstDay: firstDay,
       );
+      // Don't show on weeks before the series was created.
+      if (weekStart.isBefore(sourceWeekStart)) continue;
       if (!shouldRecurOnWeek(sourceWeekStart, weekStart, interval)) {
         continue;
       }
