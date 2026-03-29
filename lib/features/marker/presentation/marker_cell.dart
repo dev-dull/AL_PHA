@@ -186,15 +186,8 @@ class MarkerCell extends ConsumerWidget {
         );
       }
     } else {
-      // Has a symbol — show radial menu or cycle.
-      // For recurring tasks: if cycling from slash→done, prompt first.
-      if (isRecurring &&
-          marker.symbol == MarkerSymbol.slash &&
-          !isEvent) {
-        _promptRecurringDone(context, ref);
-      } else {
-        _showRadialMenu(context, ref, marker);
-      }
+      // Has a symbol — show radial menu.
+      _showRadialMenu(context, ref, marker);
     }
   }
 
@@ -226,7 +219,12 @@ class MarkerCell extends ConsumerWidget {
       ),
     ).then((choice) {
       if (choice == 'slash') {
-        // Already on slash — no change needed.
+        ref.read(markerActionsProvider).setMarker(
+          boardId: boardId,
+          taskId: taskId,
+          columnId: columnId,
+          symbol: MarkerSymbol.slash,
+        );
       } else if (choice == 'done') {
         // Set done marker and remove FREQ from recurrence rule.
         ref.read(markerActionsProvider).setMarker(
@@ -241,16 +239,22 @@ class MarkerCell extends ConsumerWidget {
     });
   }
 
-  /// Strips the FREQ from the task's recurrence rule so it
-  /// stops being carried forward to new weeks.
+  /// Strips the FREQ from this task AND all instances in its
+  /// series so it stops being carried forward to new weeks.
   void _endRecurringSeries(WidgetRef ref) async {
     final taskRepo = ref.read(taskRepositoryProvider);
     final task = await taskRepo.getById(taskId);
     if (task == null) return;
     final (_, days) = parseRRule(task.recurrenceRule);
-    await taskRepo.update(
-      task.copyWith(recurrenceRule: buildByDayOnly(days)),
-    );
+    final byDayOnly = buildByDayOnly(days);
+
+    // Update all instances in the series.
+    final series = await taskRepo.findSeriesInstances(task);
+    for (final instance in series) {
+      await taskRepo.update(
+        instance.copyWith(recurrenceRule: byDayOnly),
+      );
+    }
   }
 
   void _showRadialMenu(
@@ -332,8 +336,9 @@ class _RadialMenuRoute extends PopupRoute<void> {
       isMigrationColumn: isMigrationColumn,
       isPastDay: isPastDay,
       onSelected: (symbol) {
-        onSelected(symbol);
         Navigator.of(context).pop();
+        // Call after pop so dialogs can show on top.
+        onSelected(symbol);
       },
       onDismiss: () => Navigator.of(context).pop(),
     );
