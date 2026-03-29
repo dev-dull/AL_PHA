@@ -119,6 +119,13 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       },
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
+        // If the task just became recurring and has no series,
+        // create one automatically.
+        if (updated.isRecurring && updated.seriesId == null) {
+          await ref
+              .read(seriesActionsProvider)
+              .createFromTask(updated);
+        }
         if (updated.recurrenceRule != null) {
           await _syncRecurrenceMarkers(updated);
         }
