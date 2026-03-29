@@ -7,6 +7,8 @@ import 'package:alpha/features/column/domain/column_type.dart';
 import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
+import 'package:alpha/features/task/domain/recurrence.dart';
+import 'package:alpha/shared/providers.dart';
 
 /// A single cell in the board grid matrix.
 ///
@@ -184,9 +186,71 @@ class MarkerCell extends ConsumerWidget {
         );
       }
     } else {
-      // Has a symbol — show radial menu.
-      _showRadialMenu(context, ref, marker);
+      // Has a symbol — show radial menu or cycle.
+      // For recurring tasks: if cycling from slash→done, prompt first.
+      if (isRecurring &&
+          marker.symbol == MarkerSymbol.slash &&
+          !isEvent) {
+        _promptRecurringDone(context, ref);
+      } else {
+        _showRadialMenu(context, ref, marker);
+      }
     }
+  }
+
+  /// Prompts the user before marking a recurring task as done,
+  /// since this ends the series.
+  void _promptRecurringDone(BuildContext context, WidgetRef ref) {
+    showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete Recurring Task'),
+        content: const Text(
+          'Marking this done will end the recurring series. '
+          'Did you mean to mark it as in progress instead?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop('cancel'),
+            child: const Text('Cancel'),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop('slash'),
+            child: const Text('In Progress'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop('done'),
+            child: const Text('End Series'),
+          ),
+        ],
+      ),
+    ).then((choice) {
+      if (choice == 'slash') {
+        // Already on slash — no change needed.
+      } else if (choice == 'done') {
+        // Set done marker and remove FREQ from recurrence rule.
+        ref.read(markerActionsProvider).setMarker(
+          boardId: boardId,
+          taskId: taskId,
+          columnId: columnId,
+          symbol: MarkerSymbol.x,
+        );
+        // Remove recurrence so it stops propagating.
+        _endRecurringSeries(ref);
+      }
+    });
+  }
+
+  /// Strips the FREQ from the task's recurrence rule so it
+  /// stops being carried forward to new weeks.
+  void _endRecurringSeries(WidgetRef ref) async {
+    final taskRepo = ref.read(taskRepositoryProvider);
+    final task = await taskRepo.getById(taskId);
+    if (task == null) return;
+    final (_, days) = parseRRule(task.recurrenceRule);
+    await taskRepo.update(
+      task.copyWith(recurrenceRule: buildByDayOnly(days)),
+    );
   }
 
   void _showRadialMenu(
@@ -207,6 +271,11 @@ class MarkerCell extends ConsumerWidget {
         isMigrationColumn: isMigration,
         isPastDay: isPastDay,
         onSelected: (symbol) {
+          // Intercept ✓ on recurring tasks.
+          if (symbol == MarkerSymbol.x && isRecurring && !isEvent) {
+            _promptRecurringDone(context, ref);
+            return;
+          }
           ref.read(markerActionsProvider).setMarker(
             boardId: boardId,
             taskId: taskId,

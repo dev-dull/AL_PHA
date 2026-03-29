@@ -773,9 +773,6 @@ class MarkerActions {
         final interval = rruleInterval(task.recurrenceRule);
         if (!shouldRecurOnWeek(
             prevWeekStart, boardWeekStart, interval)) {
-          // Mark as seen even if skipped — a closer week's
-          // copy would also fail the interval check, so we
-          // don't want an older copy to sneak through.
           handledTitles.add(task.title);
           continue;
         }
