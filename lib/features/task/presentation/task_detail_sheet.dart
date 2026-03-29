@@ -222,8 +222,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
   Future<void> _confirmDelete() async {
     _saved = true; // prevent auto-save on dismiss
-    // For recurring items, ask about series scope first.
-    if (widget.task.isRecurring) {
+    // For recurring items or tasks that are part of a migration
+    // chain (e.g., series that had FREQ stripped by "End Series"),
+    // ask about series scope.
+    final isPartOfSeries = widget.task.isRecurring ||
+        widget.task.migratedFromTaskId != null;
+    if (isPartOfSeries) {
       final choice = await _showSeriesPrompt('Delete');
       if (choice == null) return;
       if (choice == _SeriesChoice.thisOne) {
