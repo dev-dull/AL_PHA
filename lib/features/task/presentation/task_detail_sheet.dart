@@ -181,8 +181,20 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
                   : null,
     );
 
-    // If the task was already recurring before this edit,
-    // ask whether to update this occurrence or the series.
+    // If the recurrence rule changed on a recurring task,
+    // automatically propagate to the whole series (changing
+    // the repeat schedule is always a series-level change).
+    final recurrenceChanged = widget.task.isRecurring &&
+        updated.recurrenceRule != widget.task.recurrenceRule;
+
+    if (recurrenceChanged && widget.onSaveAll != null) {
+      widget.onSaveAll!(updated);
+      widget.onTagsChanged?.call(_selectedTagIds);
+      if (promptSeries && mounted) Navigator.of(context).pop();
+      return;
+    }
+
+    // For other changes on a recurring task, prompt.
     if (promptSeries && widget.task.isRecurring) {
       final choice = await _showSeriesPrompt('Edit');
       if (choice == null) {
