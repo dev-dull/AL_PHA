@@ -166,12 +166,21 @@ class MarkerCell extends ConsumerWidget {
         // so the user can adjust the schedule.
         onEventTap!();
       } else {
-        // Empty day cell — set dot for tasks, circle for events.
+        // Empty day cell — set appropriate marker.
+        // Past days on non-recurring tasks get > (migrated).
+        final MarkerSymbol sym;
+        if (isEvent) {
+          sym = MarkerSymbol.event;
+        } else if (isPastDay && !isRecurring) {
+          sym = MarkerSymbol.migratedForward;
+        } else {
+          sym = MarkerSymbol.dot;
+        }
         ref.read(markerActionsProvider).setMarker(
           boardId: boardId,
           taskId: taskId,
           columnId: columnId,
-          symbol: isEvent ? MarkerSymbol.event : MarkerSymbol.dot,
+          symbol: sym,
         );
       }
     } else {
