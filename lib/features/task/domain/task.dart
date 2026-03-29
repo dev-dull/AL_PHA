@@ -26,11 +26,16 @@ abstract class Task with _$Task {
     String? scheduledTime,
     /// iCal RRULE string, e.g. "FREQ=WEEKLY;BYDAY=MO,WE,FR".
     String? recurrenceRule,
+    /// Links this task to a RecurringSeries for virtual instance support.
+    String? seriesId,
   }) = _Task;
 
   /// Whether this task has an active recurrence schedule.
   bool get isRecurring =>
       recurrenceRule != null && recurrenceRule!.contains('FREQ=');
+
+  /// Whether this task is a materialized instance of a series.
+  bool get isSeriesInstance => seriesId != null;
 
   factory Task.fromJson(Map<String, dynamic> json) => _$TaskFromJson(json);
 }

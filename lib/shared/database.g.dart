@@ -988,6 +988,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _seriesIdMeta = const VerificationMeta(
+    'seriesId',
+  );
+  @override
+  late final GeneratedColumn<String> seriesId = GeneratedColumn<String>(
+    'series_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1005,6 +1016,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     isEvent,
     scheduledTime,
     recurrenceRule,
+    seriesId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1133,6 +1145,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('series_id')) {
+      context.handle(
+        _seriesIdMeta,
+        seriesId.isAcceptableOrUnknown(data['series_id']!, _seriesIdMeta),
+      );
+    }
     return context;
   }
 
@@ -1202,6 +1220,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}recurrence_rule'],
       ),
+      seriesId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}series_id'],
+      ),
     );
   }
 
@@ -1227,6 +1249,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final bool isEvent;
   final String? scheduledTime;
   final String? recurrenceRule;
+  final String? seriesId;
   const TaskRow({
     required this.id,
     required this.boardId,
@@ -1243,6 +1266,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     required this.isEvent,
     this.scheduledTime,
     this.recurrenceRule,
+    this.seriesId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1273,6 +1297,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     }
     if (!nullToAbsent || recurrenceRule != null) {
       map['recurrence_rule'] = Variable<String>(recurrenceRule);
+    }
+    if (!nullToAbsent || seriesId != null) {
+      map['series_id'] = Variable<String>(seriesId);
     }
     return map;
   }
@@ -1306,6 +1333,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       recurrenceRule: recurrenceRule == null && nullToAbsent
           ? const Value.absent()
           : Value(recurrenceRule),
+      seriesId: seriesId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(seriesId),
     );
   }
 
@@ -1334,6 +1364,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       isEvent: serializer.fromJson<bool>(json['isEvent']),
       scheduledTime: serializer.fromJson<String?>(json['scheduledTime']),
       recurrenceRule: serializer.fromJson<String?>(json['recurrenceRule']),
+      seriesId: serializer.fromJson<String?>(json['seriesId']),
     );
   }
   @override
@@ -1355,6 +1386,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'isEvent': serializer.toJson<bool>(isEvent),
       'scheduledTime': serializer.toJson<String?>(scheduledTime),
       'recurrenceRule': serializer.toJson<String?>(recurrenceRule),
+      'seriesId': serializer.toJson<String?>(seriesId),
     };
   }
 
@@ -1374,6 +1406,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     bool? isEvent,
     Value<String?> scheduledTime = const Value.absent(),
     Value<String?> recurrenceRule = const Value.absent(),
+    Value<String?> seriesId = const Value.absent(),
   }) => TaskRow(
     id: id ?? this.id,
     boardId: boardId ?? this.boardId,
@@ -1398,6 +1431,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     recurrenceRule: recurrenceRule.present
         ? recurrenceRule.value
         : this.recurrenceRule,
+    seriesId: seriesId.present ? seriesId.value : this.seriesId,
   );
   TaskRow copyWithCompanion(TasksCompanion data) {
     return TaskRow(
@@ -1428,6 +1462,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       recurrenceRule: data.recurrenceRule.present
           ? data.recurrenceRule.value
           : this.recurrenceRule,
+      seriesId: data.seriesId.present ? data.seriesId.value : this.seriesId,
     );
   }
 
@@ -1448,7 +1483,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('migratedFromTaskId: $migratedFromTaskId, ')
           ..write('isEvent: $isEvent, ')
           ..write('scheduledTime: $scheduledTime, ')
-          ..write('recurrenceRule: $recurrenceRule')
+          ..write('recurrenceRule: $recurrenceRule, ')
+          ..write('seriesId: $seriesId')
           ..write(')'))
         .toString();
   }
@@ -1470,6 +1506,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     isEvent,
     scheduledTime,
     recurrenceRule,
+    seriesId,
   );
   @override
   bool operator ==(Object other) =>
@@ -1489,7 +1526,8 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.migratedFromTaskId == this.migratedFromTaskId &&
           other.isEvent == this.isEvent &&
           other.scheduledTime == this.scheduledTime &&
-          other.recurrenceRule == this.recurrenceRule);
+          other.recurrenceRule == this.recurrenceRule &&
+          other.seriesId == this.seriesId);
 }
 
 class TasksCompanion extends UpdateCompanion<TaskRow> {
@@ -1508,6 +1546,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<bool> isEvent;
   final Value<String?> scheduledTime;
   final Value<String?> recurrenceRule;
+  final Value<String?> seriesId;
   final Value<int> rowid;
   const TasksCompanion({
     this.id = const Value.absent(),
@@ -1525,6 +1564,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.isEvent = const Value.absent(),
     this.scheduledTime = const Value.absent(),
     this.recurrenceRule = const Value.absent(),
+    this.seriesId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TasksCompanion.insert({
@@ -1543,6 +1583,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.isEvent = const Value.absent(),
     this.scheduledTime = const Value.absent(),
     this.recurrenceRule = const Value.absent(),
+    this.seriesId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        boardId = Value(boardId),
@@ -1565,6 +1606,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<bool>? isEvent,
     Expression<String>? scheduledTime,
     Expression<String>? recurrenceRule,
+    Expression<String>? seriesId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1585,6 +1627,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       if (isEvent != null) 'is_event': isEvent,
       if (scheduledTime != null) 'scheduled_time': scheduledTime,
       if (recurrenceRule != null) 'recurrence_rule': recurrenceRule,
+      if (seriesId != null) 'series_id': seriesId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1605,6 +1648,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<bool>? isEvent,
     Value<String?>? scheduledTime,
     Value<String?>? recurrenceRule,
+    Value<String?>? seriesId,
     Value<int>? rowid,
   }) {
     return TasksCompanion(
@@ -1623,6 +1667,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       isEvent: isEvent ?? this.isEvent,
       scheduledTime: scheduledTime ?? this.scheduledTime,
       recurrenceRule: recurrenceRule ?? this.recurrenceRule,
+      seriesId: seriesId ?? this.seriesId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1677,6 +1722,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     if (recurrenceRule.present) {
       map['recurrence_rule'] = Variable<String>(recurrenceRule.value);
     }
+    if (seriesId.present) {
+      map['series_id'] = Variable<String>(seriesId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1701,6 +1749,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('isEvent: $isEvent, ')
           ..write('scheduledTime: $scheduledTime, ')
           ..write('recurrenceRule: $recurrenceRule, ')
+          ..write('seriesId: $seriesId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3108,6 +3157,850 @@ class TaskTagsCompanion extends UpdateCompanion<TaskTagRow> {
   }
 }
 
+class $RecurringSeriesTableTable extends RecurringSeriesTable
+    with TableInfo<$RecurringSeriesTableTable, RecurringSeriesRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecurringSeriesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _recurrenceRuleMeta = const VerificationMeta(
+    'recurrenceRule',
+  );
+  @override
+  late final GeneratedColumn<String> recurrenceRule = GeneratedColumn<String>(
+    'recurrence_rule',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isEventMeta = const VerificationMeta(
+    'isEvent',
+  );
+  @override
+  late final GeneratedColumn<bool> isEvent = GeneratedColumn<bool>(
+    'is_event',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_event" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _scheduledTimeMeta = const VerificationMeta(
+    'scheduledTime',
+  );
+  @override
+  late final GeneratedColumn<String> scheduledTime = GeneratedColumn<String>(
+    'scheduled_time',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endedAtMeta = const VerificationMeta(
+    'endedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endedAt = GeneratedColumn<DateTime>(
+    'ended_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    description,
+    priority,
+    recurrenceRule,
+    isEvent,
+    scheduledTime,
+    createdAt,
+    endedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recurring_series';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RecurringSeriesRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    if (data.containsKey('recurrence_rule')) {
+      context.handle(
+        _recurrenceRuleMeta,
+        recurrenceRule.isAcceptableOrUnknown(
+          data['recurrence_rule']!,
+          _recurrenceRuleMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recurrenceRuleMeta);
+    }
+    if (data.containsKey('is_event')) {
+      context.handle(
+        _isEventMeta,
+        isEvent.isAcceptableOrUnknown(data['is_event']!, _isEventMeta),
+      );
+    }
+    if (data.containsKey('scheduled_time')) {
+      context.handle(
+        _scheduledTimeMeta,
+        scheduledTime.isAcceptableOrUnknown(
+          data['scheduled_time']!,
+          _scheduledTimeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('ended_at')) {
+      context.handle(
+        _endedAtMeta,
+        endedAt.isAcceptableOrUnknown(data['ended_at']!, _endedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecurringSeriesRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecurringSeriesRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+      recurrenceRule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence_rule'],
+      )!,
+      isEvent: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_event'],
+      )!,
+      scheduledTime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}scheduled_time'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      endedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}ended_at'],
+      ),
+    );
+  }
+
+  @override
+  $RecurringSeriesTableTable createAlias(String alias) {
+    return $RecurringSeriesTableTable(attachedDatabase, alias);
+  }
+}
+
+class RecurringSeriesRow extends DataClass
+    implements Insertable<RecurringSeriesRow> {
+  final String id;
+  final String title;
+  final String description;
+  final int priority;
+  final String recurrenceRule;
+  final bool isEvent;
+  final String? scheduledTime;
+  final DateTime createdAt;
+  final DateTime? endedAt;
+  const RecurringSeriesRow({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.priority,
+    required this.recurrenceRule,
+    required this.isEvent,
+    this.scheduledTime,
+    required this.createdAt,
+    this.endedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['description'] = Variable<String>(description);
+    map['priority'] = Variable<int>(priority);
+    map['recurrence_rule'] = Variable<String>(recurrenceRule);
+    map['is_event'] = Variable<bool>(isEvent);
+    if (!nullToAbsent || scheduledTime != null) {
+      map['scheduled_time'] = Variable<String>(scheduledTime);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || endedAt != null) {
+      map['ended_at'] = Variable<DateTime>(endedAt);
+    }
+    return map;
+  }
+
+  RecurringSeriesTableCompanion toCompanion(bool nullToAbsent) {
+    return RecurringSeriesTableCompanion(
+      id: Value(id),
+      title: Value(title),
+      description: Value(description),
+      priority: Value(priority),
+      recurrenceRule: Value(recurrenceRule),
+      isEvent: Value(isEvent),
+      scheduledTime: scheduledTime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduledTime),
+      createdAt: Value(createdAt),
+      endedAt: endedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endedAt),
+    );
+  }
+
+  factory RecurringSeriesRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecurringSeriesRow(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      description: serializer.fromJson<String>(json['description']),
+      priority: serializer.fromJson<int>(json['priority']),
+      recurrenceRule: serializer.fromJson<String>(json['recurrenceRule']),
+      isEvent: serializer.fromJson<bool>(json['isEvent']),
+      scheduledTime: serializer.fromJson<String?>(json['scheduledTime']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'description': serializer.toJson<String>(description),
+      'priority': serializer.toJson<int>(priority),
+      'recurrenceRule': serializer.toJson<String>(recurrenceRule),
+      'isEvent': serializer.toJson<bool>(isEvent),
+      'scheduledTime': serializer.toJson<String?>(scheduledTime),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'endedAt': serializer.toJson<DateTime?>(endedAt),
+    };
+  }
+
+  RecurringSeriesRow copyWith({
+    String? id,
+    String? title,
+    String? description,
+    int? priority,
+    String? recurrenceRule,
+    bool? isEvent,
+    Value<String?> scheduledTime = const Value.absent(),
+    DateTime? createdAt,
+    Value<DateTime?> endedAt = const Value.absent(),
+  }) => RecurringSeriesRow(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    description: description ?? this.description,
+    priority: priority ?? this.priority,
+    recurrenceRule: recurrenceRule ?? this.recurrenceRule,
+    isEvent: isEvent ?? this.isEvent,
+    scheduledTime: scheduledTime.present
+        ? scheduledTime.value
+        : this.scheduledTime,
+    createdAt: createdAt ?? this.createdAt,
+    endedAt: endedAt.present ? endedAt.value : this.endedAt,
+  );
+  RecurringSeriesRow copyWithCompanion(RecurringSeriesTableCompanion data) {
+    return RecurringSeriesRow(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      recurrenceRule: data.recurrenceRule.present
+          ? data.recurrenceRule.value
+          : this.recurrenceRule,
+      isEvent: data.isEvent.present ? data.isEvent.value : this.isEvent,
+      scheduledTime: data.scheduledTime.present
+          ? data.scheduledTime.value
+          : this.scheduledTime,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringSeriesRow(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('priority: $priority, ')
+          ..write('recurrenceRule: $recurrenceRule, ')
+          ..write('isEvent: $isEvent, ')
+          ..write('scheduledTime: $scheduledTime, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('endedAt: $endedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    description,
+    priority,
+    recurrenceRule,
+    isEvent,
+    scheduledTime,
+    createdAt,
+    endedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecurringSeriesRow &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.description == this.description &&
+          other.priority == this.priority &&
+          other.recurrenceRule == this.recurrenceRule &&
+          other.isEvent == this.isEvent &&
+          other.scheduledTime == this.scheduledTime &&
+          other.createdAt == this.createdAt &&
+          other.endedAt == this.endedAt);
+}
+
+class RecurringSeriesTableCompanion
+    extends UpdateCompanion<RecurringSeriesRow> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String> description;
+  final Value<int> priority;
+  final Value<String> recurrenceRule;
+  final Value<bool> isEvent;
+  final Value<String?> scheduledTime;
+  final Value<DateTime> createdAt;
+  final Value<DateTime?> endedAt;
+  final Value<int> rowid;
+  const RecurringSeriesTableCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.description = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.recurrenceRule = const Value.absent(),
+    this.isEvent = const Value.absent(),
+    this.scheduledTime = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.endedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecurringSeriesTableCompanion.insert({
+    required String id,
+    required String title,
+    this.description = const Value.absent(),
+    this.priority = const Value.absent(),
+    required String recurrenceRule,
+    this.isEvent = const Value.absent(),
+    this.scheduledTime = const Value.absent(),
+    required DateTime createdAt,
+    this.endedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       recurrenceRule = Value(recurrenceRule),
+       createdAt = Value(createdAt);
+  static Insertable<RecurringSeriesRow> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? description,
+    Expression<int>? priority,
+    Expression<String>? recurrenceRule,
+    Expression<bool>? isEvent,
+    Expression<String>? scheduledTime,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? endedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (description != null) 'description': description,
+      if (priority != null) 'priority': priority,
+      if (recurrenceRule != null) 'recurrence_rule': recurrenceRule,
+      if (isEvent != null) 'is_event': isEvent,
+      if (scheduledTime != null) 'scheduled_time': scheduledTime,
+      if (createdAt != null) 'created_at': createdAt,
+      if (endedAt != null) 'ended_at': endedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecurringSeriesTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String>? description,
+    Value<int>? priority,
+    Value<String>? recurrenceRule,
+    Value<bool>? isEvent,
+    Value<String?>? scheduledTime,
+    Value<DateTime>? createdAt,
+    Value<DateTime?>? endedAt,
+    Value<int>? rowid,
+  }) {
+    return RecurringSeriesTableCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      priority: priority ?? this.priority,
+      recurrenceRule: recurrenceRule ?? this.recurrenceRule,
+      isEvent: isEvent ?? this.isEvent,
+      scheduledTime: scheduledTime ?? this.scheduledTime,
+      createdAt: createdAt ?? this.createdAt,
+      endedAt: endedAt ?? this.endedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (recurrenceRule.present) {
+      map['recurrence_rule'] = Variable<String>(recurrenceRule.value);
+    }
+    if (isEvent.present) {
+      map['is_event'] = Variable<bool>(isEvent.value);
+    }
+    if (scheduledTime.present) {
+      map['scheduled_time'] = Variable<String>(scheduledTime.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (endedAt.present) {
+      map['ended_at'] = Variable<DateTime>(endedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringSeriesTableCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('description: $description, ')
+          ..write('priority: $priority, ')
+          ..write('recurrenceRule: $recurrenceRule, ')
+          ..write('isEvent: $isEvent, ')
+          ..write('scheduledTime: $scheduledTime, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('endedAt: $endedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SeriesTagsTable extends SeriesTags
+    with TableInfo<$SeriesTagsTable, SeriesTagRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SeriesTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _seriesIdMeta = const VerificationMeta(
+    'seriesId',
+  );
+  @override
+  late final GeneratedColumn<String> seriesId = GeneratedColumn<String>(
+    'series_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES recurring_series (id)',
+    ),
+  );
+  static const VerificationMeta _tagIdMeta = const VerificationMeta('tagId');
+  @override
+  late final GeneratedColumn<String> tagId = GeneratedColumn<String>(
+    'tag_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tags (id)',
+    ),
+  );
+  static const VerificationMeta _slotMeta = const VerificationMeta('slot');
+  @override
+  late final GeneratedColumn<int> slot = GeneratedColumn<int>(
+    'slot',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [seriesId, tagId, slot];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'series_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SeriesTagRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('series_id')) {
+      context.handle(
+        _seriesIdMeta,
+        seriesId.isAcceptableOrUnknown(data['series_id']!, _seriesIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seriesIdMeta);
+    }
+    if (data.containsKey('tag_id')) {
+      context.handle(
+        _tagIdMeta,
+        tagId.isAcceptableOrUnknown(data['tag_id']!, _tagIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tagIdMeta);
+    }
+    if (data.containsKey('slot')) {
+      context.handle(
+        _slotMeta,
+        slot.isAcceptableOrUnknown(data['slot']!, _slotMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_slotMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {seriesId, tagId};
+  @override
+  SeriesTagRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SeriesTagRow(
+      seriesId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}series_id'],
+      )!,
+      tagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tag_id'],
+      )!,
+      slot: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}slot'],
+      )!,
+    );
+  }
+
+  @override
+  $SeriesTagsTable createAlias(String alias) {
+    return $SeriesTagsTable(attachedDatabase, alias);
+  }
+}
+
+class SeriesTagRow extends DataClass implements Insertable<SeriesTagRow> {
+  final String seriesId;
+  final String tagId;
+  final int slot;
+  const SeriesTagRow({
+    required this.seriesId,
+    required this.tagId,
+    required this.slot,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['series_id'] = Variable<String>(seriesId);
+    map['tag_id'] = Variable<String>(tagId);
+    map['slot'] = Variable<int>(slot);
+    return map;
+  }
+
+  SeriesTagsCompanion toCompanion(bool nullToAbsent) {
+    return SeriesTagsCompanion(
+      seriesId: Value(seriesId),
+      tagId: Value(tagId),
+      slot: Value(slot),
+    );
+  }
+
+  factory SeriesTagRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SeriesTagRow(
+      seriesId: serializer.fromJson<String>(json['seriesId']),
+      tagId: serializer.fromJson<String>(json['tagId']),
+      slot: serializer.fromJson<int>(json['slot']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'seriesId': serializer.toJson<String>(seriesId),
+      'tagId': serializer.toJson<String>(tagId),
+      'slot': serializer.toJson<int>(slot),
+    };
+  }
+
+  SeriesTagRow copyWith({String? seriesId, String? tagId, int? slot}) =>
+      SeriesTagRow(
+        seriesId: seriesId ?? this.seriesId,
+        tagId: tagId ?? this.tagId,
+        slot: slot ?? this.slot,
+      );
+  SeriesTagRow copyWithCompanion(SeriesTagsCompanion data) {
+    return SeriesTagRow(
+      seriesId: data.seriesId.present ? data.seriesId.value : this.seriesId,
+      tagId: data.tagId.present ? data.tagId.value : this.tagId,
+      slot: data.slot.present ? data.slot.value : this.slot,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SeriesTagRow(')
+          ..write('seriesId: $seriesId, ')
+          ..write('tagId: $tagId, ')
+          ..write('slot: $slot')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(seriesId, tagId, slot);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SeriesTagRow &&
+          other.seriesId == this.seriesId &&
+          other.tagId == this.tagId &&
+          other.slot == this.slot);
+}
+
+class SeriesTagsCompanion extends UpdateCompanion<SeriesTagRow> {
+  final Value<String> seriesId;
+  final Value<String> tagId;
+  final Value<int> slot;
+  final Value<int> rowid;
+  const SeriesTagsCompanion({
+    this.seriesId = const Value.absent(),
+    this.tagId = const Value.absent(),
+    this.slot = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SeriesTagsCompanion.insert({
+    required String seriesId,
+    required String tagId,
+    required int slot,
+    this.rowid = const Value.absent(),
+  }) : seriesId = Value(seriesId),
+       tagId = Value(tagId),
+       slot = Value(slot);
+  static Insertable<SeriesTagRow> custom({
+    Expression<String>? seriesId,
+    Expression<String>? tagId,
+    Expression<int>? slot,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (seriesId != null) 'series_id': seriesId,
+      if (tagId != null) 'tag_id': tagId,
+      if (slot != null) 'slot': slot,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SeriesTagsCompanion copyWith({
+    Value<String>? seriesId,
+    Value<String>? tagId,
+    Value<int>? slot,
+    Value<int>? rowid,
+  }) {
+    return SeriesTagsCompanion(
+      seriesId: seriesId ?? this.seriesId,
+      tagId: tagId ?? this.tagId,
+      slot: slot ?? this.slot,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (seriesId.present) {
+      map['series_id'] = Variable<String>(seriesId.value);
+    }
+    if (tagId.present) {
+      map['tag_id'] = Variable<String>(tagId.value);
+    }
+    if (slot.present) {
+      map['slot'] = Variable<int>(slot.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SeriesTagsCompanion(')
+          ..write('seriesId: $seriesId, ')
+          ..write('tagId: $tagId, ')
+          ..write('slot: $slot, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AlphaDatabase extends GeneratedDatabase {
   _$AlphaDatabase(QueryExecutor e) : super(e);
   $AlphaDatabaseManager get managers => $AlphaDatabaseManager(this);
@@ -3118,6 +4011,9 @@ abstract class _$AlphaDatabase extends GeneratedDatabase {
   late final $TaskNotesTable taskNotes = $TaskNotesTable(this);
   late final $TagsTable tags = $TagsTable(this);
   late final $TaskTagsTable taskTags = $TaskTagsTable(this);
+  late final $RecurringSeriesTableTable recurringSeriesTable =
+      $RecurringSeriesTableTable(this);
+  late final $SeriesTagsTable seriesTags = $SeriesTagsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3130,6 +4026,8 @@ abstract class _$AlphaDatabase extends GeneratedDatabase {
     taskNotes,
     tags,
     taskTags,
+    recurringSeriesTable,
+    seriesTags,
   ];
 }
 
@@ -4089,6 +4987,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<bool> isEvent,
       Value<String?> scheduledTime,
       Value<String?> recurrenceRule,
+      Value<String?> seriesId,
       Value<int> rowid,
     });
 typedef $$TasksTableUpdateCompanionBuilder =
@@ -4108,6 +5007,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<bool> isEvent,
       Value<String?> scheduledTime,
       Value<String?> recurrenceRule,
+      Value<String?> seriesId,
       Value<int> rowid,
     });
 
@@ -4264,6 +5164,11 @@ class $$TasksTableFilterComposer
 
   ColumnFilters<String> get recurrenceRule => $composableBuilder(
     column: $table.recurrenceRule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get seriesId => $composableBuilder(
+    column: $table.seriesId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4445,6 +5350,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get seriesId => $composableBuilder(
+    column: $table.seriesId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$BoardsTableOrderingComposer get boardId {
     final $$BoardsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4531,6 +5441,9 @@ class $$TasksTableAnnotationComposer
     column: $table.recurrenceRule,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get seriesId =>
+      $composableBuilder(column: $table.seriesId, builder: (column) => column);
 
   $$BoardsTableAnnotationComposer get boardId {
     final $$BoardsTableAnnotationComposer composer = $composerBuilder(
@@ -4679,6 +5592,7 @@ class $$TasksTableTableManager
                 Value<bool> isEvent = const Value.absent(),
                 Value<String?> scheduledTime = const Value.absent(),
                 Value<String?> recurrenceRule = const Value.absent(),
+                Value<String?> seriesId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
@@ -4696,6 +5610,7 @@ class $$TasksTableTableManager
                 isEvent: isEvent,
                 scheduledTime: scheduledTime,
                 recurrenceRule: recurrenceRule,
+                seriesId: seriesId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4715,6 +5630,7 @@ class $$TasksTableTableManager
                 Value<bool> isEvent = const Value.absent(),
                 Value<String?> scheduledTime = const Value.absent(),
                 Value<String?> recurrenceRule = const Value.absent(),
+                Value<String?> seriesId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
@@ -4732,6 +5648,7 @@ class $$TasksTableTableManager
                 isEvent: isEvent,
                 scheduledTime: scheduledTime,
                 recurrenceRule: recurrenceRule,
+                seriesId: seriesId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -5744,6 +6661,24 @@ final class $$TagsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$SeriesTagsTable, List<SeriesTagRow>>
+  _seriesTagsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+    db.seriesTags,
+    aliasName: $_aliasNameGenerator(db.tags.id, db.seriesTags.tagId),
+  );
+
+  $$SeriesTagsTableProcessedTableManager get seriesTagsRefs {
+    final manager = $$SeriesTagsTableTableManager(
+      $_db,
+      $_db.seriesTags,
+    ).filter((f) => f.tagId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_seriesTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TagsTableFilterComposer extends Composer<_$AlphaDatabase, $TagsTable> {
@@ -5795,6 +6730,31 @@ class $$TagsTableFilterComposer extends Composer<_$AlphaDatabase, $TagsTable> {
           }) => $$TaskTagsTableFilterComposer(
             $db: $db,
             $table: $db.taskTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> seriesTagsRefs(
+    Expression<bool> Function($$SeriesTagsTableFilterComposer f) f,
+  ) {
+    final $$SeriesTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.seriesTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeriesTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.seriesTags,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5888,6 +6848,31 @@ class $$TagsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> seriesTagsRefs<T extends Object>(
+    Expression<T> Function($$SeriesTagsTableAnnotationComposer a) f,
+  ) {
+    final $$SeriesTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.seriesTags,
+      getReferencedColumn: (t) => t.tagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeriesTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seriesTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TagsTableTableManager
@@ -5903,7 +6888,7 @@ class $$TagsTableTableManager
           $$TagsTableUpdateCompanionBuilder,
           (TagRow, $$TagsTableReferences),
           TagRow,
-          PrefetchHooks Function({bool taskTagsRefs})
+          PrefetchHooks Function({bool taskTagsRefs, bool seriesTagsRefs})
         > {
   $$TagsTableTableManager(_$AlphaDatabase db, $TagsTable table)
     : super(
@@ -5954,29 +6939,58 @@ class $$TagsTableTableManager
                     (e.readTable(table), $$TagsTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({taskTagsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (taskTagsRefs) db.taskTags],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (taskTagsRefs)
-                    await $_getPrefetchedData<TagRow, $TagsTable, TaskTagRow>(
-                      currentTable: table,
-                      referencedTable: $$TagsTableReferences._taskTagsRefsTable(
-                        db,
-                      ),
-                      managerFromTypedResult: (p0) =>
-                          $$TagsTableReferences(db, table, p0).taskTagsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.tagId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({taskTagsRefs = false, seriesTagsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (taskTagsRefs) db.taskTags,
+                    if (seriesTagsRefs) db.seriesTags,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (taskTagsRefs)
+                        await $_getPrefetchedData<
+                          TagRow,
+                          $TagsTable,
+                          TaskTagRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TagsTableReferences
+                              ._taskTagsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TagsTableReferences(db, table, p0).taskTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.tagId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (seriesTagsRefs)
+                        await $_getPrefetchedData<
+                          TagRow,
+                          $TagsTable,
+                          SeriesTagRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TagsTableReferences
+                              ._seriesTagsRefsTable(db),
+                          managerFromTypedResult: (p0) => $$TagsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).seriesTagsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.tagId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -5993,7 +7007,7 @@ typedef $$TagsTableProcessedTableManager =
       $$TagsTableUpdateCompanionBuilder,
       (TagRow, $$TagsTableReferences),
       TagRow,
-      PrefetchHooks Function({bool taskTagsRefs})
+      PrefetchHooks Function({bool taskTagsRefs, bool seriesTagsRefs})
     >;
 typedef $$TaskTagsTableCreateCompanionBuilder =
     TaskTagsCompanion Function({
@@ -6361,6 +7375,782 @@ typedef $$TaskTagsTableProcessedTableManager =
       TaskTagRow,
       PrefetchHooks Function({bool taskId, bool tagId})
     >;
+typedef $$RecurringSeriesTableTableCreateCompanionBuilder =
+    RecurringSeriesTableCompanion Function({
+      required String id,
+      required String title,
+      Value<String> description,
+      Value<int> priority,
+      required String recurrenceRule,
+      Value<bool> isEvent,
+      Value<String?> scheduledTime,
+      required DateTime createdAt,
+      Value<DateTime?> endedAt,
+      Value<int> rowid,
+    });
+typedef $$RecurringSeriesTableTableUpdateCompanionBuilder =
+    RecurringSeriesTableCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String> description,
+      Value<int> priority,
+      Value<String> recurrenceRule,
+      Value<bool> isEvent,
+      Value<String?> scheduledTime,
+      Value<DateTime> createdAt,
+      Value<DateTime?> endedAt,
+      Value<int> rowid,
+    });
+
+final class $$RecurringSeriesTableTableReferences
+    extends
+        BaseReferences<
+          _$AlphaDatabase,
+          $RecurringSeriesTableTable,
+          RecurringSeriesRow
+        > {
+  $$RecurringSeriesTableTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$SeriesTagsTable, List<SeriesTagRow>>
+  _seriesTagsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+    db.seriesTags,
+    aliasName: $_aliasNameGenerator(
+      db.recurringSeriesTable.id,
+      db.seriesTags.seriesId,
+    ),
+  );
+
+  $$SeriesTagsTableProcessedTableManager get seriesTagsRefs {
+    final manager = $$SeriesTagsTableTableManager(
+      $_db,
+      $_db.seriesTags,
+    ).filter((f) => f.seriesId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_seriesTagsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$RecurringSeriesTableTableFilterComposer
+    extends Composer<_$AlphaDatabase, $RecurringSeriesTableTable> {
+  $$RecurringSeriesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrenceRule => $composableBuilder(
+    column: $table.recurrenceRule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isEvent => $composableBuilder(
+    column: $table.isEvent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get scheduledTime => $composableBuilder(
+    column: $table.scheduledTime,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> seriesTagsRefs(
+    Expression<bool> Function($$SeriesTagsTableFilterComposer f) f,
+  ) {
+    final $$SeriesTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.seriesTags,
+      getReferencedColumn: (t) => t.seriesId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeriesTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.seriesTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$RecurringSeriesTableTableOrderingComposer
+    extends Composer<_$AlphaDatabase, $RecurringSeriesTableTable> {
+  $$RecurringSeriesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recurrenceRule => $composableBuilder(
+    column: $table.recurrenceRule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isEvent => $composableBuilder(
+    column: $table.isEvent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get scheduledTime => $composableBuilder(
+    column: $table.scheduledTime,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endedAt => $composableBuilder(
+    column: $table.endedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RecurringSeriesTableTableAnnotationComposer
+    extends Composer<_$AlphaDatabase, $RecurringSeriesTableTable> {
+  $$RecurringSeriesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<String> get recurrenceRule => $composableBuilder(
+    column: $table.recurrenceRule,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isEvent =>
+      $composableBuilder(column: $table.isEvent, builder: (column) => column);
+
+  GeneratedColumn<String> get scheduledTime => $composableBuilder(
+    column: $table.scheduledTime,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endedAt =>
+      $composableBuilder(column: $table.endedAt, builder: (column) => column);
+
+  Expression<T> seriesTagsRefs<T extends Object>(
+    Expression<T> Function($$SeriesTagsTableAnnotationComposer a) f,
+  ) {
+    final $$SeriesTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.seriesTags,
+      getReferencedColumn: (t) => t.seriesId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SeriesTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seriesTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$RecurringSeriesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AlphaDatabase,
+          $RecurringSeriesTableTable,
+          RecurringSeriesRow,
+          $$RecurringSeriesTableTableFilterComposer,
+          $$RecurringSeriesTableTableOrderingComposer,
+          $$RecurringSeriesTableTableAnnotationComposer,
+          $$RecurringSeriesTableTableCreateCompanionBuilder,
+          $$RecurringSeriesTableTableUpdateCompanionBuilder,
+          (RecurringSeriesRow, $$RecurringSeriesTableTableReferences),
+          RecurringSeriesRow,
+          PrefetchHooks Function({bool seriesTagsRefs})
+        > {
+  $$RecurringSeriesTableTableTableManager(
+    _$AlphaDatabase db,
+    $RecurringSeriesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecurringSeriesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecurringSeriesTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RecurringSeriesTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<String> recurrenceRule = const Value.absent(),
+                Value<bool> isEvent = const Value.absent(),
+                Value<String?> scheduledTime = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecurringSeriesTableCompanion(
+                id: id,
+                title: title,
+                description: description,
+                priority: priority,
+                recurrenceRule: recurrenceRule,
+                isEvent: isEvent,
+                scheduledTime: scheduledTime,
+                createdAt: createdAt,
+                endedAt: endedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                Value<String> description = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                required String recurrenceRule,
+                Value<bool> isEvent = const Value.absent(),
+                Value<String?> scheduledTime = const Value.absent(),
+                required DateTime createdAt,
+                Value<DateTime?> endedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RecurringSeriesTableCompanion.insert(
+                id: id,
+                title: title,
+                description: description,
+                priority: priority,
+                recurrenceRule: recurrenceRule,
+                isEvent: isEvent,
+                scheduledTime: scheduledTime,
+                createdAt: createdAt,
+                endedAt: endedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$RecurringSeriesTableTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({seriesTagsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (seriesTagsRefs) db.seriesTags],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (seriesTagsRefs)
+                    await $_getPrefetchedData<
+                      RecurringSeriesRow,
+                      $RecurringSeriesTableTable,
+                      SeriesTagRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$RecurringSeriesTableTableReferences
+                          ._seriesTagsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$RecurringSeriesTableTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).seriesTagsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.seriesId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RecurringSeriesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AlphaDatabase,
+      $RecurringSeriesTableTable,
+      RecurringSeriesRow,
+      $$RecurringSeriesTableTableFilterComposer,
+      $$RecurringSeriesTableTableOrderingComposer,
+      $$RecurringSeriesTableTableAnnotationComposer,
+      $$RecurringSeriesTableTableCreateCompanionBuilder,
+      $$RecurringSeriesTableTableUpdateCompanionBuilder,
+      (RecurringSeriesRow, $$RecurringSeriesTableTableReferences),
+      RecurringSeriesRow,
+      PrefetchHooks Function({bool seriesTagsRefs})
+    >;
+typedef $$SeriesTagsTableCreateCompanionBuilder =
+    SeriesTagsCompanion Function({
+      required String seriesId,
+      required String tagId,
+      required int slot,
+      Value<int> rowid,
+    });
+typedef $$SeriesTagsTableUpdateCompanionBuilder =
+    SeriesTagsCompanion Function({
+      Value<String> seriesId,
+      Value<String> tagId,
+      Value<int> slot,
+      Value<int> rowid,
+    });
+
+final class $$SeriesTagsTableReferences
+    extends BaseReferences<_$AlphaDatabase, $SeriesTagsTable, SeriesTagRow> {
+  $$SeriesTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RecurringSeriesTableTable _seriesIdTable(_$AlphaDatabase db) =>
+      db.recurringSeriesTable.createAlias(
+        $_aliasNameGenerator(
+          db.seriesTags.seriesId,
+          db.recurringSeriesTable.id,
+        ),
+      );
+
+  $$RecurringSeriesTableTableProcessedTableManager get seriesId {
+    final $_column = $_itemColumn<String>('series_id')!;
+
+    final manager = $$RecurringSeriesTableTableTableManager(
+      $_db,
+      $_db.recurringSeriesTable,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seriesIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $TagsTable _tagIdTable(_$AlphaDatabase db) => db.tags.createAlias(
+    $_aliasNameGenerator(db.seriesTags.tagId, db.tags.id),
+  );
+
+  $$TagsTableProcessedTableManager get tagId {
+    final $_column = $_itemColumn<String>('tag_id')!;
+
+    final manager = $$TagsTableTableManager(
+      $_db,
+      $_db.tags,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_tagIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$SeriesTagsTableFilterComposer
+    extends Composer<_$AlphaDatabase, $SeriesTagsTable> {
+  $$SeriesTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$RecurringSeriesTableTableFilterComposer get seriesId {
+    final $$RecurringSeriesTableTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.seriesId,
+      referencedTable: $db.recurringSeriesTable,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RecurringSeriesTableTableFilterComposer(
+            $db: $db,
+            $table: $db.recurringSeriesTable,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TagsTableFilterComposer get tagId {
+    final $$TagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableFilterComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SeriesTagsTableOrderingComposer
+    extends Composer<_$AlphaDatabase, $SeriesTagsTable> {
+  $$SeriesTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get slot => $composableBuilder(
+    column: $table.slot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$RecurringSeriesTableTableOrderingComposer get seriesId {
+    final $$RecurringSeriesTableTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.seriesId,
+          referencedTable: $db.recurringSeriesTable,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringSeriesTableTableOrderingComposer(
+                $db: $db,
+                $table: $db.recurringSeriesTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$TagsTableOrderingComposer get tagId {
+    final $$TagsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableOrderingComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SeriesTagsTableAnnotationComposer
+    extends Composer<_$AlphaDatabase, $SeriesTagsTable> {
+  $$SeriesTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get slot =>
+      $composableBuilder(column: $table.slot, builder: (column) => column);
+
+  $$RecurringSeriesTableTableAnnotationComposer get seriesId {
+    final $$RecurringSeriesTableTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.seriesId,
+          referencedTable: $db.recurringSeriesTable,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$RecurringSeriesTableTableAnnotationComposer(
+                $db: $db,
+                $table: $db.recurringSeriesTable,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+
+  $$TagsTableAnnotationComposer get tagId {
+    final $$TagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.tagId,
+      referencedTable: $db.tags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$SeriesTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AlphaDatabase,
+          $SeriesTagsTable,
+          SeriesTagRow,
+          $$SeriesTagsTableFilterComposer,
+          $$SeriesTagsTableOrderingComposer,
+          $$SeriesTagsTableAnnotationComposer,
+          $$SeriesTagsTableCreateCompanionBuilder,
+          $$SeriesTagsTableUpdateCompanionBuilder,
+          (SeriesTagRow, $$SeriesTagsTableReferences),
+          SeriesTagRow,
+          PrefetchHooks Function({bool seriesId, bool tagId})
+        > {
+  $$SeriesTagsTableTableManager(_$AlphaDatabase db, $SeriesTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SeriesTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SeriesTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SeriesTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> seriesId = const Value.absent(),
+                Value<String> tagId = const Value.absent(),
+                Value<int> slot = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SeriesTagsCompanion(
+                seriesId: seriesId,
+                tagId: tagId,
+                slot: slot,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String seriesId,
+                required String tagId,
+                required int slot,
+                Value<int> rowid = const Value.absent(),
+              }) => SeriesTagsCompanion.insert(
+                seriesId: seriesId,
+                tagId: tagId,
+                slot: slot,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SeriesTagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({seriesId = false, tagId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (seriesId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.seriesId,
+                                referencedTable: $$SeriesTagsTableReferences
+                                    ._seriesIdTable(db),
+                                referencedColumn: $$SeriesTagsTableReferences
+                                    ._seriesIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (tagId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.tagId,
+                                referencedTable: $$SeriesTagsTableReferences
+                                    ._tagIdTable(db),
+                                referencedColumn: $$SeriesTagsTableReferences
+                                    ._tagIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SeriesTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AlphaDatabase,
+      $SeriesTagsTable,
+      SeriesTagRow,
+      $$SeriesTagsTableFilterComposer,
+      $$SeriesTagsTableOrderingComposer,
+      $$SeriesTagsTableAnnotationComposer,
+      $$SeriesTagsTableCreateCompanionBuilder,
+      $$SeriesTagsTableUpdateCompanionBuilder,
+      (SeriesTagRow, $$SeriesTagsTableReferences),
+      SeriesTagRow,
+      PrefetchHooks Function({bool seriesId, bool tagId})
+    >;
 
 class $AlphaDatabaseManager {
   final _$AlphaDatabase _db;
@@ -6378,4 +8168,8 @@ class $AlphaDatabaseManager {
   $$TagsTableTableManager get tags => $$TagsTableTableManager(_db, _db.tags);
   $$TaskTagsTableTableManager get taskTags =>
       $$TaskTagsTableTableManager(_db, _db.taskTags);
+  $$RecurringSeriesTableTableTableManager get recurringSeriesTable =>
+      $$RecurringSeriesTableTableTableManager(_db, _db.recurringSeriesTable);
+  $$SeriesTagsTableTableManager get seriesTags =>
+      $$SeriesTagsTableTableManager(_db, _db.seriesTags);
 }

@@ -52,6 +52,7 @@ class Tasks extends Table {
   BoolColumn get isEvent => boolean().withDefault(const Constant(false))();
   TextColumn get scheduledTime => text().nullable()();
   TextColumn get recurrenceRule => text().nullable()();
+  TextColumn get seriesId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -87,6 +88,37 @@ class TaskNotes extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+@DataClassName('RecurringSeriesRow')
+class RecurringSeriesTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  IntColumn get priority => integer().withDefault(const Constant(0))();
+  TextColumn get recurrenceRule => text()();
+  BoolColumn get isEvent =>
+      boolean().withDefault(const Constant(false))();
+  TextColumn get scheduledTime => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime().nullable()();
+
+  @override
+  String get tableName => 'recurring_series';
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('SeriesTagRow')
+class SeriesTags extends Table {
+  TextColumn get seriesId =>
+      text().references(RecurringSeriesTable, #id)();
+  TextColumn get tagId => text().references(Tags, #id)();
+  IntColumn get slot => integer()();
+
+  @override
+  Set<Column> get primaryKey => {seriesId, tagId};
+}
+
 @DataClassName('TagRow')
 class Tags extends Table {
   TextColumn get id => text()();
@@ -109,14 +141,24 @@ class TaskTags extends Table {
   Set<Column> get primaryKey => {taskId, tagId};
 }
 
-@DriftDatabase(tables: [Boards, BoardColumns, Tasks, Markers, TaskNotes, Tags, TaskTags])
+@DriftDatabase(tables: [
+  Boards,
+  BoardColumns,
+  Tasks,
+  Markers,
+  TaskNotes,
+  Tags,
+  TaskTags,
+  RecurringSeriesTable,
+  SeriesTags,
+])
 class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase() : super(_openConnection());
 
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -168,8 +210,83 @@ class AlphaDatabase extends _$AlphaDatabase {
         await migrator.createTable(tags);
         await migrator.createTable(taskTags);
       }
+      if (from < 8) {
+        await migrator.createTable(recurringSeriesTable);
+        await migrator.createTable(seriesTags);
+        await customStatement(
+          'ALTER TABLE tasks ADD COLUMN series_id TEXT',
+        );
+        // Migrate existing recurring tasks to series.
+        await _migrateRecurringToSeries();
+      }
     },
   );
+
+  /// One-time migration: converts existing recurring tasks into
+  /// RecurringSeries rows and links them via series_id.
+  Future<void> _migrateRecurringToSeries() async {
+    final rows = await customSelect(
+      'SELECT * FROM tasks WHERE recurrence_rule IS NOT NULL '
+      "AND recurrence_rule LIKE '%FREQ=%'",
+    ).get();
+
+    // Group by (title, recurrence_rule) to form series.
+    final groups = <String, List<QueryRow>>{};
+    for (final row in rows) {
+      final key =
+          '${row.read<String>('title')}||${row.read<String>('recurrence_rule')}';
+      groups.putIfAbsent(key, () => []).add(row);
+    }
+
+    for (final entry in groups.entries) {
+      final source = entry.value.first;
+      final seriesId =
+          'series_${source.read<String>('id').substring(0, 8)}';
+      final now = DateTime.now().millisecondsSinceEpoch;
+
+      await customStatement(
+        'INSERT OR IGNORE INTO recurring_series '
+        '(id, title, description, priority, recurrence_rule, '
+        'is_event, scheduled_time, created_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          seriesId,
+          source.read<String>('title'),
+          source.read<String>('description'),
+          source.read<int>('priority'),
+          source.read<String>('recurrence_rule'),
+          source.read<bool>('is_event') ? 1 : 0,
+          source.readNullable<String>('scheduled_time'),
+          now,
+        ],
+      );
+
+      // Link all tasks in the group to the series.
+      for (final task in entry.value) {
+        await customStatement(
+          'UPDATE tasks SET series_id = ? WHERE id = ?',
+          [seriesId, task.read<String>('id')],
+        );
+      }
+
+      // Copy tags from source task to series.
+      final taskTags = await customSelect(
+        'SELECT tag_id, slot FROM task_tags WHERE task_id = ?',
+        variables: [Variable(source.read<String>('id'))],
+      ).get();
+      for (final tt in taskTags) {
+        await customStatement(
+          'INSERT OR IGNORE INTO series_tags '
+          '(series_id, tag_id, slot) VALUES (?, ?, ?)',
+          [
+            seriesId,
+            tt.read<String>('tag_id'),
+            tt.read<int>('slot'),
+          ],
+        );
+      }
+    }
+  }
 }
 
 LazyDatabase _openConnection() {

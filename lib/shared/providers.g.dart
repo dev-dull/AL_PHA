@@ -109,6 +109,41 @@ final taskNoteRepositoryProvider = Provider<TaskNoteRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TaskNoteRepositoryRef = ProviderRef<TaskNoteRepository>;
+String _$seriesRepositoryHash() => r'828f3a7d021e92074f45c3208a335f5db773049b';
+
+/// See also [seriesRepository].
+@ProviderFor(seriesRepository)
+final seriesRepositoryProvider = Provider<SeriesRepository>.internal(
+  seriesRepository,
+  name: r'seriesRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$seriesRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SeriesRepositoryRef = ProviderRef<SeriesRepository>;
+String _$seriesTagRepositoryHash() =>
+    r'6b544661272551ff8d31d433080b36e00649ff52';
+
+/// See also [seriesTagRepository].
+@ProviderFor(seriesTagRepository)
+final seriesTagRepositoryProvider = Provider<SeriesTagRepository>.internal(
+  seriesTagRepository,
+  name: r'seriesTagRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$seriesTagRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SeriesTagRepositoryRef = ProviderRef<SeriesTagRepository>;
 String _$tagRepositoryHash() => r'fd18a45347006fadd060177f2705f37ac7065cfd';
 
 /// See also [tagRepository].

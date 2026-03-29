@@ -25,6 +25,7 @@ class TaskRepository {
       isEvent: row.isEvent as bool,
       scheduledTime: row.scheduledTime as String?,
       recurrenceRule: row.recurrenceRule as String?,
+      seriesId: row.seriesId as String?,
     );
   }
 
@@ -48,9 +49,17 @@ class TaskRepository {
             isEvent: Value(task.isEvent),
             scheduledTime: Value(task.scheduledTime),
             recurrenceRule: Value(task.recurrenceRule),
+            seriesId: Value(task.seriesId),
           ),
         );
     return task;
+  }
+
+  /// Returns all tasks linked to a series.
+  Future<List<Task>> getBySeriesId(String seriesId) async {
+    final query = _db.select(_db.tasks)
+      ..where((t) => t.seriesId.equals(seriesId));
+    return (await query.get()).map((r) => _rowToTask(r)).toList();
   }
 
   Future<List<Task>> getByBoard(String boardId) async {
