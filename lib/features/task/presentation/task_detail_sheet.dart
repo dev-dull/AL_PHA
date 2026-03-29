@@ -222,12 +222,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
 
   Future<void> _confirmDelete() async {
     _saved = true; // prevent auto-save on dismiss
-    // For recurring items or tasks that are part of a migration
-    // chain (e.g., series that had FREQ stripped by "End Series"),
-    // ask about series scope.
+    // Show series prompt for any task that might have copies on
+    // other boards: recurring tasks, tasks migrated from another
+    // board, or tasks that once had recurrence (BYDAY-only after
+    // "End Series" stripped FREQ).
     final isPartOfSeries = widget.task.isRecurring ||
-        widget.task.migratedFromTaskId != null;
-    if (isPartOfSeries) {
+        widget.task.migratedFromTaskId != null ||
+        widget.task.recurrenceRule != null;
+    if (isPartOfSeries && widget.onDeleteAll != null) {
       final choice = await _showSeriesPrompt('Delete');
       if (choice == null) return;
       if (choice == _SeriesChoice.thisOne) {
