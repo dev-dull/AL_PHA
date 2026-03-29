@@ -331,17 +331,22 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
     if (weekStart == null || allSeries.isEmpty) return items;
 
-    // Set of seriesIds already materialized on this board.
+    // Track which series are already represented on this board
+    // (by seriesId or by matching title for race-condition safety).
     final materializedSeriesIds = <String>{};
+    final existingTitles = <String>{};
     for (final t in tasks) {
       if (t.seriesId != null) {
         materializedSeriesIds.add(t.seriesId!);
       }
+      existingTitles.add(t.title);
     }
 
     for (final series in allSeries) {
-      // Skip if already materialized on this board.
+      // Skip if already materialized on this board (by seriesId
+      // or by title match for tasks not yet linked).
       if (materializedSeriesIds.contains(series.id)) continue;
+      if (existingTitles.contains(series.title)) continue;
 
       // Check if this series should appear this week.
       final interval = rruleInterval(series.recurrenceRule);
