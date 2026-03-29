@@ -26,7 +26,13 @@ class SeriesActions {
   SeriesActions(this._ref);
 
   /// Creates a new recurring series from a task's properties.
-  Future<RecurringSeries> createFromTask(Task task) async {
+  /// [boardWeekStart] anchors the interval calculation — the
+  /// series will appear on weeks that are a multiple of the
+  /// interval away from this date.
+  Future<RecurringSeries> createFromTask(
+    Task task, {
+    DateTime? boardWeekStart,
+  }) async {
     final repo = _ref.read(seriesRepositoryProvider);
     final series = RecurringSeries(
       id: _uuid.v4(),
@@ -36,7 +42,7 @@ class SeriesActions {
       recurrenceRule: task.recurrenceRule!,
       isEvent: task.isEvent,
       scheduledTime: task.scheduledTime,
-      createdAt: DateTime.now(),
+      createdAt: boardWeekStart ?? DateTime.now(),
     );
     await repo.create(series);
 

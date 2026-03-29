@@ -122,9 +122,18 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         // If the task just became recurring and has no series,
         // create one automatically.
         if (updated.isRecurring && updated.seriesId == null) {
+          // Use the board's weekStart as the series anchor so
+          // the interval calculation is correct even when the
+          // user is viewing a future/past week.
+          final boardData = ref
+              .read(boardProvider(widget.boardId))
+              .valueOrNull;
           await ref
               .read(seriesActionsProvider)
-              .createFromTask(updated);
+              .createFromTask(
+                updated,
+                boardWeekStart: boardData?.weekStart,
+              );
         }
         if (updated.recurrenceRule != null) {
           await _syncRecurrenceMarkers(updated);
