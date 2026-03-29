@@ -59,7 +59,48 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       final actions = ref.read(markerActionsProvider);
       // Auto-fill missed days and migrate incomplete tasks.
       await actions.autoFillMissedDays(boardId: widget.boardId);
+      // Auto-materialize virtual series instances so all rows
+      // are real tasks with full interactivity (drag, markers).
+      await _materializeVirtualInstances();
     });
+  }
+
+  /// Creates real task rows for any active series that should
+  /// appear on this board but don't have a materialized instance.
+  Future<void> _materializeVirtualInstances() async {
+    final boardData = ref.read(boardProvider(widget.boardId)).valueOrNull;
+    if (boardData == null) return;
+    final weekStart = boardData.weekStart;
+    if (weekStart == null) return;
+
+    final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
+    final allSeries = ref.read(activeSeriesProvider).valueOrNull ?? [];
+    final tasks = ref.read(taskListProvider(widget.boardId)).valueOrNull ?? [];
+
+    final materializedSeriesIds = <String>{};
+    final existingTitles = <String>{};
+    for (final t in tasks) {
+      if (t.seriesId != null) materializedSeriesIds.add(t.seriesId!);
+      existingTitles.add(t.title);
+    }
+
+    final seriesActions = ref.read(seriesActionsProvider);
+
+    for (final series in allSeries) {
+      if (materializedSeriesIds.contains(series.id)) continue;
+      if (existingTitles.contains(series.title)) continue;
+
+      final sourceWeekStart = startOfWeek(series.createdAt, firstDay: firstDay);
+      if (weekStart.isBefore(sourceWeekStart)) continue;
+
+      final interval = rruleInterval(series.recurrenceRule);
+      if (!shouldRecurOnWeek(sourceWeekStart, weekStart, interval)) {
+        continue;
+      }
+
+      await seriesActions.materialize(series: series, boardId: widget.boardId);
+      existingTitles.add(series.title);
+    }
   }
 
   // ----------------------------------------------------------
@@ -68,8 +109,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
   void _openTaskDetailSheet(Task task) {
     // Collect which day-column positions have markers for this task.
-    final markersAsync =
-        ref.read(markersByBoardProvider(widget.boardId));
+    final markersAsync = ref.read(markersByBoardProvider(widget.boardId));
     final allMarkers = markersAsync.valueOrNull ?? {};
     final columnsAsync = ref.read(columnListProvider(widget.boardId));
     final columns = columnsAsync.valueOrNull ?? [];
@@ -83,12 +123,9 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     }
 
     // Use watch data (already loaded) rather than read (may be loading).
-    final allTags =
-        ref.read(tagListProvider).valueOrNull ?? [];
-    final taskTagsMap = ref
-            .read(tagsByBoardProvider(widget.boardId))
-            .valueOrNull ??
-        {};
+    final allTags = ref.read(tagListProvider).valueOrNull ?? [];
+    final taskTagsMap =
+        ref.read(tagsByBoardProvider(widget.boardId)).valueOrNull ?? {};
     final taskTags = taskTagsMap[task.id] ?? [];
 
     var seriesSaved = false;
@@ -103,18 +140,14 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         if (seriesSaved && task.seriesId != null) {
           // Propagate tags to the series definition.
           final seriesRepo = ref.read(seriesRepositoryProvider);
-          final series =
-              await seriesRepo.getById(task.seriesId!);
+          final series = await seriesRepo.getById(task.seriesId!);
           if (series != null) {
-            await ref.read(seriesActionsProvider).updateSeries(
-                  series,
-                  tagIds: tagIds,
-                );
+            await ref
+                .read(seriesActionsProvider)
+                .updateSeries(series, tagIds: tagIds);
           }
         } else {
-          await ref
-              .read(tagActionsProvider)
-              .setTagsForTask(task.id, tagIds);
+          await ref.read(tagActionsProvider).setTagsForTask(task.id, tagIds);
         }
       },
       onSave: (updated) async {
@@ -125,15 +158,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           // Use the board's weekStart as the series anchor so
           // the interval calculation is correct even when the
           // user is viewing a future/past week.
-          final boardData = ref
-              .read(boardProvider(widget.boardId))
-              .valueOrNull;
+          final boardData = ref.read(boardProvider(widget.boardId)).valueOrNull;
           await ref
               .read(seriesActionsProvider)
-              .createFromTask(
-                updated,
-                boardWeekStart: boardData?.weekStart,
-              );
+              .createFromTask(updated, boardWeekStart: boardData?.weekStart);
         }
         if (updated.recurrenceRule != null) {
           await _syncRecurrenceMarkers(updated);
@@ -145,10 +173,11 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           // Update the series definition so future virtual
           // instances reflect the change.
           final seriesRepo = ref.read(seriesRepositoryProvider);
-          final series =
-              await seriesRepo.getById(task.seriesId!);
+          final series = await seriesRepo.getById(task.seriesId!);
           if (series != null) {
-            await ref.read(seriesActionsProvider).updateSeries(
+            await ref
+                .read(seriesActionsProvider)
+                .updateSeries(
                   series.copyWith(
                     title: updated.title,
                     description: updated.description,
@@ -172,9 +201,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       },
       onDeleteAll: () async {
         if (task.seriesId != null) {
-          await ref
-              .read(seriesActionsProvider)
-              .deleteSeries(task.seriesId!);
+          await ref.read(seriesActionsProvider).deleteSeries(task.seriesId!);
         } else {
           // Fallback: just delete this single task.
           await ref.read(taskActionsProvider).delete(task.id);
@@ -189,10 +216,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                   .where((c) => c.type != ColumnType.date)
                   .firstOrNull;
               if (migCol != null) {
-                final markerRepo =
-                    ref.read(markerRepositoryProvider);
-                final migMarker =
-                    await markerRepo.get(task.id, migCol.id);
+                final markerRepo = ref.read(markerRepositoryProvider);
+                final migMarker = await markerRepo.get(task.id, migCol.id);
                 if (migMarker != null) {
                   // Remove the > marker and undo the migration.
                   await ref
@@ -206,8 +231,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
               }
               await ref.read(taskActionsProvider).wontDo(task.id);
             },
-      onReopen: (task.state == TaskState.wontDo ||
-              task.state == TaskState.cancelled)
+      onReopen:
+          (task.state == TaskState.wontDo || task.state == TaskState.cancelled)
           ? () async {
               await ref.read(taskActionsProvider).reopen(task.id);
             }
@@ -226,8 +251,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final (_, days) = parseRRule(task.recurrenceRule);
     final markerActions = ref.read(markerActionsProvider);
     final markerRepo = ref.read(markerRepositoryProvider);
-    final sym =
-        task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
+    final sym = task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
 
     for (final col in columns) {
       if (col.type != ColumnType.date) continue;
@@ -319,13 +343,11 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
   /// Computes the board's weekStart for virtual instance checks.
   DateTime? _boardWeekStart() {
-    final firstDay =
-        ref.read(preferencesProvider).firstDayOfWeek;
+    final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
     final boardAsync = ref.read(boardProvider(widget.boardId));
     final board = boardAsync.valueOrNull;
     if (board == null) return null;
-    return board.weekStart ??
-        startOfWeek(board.createdAt, firstDay: firstDay);
+    return board.weekStart ?? startOfWeek(board.createdAt, firstDay: firstDay);
   }
 
   /// Merges real tasks with virtual instances from active series.
@@ -334,9 +356,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     List<RecurringSeries> allSeries,
   ) {
     final weekStart = _boardWeekStart();
-    final items = <BoardItem>[
-      for (final t in tasks) RealTask(t),
-    ];
+    final items = <BoardItem>[for (final t in tasks) RealTask(t)];
 
     if (weekStart == null || allSeries.isEmpty) return items;
 
@@ -360,10 +380,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       // Check if this series should appear this week.
       final interval = rruleInterval(series.recurrenceRule);
       final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
-      final sourceWeekStart = startOfWeek(
-        series.createdAt,
-        firstDay: firstDay,
-      );
+      final sourceWeekStart = startOfWeek(series.createdAt, firstDay: firstDay);
       // Don't show on weeks before the series was created.
       if (weekStart.isBefore(sourceWeekStart)) continue;
       if (!shouldRecurOnWeek(sourceWeekStart, weekStart, interval)) {
@@ -372,10 +389,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
       final (_, days) = parseRRule(series.recurrenceRule);
 
-      items.add(VirtualTask(
-        series: series,
-        scheduledDays: days,
-      ));
+      items.add(VirtualTask(series: series, scheduledDays: days));
     }
 
     return items;
@@ -387,10 +401,9 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     RecurringSeries series,
     Future<void> Function(Task task) action,
   ) async {
-    final task = await ref.read(seriesActionsProvider).materialize(
-          series: series,
-          boardId: widget.boardId,
-        );
+    final task = await ref
+        .read(seriesActionsProvider)
+        .materialize(series: series, boardId: widget.boardId);
     await action(task);
   }
 
@@ -401,10 +414,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final seriesAsync = ref.watch(activeSeriesProvider);
     ref.watch(markersByBoardProvider(widget.boardId));
     ref.watch(tagListProvider); // keep subscribed so data is ready
-    final tagsMap = ref
-            .watch(tagsByBoardProvider(widget.boardId))
-            .valueOrNull ??
-        {};
+    final tagsMap =
+        ref.watch(tagsByBoardProvider(widget.boardId)).valueOrNull ?? {};
 
     final activeSeries = seriesAsync.valueOrNull ?? [];
 
@@ -457,17 +468,15 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   // ----------------------------------------------------------
 
   Set<int> _computePastDayPositions() {
-    final firstDay =
-        ref.watch(preferencesProvider).firstDayOfWeek;
+    final firstDay = ref.watch(preferencesProvider).firstDayOfWeek;
     final boardAsync = ref.watch(boardProvider(widget.boardId));
     final board = boardAsync.valueOrNull;
     if (board == null) return {};
-    final weekStart = board.weekStart ??
-        startOfWeek(board.createdAt, firstDay: firstDay);
+    final weekStart =
+        board.weekStart ?? startOfWeek(board.createdAt, firstDay: firstDay);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final currentWeekStart =
-        startOfWeek(today, firstDay: firstDay);
+    final currentWeekStart = startOfWeek(today, firstDay: firstDay);
     if (weekStart.isBefore(currentWeekStart)) {
       // Past week — all day positions are past.
       return {0, 1, 2, 3, 4, 5, 6};
@@ -491,8 +500,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       if (col.type != ColumnType.date) continue;
       final m = markers['${taskId}_${col.id}'];
       if (m != null &&
-          (m.symbol == MarkerSymbol.dot ||
-              m.symbol == MarkerSymbol.event)) {
+          (m.symbol == MarkerSymbol.dot || m.symbol == MarkerSymbol.event)) {
         if (best == null || col.position < best) {
           best = col.position;
         }
@@ -505,8 +513,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   /// preferred first-day-of-week, even if the board was created
   /// with a different convention.
   List<BoardColumn> _reorderColumns(List<BoardColumn> columns) {
-    final firstDay =
-        ref.watch(preferencesProvider).firstDayOfWeek;
+    final firstDay = ref.watch(preferencesProvider).firstDayOfWeek;
     final boardAsync = ref.watch(boardProvider(widget.boardId));
     final board = boardAsync.valueOrNull;
     if (board == null) return columns;
@@ -522,9 +529,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     // Sunday is at position 6 in a Monday-start board, so rotate by 6.
     final shift = (boardFirstDay - firstDay + 7) % 7;
 
-    final dateColumns = columns
-        .where((c) => c.type == ColumnType.date)
-        .toList()
+    final dateColumns = columns.where((c) => c.type == ColumnType.date).toList()
       ..sort((a, b) => a.position.compareTo(b.position));
     final nonDateColumns = columns
         .where((c) => c.type != ColumnType.date)
@@ -533,11 +538,9 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     if (dateColumns.length != 7) return columns;
 
     // Build the preferred label order.
-    final labels =
-        weeklyColumnDefs(firstDay: firstDay)
-            .where((d) => d.type == ColumnType.date)
-            .map((d) => d.label)
-            .toList();
+    final labels = weeklyColumnDefs(
+      firstDay: firstDay,
+    ).where((d) => d.type == ColumnType.date).map((d) => d.label).toList();
 
     // Rotate: new visual position i gets data from
     // old position (i + shift) % 7.
@@ -545,13 +548,15 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     for (var i = 0; i < 7; i++) {
       final srcIdx = (i + shift) % 7;
       final src = dateColumns[srcIdx];
-      reordered.add(BoardColumn(
-        id: src.id,
-        boardId: src.boardId,
-        label: labels[i],
-        position: src.position,
-        type: src.type,
-      ));
+      reordered.add(
+        BoardColumn(
+          id: src.id,
+          boardId: src.boardId,
+          label: labels[i],
+          position: src.position,
+          type: src.type,
+        ),
+      );
     }
 
     return [...reordered, ...nonDateColumns];
@@ -574,8 +579,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final theme = Theme.of(context);
     final markerColumnsWidth = columns.length * MarkerCell.cellSize;
 
-    final markersAsync =
-        ref.watch(markersByBoardProvider(widget.boardId));
+    final markersAsync = ref.watch(markersByBoardProvider(widget.boardId));
     final markers = markersAsync.valueOrNull ?? {};
 
     // Sort only real tasks; virtual tasks go at the end.
@@ -590,8 +594,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       getDeadline: (t) => t.deadline,
       getTitle: (t) => t.title,
       getPriority: (t) => t.priority,
-      getNextDotPosition: (t) =>
-          _nextDotPosition(t.id, columns, markers),
+      getNextDotPosition: (t) => _nextDotPosition(t.id, columns, markers),
     );
 
     final sortedItems = <BoardItem>[
@@ -629,8 +632,9 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final useScroll = constraints.maxWidth < minWidth;
-                final contentWidth =
-                    useScroll ? minWidth : constraints.maxWidth;
+                final contentWidth = useScroll
+                    ? minWidth
+                    : constraints.maxWidth;
 
                 Widget content = SizedBox(
                   width: contentWidth,
@@ -640,24 +644,28 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                         height: _headerHeight,
                         child: Row(
                           children: [
-                            ...columns.map(
-                                (col) => ColumnHeader(column: col)),
+                            ...columns.map((col) => ColumnHeader(column: col)),
                             VerticalDivider(
-                                width: 1, color: theme.dividerColor),
+                              width: 1,
+                              color: theme.dividerColor,
+                            ),
                             Expanded(
-                                child: _SortableHeaderCorner(
-                              sortMode: _sortMode,
-                              onSortChanged: (mode) =>
-                                  setState(() => _sortMode = mode),
-                            )),
+                              child: _SortableHeaderCorner(
+                                sortMode: _sortMode,
+                                onSortChanged: (mode) =>
+                                    setState(() => _sortMode = mode),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       Divider(height: 1, color: theme.dividerColor),
                       Expanded(
                         child: filteredItems.isEmpty
-                            ? _buildEmptyState(context,
-                                filtered: _tagFilter.isNotEmpty)
+                            ? _buildEmptyState(
+                                context,
+                                filtered: _tagFilter.isNotEmpty,
+                              )
                             : _buildItemList(
                                 filteredItems,
                                 columns,
@@ -697,10 +705,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final canReorder = _sortMode == TaskSortMode.manual;
 
     // Extract real tasks for reorder callback.
-    final realTasks = items
-        .whereType<RealTask>()
-        .map((r) => r.task)
-        .toList();
+    final realTasks = items.whereType<RealTask>().map((r) => r.task).toList();
 
     return ReorderableListView.builder(
       itemCount: items.length,
@@ -713,8 +718,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         );
       },
       onReorder: canReorder
-          ? (oldIndex, newIndex) =>
-              _onReorder(realTasks, oldIndex, newIndex)
+          ? (oldIndex, newIndex) => _onReorder(realTasks, oldIndex, newIndex)
           : (_, _) {},
       itemBuilder: (context, i) {
         final item = items[i];
@@ -757,9 +761,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: theme.dividerColor),
-        ),
+        border: Border(top: BorderSide(color: theme.dividerColor)),
       ),
       child: ListView(
         scrollDirection: Axis.horizontal,
@@ -877,45 +879,45 @@ class _SortableHeaderCorner extends StatelessWidget {
             child: Text(
               'Tasks',
               overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.labelLarge
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           SizedBox(
             width: 28,
             height: 28,
             child: PopupMenuButton<TaskSortMode>(
-            iconSize: 16,
-            icon: Icon(
-              Icons.sort,
-              size: 16,
-              color: theme.colorScheme.onSurface
-                  .withValues(alpha: 0.5),
-            ),
-            tooltip: 'Sort tasks',
-            padding: EdgeInsets.zero,
-            onSelected: onSortChanged,
-            itemBuilder: (_) => [
-              for (final mode in TaskSortMode.values)
-                PopupMenuItem(
-                  value: mode,
-                  child: Row(
-                    children: [
-                      if (sortMode == mode)
-                        Icon(
-                          Icons.check,
-                          size: 18,
-                          color: theme.colorScheme.primary,
-                        )
-                      else
-                        const SizedBox(width: 18),
-                      const SizedBox(width: 8),
-                      Text(mode.displayName),
-                    ],
+              iconSize: 16,
+              icon: Icon(
+                Icons.sort,
+                size: 16,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              tooltip: 'Sort tasks',
+              padding: EdgeInsets.zero,
+              onSelected: onSortChanged,
+              itemBuilder: (_) => [
+                for (final mode in TaskSortMode.values)
+                  PopupMenuItem(
+                    value: mode,
+                    child: Row(
+                      children: [
+                        if (sortMode == mode)
+                          Icon(
+                            Icons.check,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          )
+                        else
+                          const SizedBox(width: 18),
+                        const SizedBox(width: 8),
+                        Text(mode.displayName),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
+              ],
+            ),
           ),
         ],
       ),
@@ -969,20 +971,14 @@ class _TagFilterChip extends StatelessWidget {
       onTap: onTap,
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 2,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            color: selected
-                ? color.withValues(alpha: 0.2)
-                : Colors.transparent,
+            color: selected ? color.withValues(alpha: 0.2) : Colors.transparent,
             border: Border.all(
               color: selected
                   ? color
-                  : theme.colorScheme.onSurface
-                      .withValues(alpha: 0.15),
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.15),
             ),
           ),
           child: Row(
@@ -1002,10 +998,8 @@ class _TagFilterChip extends StatelessWidget {
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: selected
                       ? color
-                      : theme.colorScheme.onSurface
-                          .withValues(alpha: 0.5),
-                  fontWeight:
-                      selected ? FontWeight.w600 : FontWeight.normal,
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),
             ],
@@ -1040,8 +1034,8 @@ class BoardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isStrikethrough = task.state == TaskState.cancelled ||
-        task.state == TaskState.wontDo;
+    final isStrikethrough =
+        task.state == TaskState.cancelled || task.state == TaskState.wontDo;
     final theme = Theme.of(context);
 
     return GestureDetector(
@@ -1057,15 +1051,15 @@ class BoardRow extends StatelessWidget {
                 columnId: col.id,
                 columnType: col.type,
                 isEvent: task.isEvent,
-                isPastDay: col.type == ColumnType.date &&
+                isPastDay:
+                    col.type == ColumnType.date &&
                     pastDayPositions.contains(col.position),
-                isLocked: task.state == TaskState.wontDo ||
+                isLocked:
+                    task.state == TaskState.wontDo ||
                     task.state == TaskState.cancelled,
                 isRecurring: task.isRecurring,
                 seriesId: task.seriesId,
-                onEventTap: (task.isEvent || task.isRecurring)
-                    ? onTap
-                    : null,
+                onEventTap: (task.isEvent || task.isRecurring) ? onTap : null,
               ),
             ),
             VerticalDivider(width: 1, color: theme.dividerColor),
@@ -1098,8 +1092,9 @@ class BoardRow extends StatelessWidget {
                       Icon(
                         Icons.event,
                         size: 14,
-                        color: theme.colorScheme.primary
-                            .withValues(alpha: isStrikethrough ? 0.4 : 0.7),
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: isStrikethrough ? 0.4 : 0.7,
+                        ),
                       ),
                       const SizedBox(width: 4),
                     ],
@@ -1113,8 +1108,9 @@ class BoardRow extends StatelessWidget {
                               ? TextDecoration.lineThrough
                               : null,
                           color: isStrikethrough
-                              ? theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.4)
+                              ? theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.4,
+                                )
                               : null,
                         ),
                       ),
@@ -1125,8 +1121,9 @@ class BoardRow extends StatelessWidget {
                         child: Text(
                           task.scheduledTime!,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: isStrikethrough ? 0.3 : 0.5),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: isStrikethrough ? 0.3 : 0.5,
+                            ),
                           ),
                         ),
                       ),
@@ -1165,52 +1162,22 @@ class VirtualBoardRow extends ConsumerWidget {
     final brightness = theme.brightness;
     final series = virtualTask.series;
     final days = virtualTask.scheduledDays;
-    final sym = series.isEvent
-        ? MarkerSymbol.event
-        : MarkerSymbol.dot;
+    final sym = series.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
 
     return GestureDetector(
       onTap: onTap,
-      child: Opacity(
-        opacity: 0.7,
-        child: SizedBox(
-          height: MarkerCell.cellSize,
-          child: Row(
-            children: [
-              // Marker cells: show computed symbols on scheduled
-              // days, migration column shows autorenew/event icon.
-              ...columns.map((col) {
-                if (col.type != ColumnType.date) {
-                  // Migration column — show recurring icon.
-                  final iconColor = brightness == Brightness.dark
-                      ? const Color(0xFFA09A94)
-                      : const Color(0xFF6B6560);
-                  return SizedBox(
-                    width: MarkerCell.cellSize,
-                    height: MarkerCell.cellSize,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(4),
-                        onTap: onTap,
-                        child: Center(
-                          child: Icon(
-                            series.isEvent
-                                ? Icons.event_repeat
-                                : Icons.autorenew,
-                            size: 18,
-                            color: iconColor,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                // Day column — show marker if scheduled.
-                final hasMarker = days.contains(col.position);
-                final color = hasMarker
-                    ? AlphaTheme.markerColor(sym, brightness)
-                    : null;
+      child: SizedBox(
+        height: MarkerCell.cellSize,
+        child: Row(
+          children: [
+            // Marker cells: show computed symbols on scheduled
+            // days, migration column shows autorenew/event icon.
+            ...columns.map((col) {
+              if (col.type != ColumnType.date) {
+                // Migration column — show recurring icon.
+                final iconColor = brightness == Brightness.dark
+                    ? const Color(0xFFA09A94)
+                    : const Color(0xFF6B6560);
                 return SizedBox(
                   width: MarkerCell.cellSize,
                   height: MarkerCell.cellSize,
@@ -1220,68 +1187,84 @@ class VirtualBoardRow extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(4),
                       onTap: onTap,
                       child: Center(
-                        child: hasMarker
-                            ? MarkerCell.buildMarkerWidget(
-                                sym, color)
-                            : const SizedBox.shrink(),
+                        child: Icon(
+                          series.isEvent ? Icons.event_repeat : Icons.autorenew,
+                          size: 18,
+                          color: iconColor,
+                        ),
                       ),
                     ),
                   ),
                 );
-              }),
-              VerticalDivider(
-                  width: 1, color: theme.dividerColor),
-              const SizedBox(width: 8),
-              if (virtualTask.tags.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: TagBadge(tags: virtualTask.tags),
+              }
+              // Day column — show marker if scheduled.
+              final hasMarker = days.contains(col.position);
+              final color = hasMarker
+                  ? AlphaTheme.markerColor(sym, brightness)
+                  : null;
+              return SizedBox(
+                width: MarkerCell.cellSize,
+                height: MarkerCell.cellSize,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(4),
+                    onTap: onTap,
+                    child: Center(
+                      child: hasMarker
+                          ? MarkerCell.buildMarkerWidget(sym, color)
+                          : const SizedBox.shrink(),
+                    ),
+                  ),
                 ),
-              ],
-              Expanded(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.only(left: 4, right: 8),
-                  child: Row(
-                    children: [
-                      if (series.isEvent) ...[
-                        Icon(
-                          Icons.event,
-                          size: 14,
-                          color: theme.colorScheme.primary
-                              .withValues(alpha: 0.7),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: Text(
-                          series.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium,
-                        ),
+              );
+            }),
+            VerticalDivider(width: 1, color: theme.dividerColor),
+            const SizedBox(width: 8),
+            if (virtualTask.tags.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: TagBadge(tags: virtualTask.tags),
+              ),
+            ],
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4, right: 8),
+                child: Row(
+                  children: [
+                    if (series.isEvent) ...[
+                      Icon(
+                        Icons.event,
+                        size: 14,
+                        color: theme.colorScheme.primary.withValues(alpha: 0.7),
                       ),
-                      if (series.isEvent &&
-                          series.scheduledTime != null)
-                        Padding(
-                          padding:
-                              const EdgeInsets.only(left: 4),
-                          child: Text(
-                            series.scheduledTime!,
-                            style: theme.textTheme.labelSmall
-                                ?.copyWith(
-                              color: theme
-                                  .colorScheme.onSurface
-                                  .withValues(alpha: 0.5),
+                      const SizedBox(width: 4),
+                    ],
+                    Expanded(
+                      child: Text(
+                        series.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    if (series.isEvent && series.scheduledTime != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          series.scheduledTime!,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.5,
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
