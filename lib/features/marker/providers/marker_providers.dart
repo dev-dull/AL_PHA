@@ -486,6 +486,11 @@ class MarkerActions {
     if (pastDayColumns.isEmpty) return;
 
     final allMarkers = await markerRepo.getByBoard(boardId);
+    final allTasks = await taskRepo.getByBoard(boardId);
+    final recurringTaskIds = allTasks
+        .where((t) => t.isRecurring)
+        .map((t) => t.id)
+        .toSet();
     final migratedTaskIds = <String>{};
     final taskDotPositions = <String, Set<int>>{};
 
@@ -497,6 +502,10 @@ class MarkerActions {
                 m.symbol == MarkerSymbol.event),
       );
       for (final marker in dotsInCol) {
+        // Don't convert recurring task dots to > — recurrence
+        // handles their carry-forward on its own schedule.
+        if (recurringTaskIds.contains(marker.taskId)) continue;
+
         await markerRepo.set(
           marker.copyWith(
             symbol: MarkerSymbol.migratedForward,
