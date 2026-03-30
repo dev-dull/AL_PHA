@@ -651,7 +651,32 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                         height: _headerHeight,
                         child: Row(
                           children: [
-                            ...columns.map((col) => ColumnHeader(column: col)),
+                            ...columns.asMap().entries.map((e) {
+                              final i = e.key;
+                              final col = e.value;
+                              DateTime? date;
+                              if (col.type == ColumnType.date) {
+                                final ws = _boardWeekStart();
+                                if (ws != null) {
+                                  final firstDay = ref.read(
+                                    preferencesProvider,
+                                  ).firstDayOfWeek;
+                                  final displayStart = startOfWeek(
+                                    ws,
+                                    firstDay: firstDay,
+                                  );
+                                  date = DateTime(
+                                    displayStart.year,
+                                    displayStart.month,
+                                    displayStart.day + i,
+                                  );
+                                }
+                              }
+                              return ColumnHeader(
+                                column: col,
+                                date: date,
+                              );
+                            }),
                             VerticalDivider(
                               width: 1,
                               color: theme.dividerColor,
@@ -933,13 +958,45 @@ class _SortableHeaderCorner extends StatelessWidget {
 }
 
 /// A single day-column header label (e.g. "M", "T", ">").
+/// When [date] is provided, the day of the month is shown
+/// below the weekday letter.
 class ColumnHeader extends StatelessWidget {
   final BoardColumn column;
+  final DateTime? date;
 
-  const ColumnHeader({super.key, required this.column});
+  const ColumnHeader({super.key, required this.column, this.date});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = theme.textTheme.labelSmall
+        ?.copyWith(fontWeight: FontWeight.w600);
+
+    if (date != null && column.type == ColumnType.date) {
+      return SizedBox(
+        width: MarkerCell.cellSize,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              column.label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: labelStyle,
+            ),
+            Text(
+              '${date!.day}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontSize: 9,
+                color: theme.colorScheme.onSurface
+                    .withValues(alpha: 0.5),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SizedBox(
       width: MarkerCell.cellSize,
       child: Center(
@@ -947,9 +1004,7 @@ class ColumnHeader extends StatelessWidget {
           column.label,
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
-          style: Theme.of(
-            context,
-          ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
+          style: labelStyle,
         ),
       ),
     );
