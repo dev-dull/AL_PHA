@@ -74,8 +74,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     if (weekStart == null) return;
 
     final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
-    final allSeries = ref.read(activeSeriesProvider).valueOrNull ?? [];
-    final tasks = ref.read(taskListProvider(widget.boardId)).valueOrNull ?? [];
+    final seriesRepo = ref.read(seriesRepositoryProvider);
+    final taskRepo = ref.read(taskRepositoryProvider);
+    // Read directly from the DB (not the stream provider cache)
+    // because the providers may not have emitted yet.
+    final allSeries = await seriesRepo.getActive();
+    final tasks = await taskRepo.getByBoard(widget.boardId);
 
     final materializedSeriesIds = <String>{};
     final existingTitles = <String>{};

@@ -65,12 +65,24 @@ class SeriesActions {
   }
 
   /// Materializes a virtual series instance as a real Task on
-  /// the given board. Returns the new Task.
+  /// the given board. Returns the new or existing Task.
   Future<Task> materialize({
     required RecurringSeries series,
     required String boardId,
   }) async {
     final taskRepo = _ref.read(taskRepositoryProvider);
+
+    // Safety check: don't create a duplicate if already materialized.
+    final existing = await taskRepo.getByBoard(boardId);
+    final alreadyExists = existing.any(
+      (t) => t.seriesId == series.id || t.title == series.title,
+    );
+    if (alreadyExists) {
+      return existing.firstWhere(
+        (t) => t.seriesId == series.id || t.title == series.title,
+      );
+    }
+
     final markerRepo = _ref.read(markerRepositoryProvider);
     final columnRepo = _ref.read(columnRepositoryProvider);
     final taskTagRepo = _ref.read(taskTagRepositoryProvider);
