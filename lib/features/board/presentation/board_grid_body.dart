@@ -248,7 +248,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final (_, days) = parseRRule(task.recurrenceRule);
     final markerActions = ref.read(markerActionsProvider);
     final markerRepo = ref.read(markerRepositoryProvider);
-    final sym = task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
+    final sym = MarkerSymbol.defaultFor(isEvent: task.isEvent);
 
     for (final col in columns) {
       if (col.type != ColumnType.date) continue;
@@ -1159,7 +1159,7 @@ class VirtualBoardRow extends ConsumerWidget {
     final brightness = theme.brightness;
     final series = virtualTask.series;
     final days = virtualTask.scheduledDays;
-    final sym = series.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
+    final sym = MarkerSymbol.defaultFor(isEvent: series.isEvent);
 
     return GestureDetector(
       onTap: onTap,

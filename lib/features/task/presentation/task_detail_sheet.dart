@@ -161,10 +161,11 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   /// Does NOT pop — the caller handles navigation.
   Future<void> _save({bool promptSeries = true}) async {
     if (_saved || _cancelled) return;
-    _saved = true;
 
     final title = _titleCtrl.text.trim();
     if (title.isEmpty) return;
+
+    _saved = true;
 
     final updated = widget.task.copyWith(
       title: title,

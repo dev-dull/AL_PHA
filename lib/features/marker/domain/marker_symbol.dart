@@ -59,4 +59,14 @@ enum MarkerSymbol {
 
   /// The first symbol when tapping an empty cell.
   static MarkerSymbol get cycleStart => MarkerSymbol.dot;
+
+  /// Whether this is a "scheduled" marker (dot or event) that
+  /// should be migrated when the day passes.
+  bool get isScheduled =>
+      this == MarkerSymbol.dot || this == MarkerSymbol.event;
+
+  /// Returns the default marker symbol for a task based on
+  /// whether it's an event.
+  static MarkerSymbol defaultFor({required bool isEvent}) =>
+      isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
 }

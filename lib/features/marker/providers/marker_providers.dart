@@ -27,11 +27,6 @@ Stream<Map<String, Marker>> markersByBoard(
   });
 }
 
-@riverpod
-Marker? marker(MarkerRef ref, String taskId, String columnId) {
-  return null;
-}
-
 /// Derived provider for a single cell marker, keyed off the
 /// board-level markers map for granular rebuilds.
 @riverpod
@@ -372,7 +367,7 @@ class MarkerActions {
     await _copyTags(task.id, newTaskId);
 
     final markerSymbol =
-        task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
+        MarkerSymbol.defaultFor(isEvent: task.isEvent);
 
     if (dotPositions.isNotEmpty) {
       final targetColumns = await columnRepo.getByBoard(targetBoardId);
@@ -494,8 +489,7 @@ class MarkerActions {
       final dotsInCol = allMarkers.where(
         (m) =>
             m.columnId == col.id &&
-            (m.symbol == MarkerSymbol.dot ||
-                m.symbol == MarkerSymbol.event),
+            m.symbol.isScheduled,
       );
       for (final marker in dotsInCol) {
         // Skip recurring tasks — the virtual instance system
@@ -622,7 +616,7 @@ class MarkerActions {
       didMigrate = true;
 
       final markerSymbol =
-          task.isEvent ? MarkerSymbol.event : MarkerSymbol.dot;
+          MarkerSymbol.defaultFor(isEvent: task.isEvent);
       final positions = taskDotPositions[taskId];
       if (positions != null && positions.isNotEmpty) {
         final targetColumns = await columnRepo.getByBoard(targetBoardId);
