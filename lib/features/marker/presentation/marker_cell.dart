@@ -419,20 +419,67 @@ class _RadialMenuOverlay extends StatelessWidget {
     ));
 
     final itemCount = items.length;
-    final angleStep = 2 * math.pi / itemCount;
-    // Start from the top (-π/2).
-    const startAngle = -math.pi / 2;
 
-    // Clamp center so all radial items stay within the visible
-    // area, accounting for safe-area insets.
-    const margin = _radius + _itemSize / 2 + 4;
-    final clampedCenter = Offset(
-      center.dx.clamp(margin, screenSize.width - margin),
-      center.dy.clamp(
-        padding.top + margin,
-        screenSize.height - padding.bottom - margin,
-      ),
-    );
+    // Determine how much space is available around the tap point.
+    const edge = _radius + _itemSize / 2 + 4;
+    final safeLeft = padding.left + edge;
+    final safeRight = screenSize.width - padding.right - edge;
+    final safeTop = padding.top + edge;
+    final safeBottom = screenSize.height - padding.bottom - edge;
+
+    final nearLeft = center.dx < safeLeft;
+    final nearRight = center.dx > safeRight;
+    final nearTop = center.dy < safeTop;
+    final nearBottom = center.dy > safeBottom;
+    final nearEdge = nearLeft || nearRight || nearTop || nearBottom;
+
+    // If near an edge, use a semi-circle arc facing inward;
+    // otherwise use a full circle.
+    double sweep;
+    double bisector;
+    if (nearEdge) {
+      sweep = math.pi; // 180° arc
+      // Point the arc away from the nearest edge.
+      if (nearTop && !nearLeft && !nearRight) {
+        bisector = math.pi / 2; // face down
+      } else if (nearBottom && !nearLeft && !nearRight) {
+        bisector = -math.pi / 2; // face up
+      } else if (nearLeft && !nearTop && !nearBottom) {
+        bisector = 0; // face right
+      } else if (nearRight && !nearTop && !nearBottom) {
+        bisector = math.pi; // face left
+      } else if (nearTop && nearLeft) {
+        bisector = math.pi / 4; // face down-right
+      } else if (nearTop && nearRight) {
+        bisector = 3 * math.pi / 4; // face down-left
+      } else if (nearBottom && nearLeft) {
+        bisector = -math.pi / 4; // face up-right
+      } else {
+        bisector = -3 * math.pi / 4; // face up-left
+      }
+    } else {
+      sweep = 2 * math.pi; // full circle
+      bisector = -math.pi / 2; // start from top
+    }
+
+    // Distribute items evenly across the arc.
+    // For a full circle, space them equally; for a partial arc,
+    // spread them so the first and last items sit at the edges.
+    final angles = <double>[];
+    if (itemCount == 1) {
+      angles.add(bisector);
+    } else if (sweep < 2 * math.pi) {
+      final step = sweep / (itemCount - 1);
+      final arcStart = bisector - sweep / 2;
+      for (var i = 0; i < itemCount; i++) {
+        angles.add(arcStart + step * i);
+      }
+    } else {
+      final step = sweep / itemCount;
+      for (var i = 0; i < itemCount; i++) {
+        angles.add(bisector + step * i);
+      }
+    }
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -443,9 +490,9 @@ class _RadialMenuOverlay extends StatelessWidget {
             _buildItem(
               context,
               items[i],
-              startAngle + angleStep * i,
+              angles[i],
               brightness,
-              clampedCenter,
+              center,
             ),
         ],
       ),
