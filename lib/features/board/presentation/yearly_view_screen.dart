@@ -185,10 +185,13 @@ class _MiniMonth extends StatelessWidget {
               final summary = summaries[dateKey];
               final isToday = dateKey == todayKey;
 
+              final isFuture = dateKey.isAfter(todayKey);
+
               return _MiniDayCell(
                 day: day,
                 summary: summary,
                 isToday: isToday,
+                isFuture: isFuture,
                 isPast: dateKey.isBefore(todayKey),
                 brightness: brightness,
                 onTap: () => onDayTap(
@@ -207,6 +210,7 @@ class _MiniDayCell extends StatelessWidget {
   final DaySummary? summary;
   final bool isToday;
   final bool isPast;
+  final bool isFuture;
   final Brightness brightness;
   final VoidCallback onTap;
 
@@ -215,6 +219,7 @@ class _MiniDayCell extends StatelessWidget {
     this.summary,
     required this.isToday,
     required this.isPast,
+    this.isFuture = false,
     required this.brightness,
     required this.onTap,
   });
@@ -223,10 +228,16 @@ class _MiniDayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = summary;
-    final hasData = s != null && !s.isEmpty;
+    // Only show color coding for days with actionable data.
+    // Future days that only have scheduled dots are "planned"
+    // not "failed" — treat as no data.
+    final hasActionableData = s != null &&
+        !s.isEmpty &&
+        !(isFuture && s.completed == 0 && s.missed == 0 &&
+            s.inProgress == 0);
 
     Color bgColor;
-    if (hasData) {
+    if (hasActionableData) {
       final rate = s.completionRate;
       final red = brightness == Brightness.dark
           ? const Color(0xFFE57373)
@@ -242,7 +253,7 @@ class _MiniDayCell extends StatelessWidget {
     }
 
     // Pick a legible text color against the background.
-    final textColor = hasData
+    final textColor = hasActionableData
         ? (ThemeData.estimateBrightnessForColor(bgColor) ==
                 Brightness.dark
             ? Colors.white70
