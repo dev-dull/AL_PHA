@@ -376,6 +376,8 @@ class _RadialMenuOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brightness = theme.brightness;
+    final screenSize = MediaQuery.of(context).size;
+    final padding = MediaQuery.of(context).padding;
 
     // Build the list of menu items.
     final items = <_RadialItem>[];
@@ -421,6 +423,17 @@ class _RadialMenuOverlay extends StatelessWidget {
     // Start from the top (-π/2).
     const startAngle = -math.pi / 2;
 
+    // Clamp center so all radial items stay within the visible
+    // area, accounting for safe-area insets.
+    const margin = _radius + _itemSize / 2 + 4;
+    final clampedCenter = Offset(
+      center.dx.clamp(margin, screenSize.width - margin),
+      center.dy.clamp(
+        padding.top + margin,
+        screenSize.height - padding.bottom - margin,
+      ),
+    );
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onDismiss,
@@ -432,6 +445,7 @@ class _RadialMenuOverlay extends StatelessWidget {
               items[i],
               startAngle + angleStep * i,
               brightness,
+              clampedCenter,
             ),
         ],
       ),
@@ -443,6 +457,7 @@ class _RadialMenuOverlay extends StatelessWidget {
     _RadialItem item,
     double angle,
     Brightness brightness,
+    Offset menuCenter,
   ) {
     final theme = Theme.of(context);
     final isSelected = item.symbol == currentSymbol;
@@ -455,8 +470,8 @@ class _RadialMenuOverlay extends StatelessWidget {
         final dy = math.sin(angle) * _radius * progress;
 
         return Positioned(
-          left: center.dx + dx - _itemSize / 2,
-          top: center.dy + dy - _itemSize / 2,
+          left: menuCenter.dx + dx - _itemSize / 2,
+          top: menuCenter.dy + dy - _itemSize / 2,
           child: Opacity(
             opacity: animation.value,
             child: child,
