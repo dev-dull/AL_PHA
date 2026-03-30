@@ -373,6 +373,68 @@ void main() {
           reason: 'Tags added after series creation should carry');
       expect(matTags.first.name, 'Chores');
     });
+
+    test('materialize copies series tags to new task', () async {
+      final board1Id =
+          await createWeeklyBoard(DateTime(2026, 3, 23));
+      final board2Id =
+          await createWeeklyBoard(DateTime(2026, 3, 30));
+      final taskRepo = container.read(taskRepositoryProvider);
+      final tagRepo = container.read(tagRepositoryProvider);
+      final taskTagRepo = container.read(taskTagRepositoryProvider);
+      final seriesTagRepo =
+          container.read(seriesTagRepositoryProvider);
+
+      // Create tag.
+      final tagId = uuid.v4();
+      await tagRepo.create(Tag(
+        id: tagId,
+        name: 'Vital',
+        color: 0xFF0000FF,
+        position: 0,
+        createdAt: DateTime.now(),
+      ));
+
+      // Create task, make recurring, set tags on task AND series.
+      final task = Task(
+        id: uuid.v4(),
+        boardId: board1Id,
+        title: 'Take meds',
+        position: 0,
+        createdAt: DateTime.now(),
+        recurrenceRule: 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR,SA,SU',
+      );
+      await taskRepo.create(task);
+      await taskTagRepo.setTagsForTask(task.id, [tagId]);
+
+      final series = await container
+          .read(seriesActionsProvider)
+          .createFromTask(
+            task,
+            boardWeekStart: DateTime(2026, 3, 23),
+          );
+
+      // Explicitly set series tags (simulates onTagsChanged).
+      await seriesTagRepo.setTagsForSeries(series.id, [tagId]);
+
+      // Verify series tags exist.
+      final sTags =
+          await seriesTagRepo.getTagsForSeries(series.id);
+      expect(sTags.length, 1,
+          reason: 'Series should have the Vital tag');
+
+      // Materialize on next week.
+      final mat = await container
+          .read(seriesActionsProvider)
+          .materialize(series: series, boardId: board2Id);
+
+      // The materialized task MUST have the tag.
+      final matTags = await taskTagRepo.getTagsForTask(mat.id);
+      expect(matTags.length, 1,
+          reason:
+              'Materialized instance must inherit series tags');
+      expect(matTags.first.name, 'Vital');
+    });
   });
 
   group('Interval logic', () {

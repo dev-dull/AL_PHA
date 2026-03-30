@@ -68,7 +68,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   /// Creates real task rows for any active series that should
   /// appear on this board but don't have a materialized instance.
   Future<void> _materializeVirtualInstances() async {
-    final boardData = ref.read(boardProvider(widget.boardId)).valueOrNull;
+    // Read the board directly from the DB — the boardProvider
+    // FutureProvider may not have resolved yet in initState.
+    final boardRepo = ref.read(boardRepositoryProvider);
+    final boardData = await boardRepo.getById(widget.boardId);
     if (boardData == null) return;
     final weekStart = boardData.weekStart;
     if (weekStart == null) return;
