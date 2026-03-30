@@ -186,10 +186,30 @@ test/
 - `docs/plan-cloud-sync.md` — Cloud sync & multi-device architecture (RDS Postgres, Lambda, Cognito, Terraform)
 - `docs/plan-testing-strategy.md` — Testing strategy
 - `docs/plan-cicd-release.md` — CI/CD and release plan
+- `docs/agent-coordination.md` — Multi-agent development guide (roles, file ownership, coordination)
 - `docs/android-device-testing.md` — Pixel 8 Pro USB/wireless testing
 - `docs/app-store-testing.md` — Play Store / TestFlight distribution
 - `docs/roles/` — Role-based implementation guides
 - `docs/vm-spec.md` — Agent runner VM specification
+
+## Multi-Agent Development
+
+This project uses Claude Code agents for parallel development. **Read `docs/agent-coordination.md` before starting work.**
+
+Key rules:
+- Run `flutter test` + `flutter analyze --fatal-infos` before AND after changes
+- Run `dart run build_runner build --delete-conflicting-outputs` after touching Freezed models, Drift tables, or Riverpod providers
+- File ownership: SE owns `lib/`, BE owns `lambda/` + `infra/`, DO owns `.github/workflows/`, QA owns `test/`
+- Schema changes: SE updates Drift in `database.dart`, BE adds Flyway migration in `infra/migrations/`
+- Cross-agent coordination: file GitHub Issues before editing files you don't own
+- Bug fixes MUST include a regression test
+- New features MUST include at least one smoke test
+
+Known fragile areas (read these files carefully before editing):
+- `lib/features/series/` — virtual instances, materialization, tag sync
+- `lib/features/marker/providers/marker_providers.dart` — migration logic
+- `lib/features/board/presentation/board_grid_body.dart` — largest UI file, virtual rendering
+- `lib/features/task/presentation/task_detail_sheet.dart` — auto-save, async callbacks
 
 ## Agent Runner VM
 A homelab VM is being provisioned for dedicated Claude Code agent sessions.
