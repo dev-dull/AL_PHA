@@ -139,13 +139,16 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         await ref
             .read(tagActionsProvider)
             .setTagsForTask(task.id, tagIds);
-        // If the task belongs to a series, also update the
-        // series tags so future instances inherit them.
-        if (task.seriesId != null) {
+        // Re-read the task to get the latest seriesId (it may
+        // have been set by createFromTask after the sheet opened).
+        final currentTask = await ref
+            .read(taskRepositoryProvider)
+            .getById(task.id);
+        final sid = currentTask?.seriesId;
+        if (sid != null) {
           final seriesTagRepo =
               ref.read(seriesTagRepositoryProvider);
-          await seriesTagRepo.setTagsForSeries(
-              task.seriesId!, tagIds);
+          await seriesTagRepo.setTagsForSeries(sid, tagIds);
         }
       },
       onSave: (updated) async {
