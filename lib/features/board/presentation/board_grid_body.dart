@@ -534,7 +534,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
 
     // Compute how many positions to rotate. E.g. Monday(1)→Sunday(7):
     // Sunday is at position 6 in a Monday-start board, so rotate by 6.
-    final shift = (boardFirstDay - firstDay + 7) % 7;
+    final shift = (firstDay - boardFirstDay + 7) % 7;
 
     final dateColumns = columns.where((c) => c.type == ColumnType.date).toList()
       ..sort((a, b) => a.position.compareTo(b.position));
