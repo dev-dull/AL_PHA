@@ -494,10 +494,13 @@ class MarkerActions {
       for (final marker in dotsInCol) {
         // Skip recurring tasks — the virtual instance system
         // handles their carry-forward automatically.
+        // Skip non-recurring events — they are date-specific
+        // and should not migrate to the next week.
         final task = allTasks
             .where((t) => t.id == marker.taskId)
             .firstOrNull;
         if (task != null && task.isRecurring) continue;
+        if (task != null && task.isEvent && !task.isRecurring) continue;
 
         await markerRepo.set(
           marker.copyWith(
