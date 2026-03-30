@@ -88,6 +88,7 @@ class TaskRepository {
         isEvent: Value(task.isEvent),
         scheduledTime: Value(task.scheduledTime),
         recurrenceRule: Value(task.recurrenceRule),
+        seriesId: Value(task.seriesId),
       ),
     );
     return task;
