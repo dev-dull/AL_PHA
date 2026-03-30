@@ -26,8 +26,14 @@ class DaySummary {
   int get total => completed + missed + inProgress + scheduled;
   bool get isEmpty => total == 0;
 
-  double get completionRate =>
-      total == 0 ? 0 : (completed / total).clamp(0.0, 1.0);
+  /// Completion rate from 0.0 (all missed) to 1.0 (all done).
+  /// Slash (in-progress) counts as partial credit (0.5 weight)
+  /// since work was started but not finished.
+  double get completionRate {
+    if (total == 0) return 0;
+    final score = completed + (inProgress * 0.5);
+    return (score / total).clamp(0.0, 1.0);
+  }
 }
 
 /// Loads day summaries for all days in a date range by reading

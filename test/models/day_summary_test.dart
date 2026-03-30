@@ -107,10 +107,12 @@ void main() {
     expect(monSummary!.scheduled, 1);
     expect(monSummary.completed, 0);
 
-    // Tuesday should have 1 inProgress.
+    // Tuesday should have 1 inProgress with partial credit.
     final tueSummary = result[DateTime(2026, 3, 24)];
     expect(tueSummary, isNotNull, reason: 'Tuesday should have a summary');
     expect(tueSummary!.inProgress, 1);
+    // Slash gets 0.5 weight: 0.5 / 1 = 0.5 (yellow/amber, not red).
+    expect(tueSummary.completionRate, 0.5);
 
     // Wednesday should have 1 completed.
     final wedSummary = result[DateTime(2026, 3, 25)];
