@@ -128,8 +128,6 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         ref.read(tagsByBoardProvider(widget.boardId)).valueOrNull ?? {};
     final taskTags = taskTagsMap[task.id] ?? [];
 
-    var seriesSaved = false;
-
     TaskDetailSheet.show(
       context: context,
       task: task,
@@ -137,17 +135,17 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       availableTags: allTags,
       currentTags: taskTags,
       onTagsChanged: (tagIds) async {
-        if (seriesSaved && task.seriesId != null) {
-          // Propagate tags to the series definition.
-          final seriesRepo = ref.read(seriesRepositoryProvider);
-          final series = await seriesRepo.getById(task.seriesId!);
-          if (series != null) {
-            await ref
-                .read(seriesActionsProvider)
-                .updateSeries(series, tagIds: tagIds);
-          }
-        } else {
-          await ref.read(tagActionsProvider).setTagsForTask(task.id, tagIds);
+        // Always update the task's own tags.
+        await ref
+            .read(tagActionsProvider)
+            .setTagsForTask(task.id, tagIds);
+        // If the task belongs to a series, also update the
+        // series tags so future instances inherit them.
+        if (task.seriesId != null) {
+          final seriesTagRepo =
+              ref.read(seriesTagRepositoryProvider);
+          await seriesTagRepo.setTagsForSeries(
+              task.seriesId!, tagIds);
         }
       },
       onSave: (updated) async {
@@ -168,7 +166,6 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         }
       },
       onSaveAll: (updated) async {
-        seriesSaved = true;
         if (task.seriesId != null) {
           // Update the series definition so future virtual
           // instances reflect the change.
