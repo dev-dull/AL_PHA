@@ -264,12 +264,13 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     }
 
     if (!mounted) return;
+    final label = _isEvent ? 'event' : 'task';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Task'),
-        content: const Text(
-          'Are you sure you want to delete this task? '
+        title: Text('Delete ${_isEvent ? 'Event' : 'Task'}'),
+        content: Text(
+          'Are you sure you want to delete this $label? '
           'This cannot be undone.',
         ),
         actions: [
@@ -295,13 +296,14 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Future<_SeriesChoice?> _showSeriesPrompt(String action) {
+    final itemLabel = _isEvent ? 'event' : 'task';
     return showDialog<_SeriesChoice>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('$action Series'),
-        content: const Text(
+        content: Text(
           'This is part of a recurring series. Do you want to '
-          'update this one only, or the entire series?',
+          '$action this $itemLabel only, or the entire series?',
         ),
         actions: [
           TextButton(
@@ -311,12 +313,12 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
           OutlinedButton(
             onPressed: () =>
                 Navigator.of(ctx).pop(_SeriesChoice.thisOne),
-            child: const Text('This One'),
+            child: Text('This ${_isEvent ? 'Event' : 'Task'}'),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.of(ctx).pop(_SeriesChoice.all),
-            child: const Text('All Events'),
+            child: const Text('Entire Series'),
           ),
         ],
       ),
