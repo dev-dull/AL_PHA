@@ -238,6 +238,143 @@ void main() {
     });
   });
 
+  group('End-to-end: tag carry-over', () {
+    test('tags set before making recurring carry to next week',
+        () async {
+      final board1Id =
+          await createWeeklyBoard(DateTime(2026, 3, 23));
+      final board2Id =
+          await createWeeklyBoard(DateTime(2026, 3, 30));
+      final taskRepo = container.read(taskRepositoryProvider);
+      final tagRepo = container.read(tagRepositoryProvider);
+      final taskTagRepo = container.read(taskTagRepositoryProvider);
+      final seriesTagRepo =
+          container.read(seriesTagRepositoryProvider);
+
+      // Step 1: Create a tag.
+      final tagId = uuid.v4();
+      await tagRepo.create(Tag(
+        id: tagId,
+        name: 'Health',
+        color: 0xFF00FF00,
+        position: 0,
+        createdAt: DateTime.now(),
+      ));
+
+      // Step 2: Create a non-recurring task.
+      final task = Task(
+        id: uuid.v4(),
+        boardId: board1Id,
+        title: 'Take meds',
+        position: 0,
+        createdAt: DateTime.now(),
+      );
+      await taskRepo.create(task);
+
+      // Step 3: Set tag on the task (simulates onTagsChanged).
+      await taskTagRepo.setTagsForTask(task.id, [tagId]);
+
+      // Step 4: Make it recurring (simulates onSave flow).
+      final updated = task.copyWith(
+        recurrenceRule: 'FREQ=WEEKLY;BYDAY=MO',
+      );
+      await taskRepo.update(updated);
+
+      // Step 5: createFromTask (simulates the onSave callback).
+      final series = await container
+          .read(seriesActionsProvider)
+          .createFromTask(
+            updated,
+            boardWeekStart: DateTime(2026, 3, 23),
+          );
+
+      // Step 6: Simulate onTagsChanged re-reading the task
+      // and syncing to series_tags (as the real code does).
+      final reloaded = await taskRepo.getById(task.id);
+      expect(reloaded!.seriesId, series.id,
+          reason: 'seriesId should be persisted by update()');
+
+      await seriesTagRepo.setTagsForSeries(
+          reloaded.seriesId!, [tagId]);
+
+      // Verify series tags are set.
+      final sTags =
+          await seriesTagRepo.getTagsForSeries(series.id);
+      expect(sTags.length, 1,
+          reason: 'Series should have the Health tag');
+
+      // Step 7: Materialize on next week's board.
+      final materialized = await container
+          .read(seriesActionsProvider)
+          .materialize(series: series, boardId: board2Id);
+
+      // Step 8: Check the materialized task has the tag.
+      final matTags =
+          await taskTagRepo.getTagsForTask(materialized.id);
+      expect(matTags.length, 1,
+          reason: 'Materialized task should inherit the tag');
+      expect(matTags.first.name, 'Health');
+    });
+
+    test('tags set AFTER making recurring still carry over',
+        () async {
+      final board1Id =
+          await createWeeklyBoard(DateTime(2026, 3, 23));
+      final board2Id =
+          await createWeeklyBoard(DateTime(2026, 3, 30));
+      final taskRepo = container.read(taskRepositoryProvider);
+      final tagRepo = container.read(tagRepositoryProvider);
+      final taskTagRepo = container.read(taskTagRepositoryProvider);
+      final seriesTagRepo =
+          container.read(seriesTagRepositoryProvider);
+
+      final tagId = uuid.v4();
+      await tagRepo.create(Tag(
+        id: tagId,
+        name: 'Chores',
+        color: 0xFFFF0000,
+        position: 0,
+        createdAt: DateTime.now(),
+      ));
+
+      // Create task already recurring (no tags yet).
+      final task = Task(
+        id: uuid.v4(),
+        boardId: board1Id,
+        title: 'Take out trash',
+        position: 0,
+        createdAt: DateTime.now(),
+        recurrenceRule: 'FREQ=WEEKLY;BYDAY=MO',
+      );
+      await taskRepo.create(task);
+
+      final series = await container
+          .read(seriesActionsProvider)
+          .createFromTask(
+            task,
+            boardWeekStart: DateTime(2026, 3, 23),
+          );
+
+      // NOW add the tag (simulates a later edit).
+      await taskTagRepo.setTagsForTask(task.id, [tagId]);
+
+      // Simulate onTagsChanged: re-read task, sync to series.
+      final reloaded = await taskRepo.getById(task.id);
+      await seriesTagRepo.setTagsForSeries(
+          reloaded!.seriesId!, [tagId]);
+
+      // Materialize on next week.
+      final mat = await container
+          .read(seriesActionsProvider)
+          .materialize(series: series, boardId: board2Id);
+
+      final matTags = await taskTagRepo.getTagsForTask(mat.id);
+      expect(matTags.length, 1,
+          reason: 'Tags added after series creation should carry');
+      expect(matTags.first.name, 'Chores');
+    });
+  });
+
   group('Interval logic', () {
     test('weekly task appears every week', () async {
       final boardId =

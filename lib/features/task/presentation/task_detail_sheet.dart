@@ -12,8 +12,8 @@ enum _SeriesChoice { thisOne, all }
 class TaskDetailSheet extends StatefulWidget {
   final Task task;
 
-  /// Called with the updated [Task] when the user taps Save.
-  final ValueChanged<Task> onSave;
+  /// Called with the updated [Task] when the user saves.
+  final Future<void> Function(Task) onSave;
 
   /// Called when the user confirms deletion.
   final VoidCallback onDelete;
@@ -30,7 +30,7 @@ class TaskDetailSheet extends StatefulWidget {
   final Set<int> markerPositions;
 
   /// Called when "All" is chosen for a series edit.
-  final ValueChanged<Task>? onSaveAll;
+  final Future<void> Function(Task)? onSaveAll;
 
   /// Called when "All" is chosen for a series delete.
   final VoidCallback? onDeleteAll;
@@ -42,7 +42,7 @@ class TaskDetailSheet extends StatefulWidget {
   final List<Tag> availableTags;
 
   /// Called when the user changes tag assignments.
-  final ValueChanged<List<String>>? onTagsChanged;
+  final Future<void> Function(List<String>)? onTagsChanged;
 
   const TaskDetailSheet({
     super.key,
@@ -63,16 +63,16 @@ class TaskDetailSheet extends StatefulWidget {
   static Future<void> show({
     required BuildContext context,
     required Task task,
-    required ValueChanged<Task> onSave,
+    required Future<void> Function(Task) onSave,
     required VoidCallback onDelete,
     VoidCallback? onWontDo,
     VoidCallback? onReopen,
     Set<int> markerPositions = const {},
-    ValueChanged<Task>? onSaveAll,
+    Future<void> Function(Task)? onSaveAll,
     VoidCallback? onDeleteAll,
     List<Tag> currentTags = const [],
     List<Tag> availableTags = const [],
-    ValueChanged<List<String>>? onTagsChanged,
+    Future<void> Function(List<String>)? onTagsChanged,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -189,8 +189,8 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         updated.recurrenceRule != widget.task.recurrenceRule;
 
     if (recurrenceChanged && widget.onSaveAll != null) {
-      widget.onSaveAll!(updated);
-      widget.onTagsChanged?.call(_selectedTagIds);
+      await widget.onSaveAll!(updated);
+      await widget.onTagsChanged?.call(_selectedTagIds);
       if (promptSeries && mounted) Navigator.of(context).pop();
       return;
     }
@@ -203,26 +203,26 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         return;
       }
       if (choice == _SeriesChoice.thisOne) {
-        widget.onSave(
+        await widget.onSave(
           updated.copyWith(
             recurrenceRule: buildByDayOnly(_scheduledDays),
           ),
         );
       } else {
         if (widget.onSaveAll != null) {
-          widget.onSaveAll!(updated);
+          await widget.onSaveAll!(updated);
         } else {
-          widget.onSave(updated);
+          await widget.onSave(updated);
         }
-        widget.onTagsChanged?.call(_selectedTagIds);
+        await widget.onTagsChanged?.call(_selectedTagIds);
         if (mounted) Navigator.of(context).pop();
         return;
       }
     } else {
-      widget.onSave(updated);
+      await widget.onSave(updated);
     }
 
-    widget.onTagsChanged?.call(_selectedTagIds);
+    await widget.onTagsChanged?.call(_selectedTagIds);
   }
 
   /// Called when the sheet is dismissed (swipe, tap outside).
@@ -249,7 +249,7 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
         // Remove frequency so migration won't recreate it, but
         // keep days for display consistency.
         final (_, days) = parseRRule(widget.task.recurrenceRule);
-        widget.onSave(
+        await widget.onSave(
           widget.task.copyWith(recurrenceRule: buildByDayOnly(days)),
         );
         // Continue to delete just this instance below.

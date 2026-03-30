@@ -42,7 +42,7 @@ void main() {
 
     Widget buildSubject(
       WidgetTester tester, {
-      ValueChanged<Task>? onSave,
+      Future<void> Function(Task)? onSave,
       VoidCallback? onDelete,
     }) {
       tester.view.physicalSize = const Size(800, 1600);
@@ -58,7 +58,7 @@ void main() {
           home: Scaffold(
             body: TaskDetailSheet(
               task: task,
-              onSave: onSave ?? (_) {},
+              onSave: onSave ?? (_) async {},
               onDelete: onDelete ?? () {},
             ),
           ),
@@ -79,7 +79,7 @@ void main() {
     testWidgets('cancel does not call onSave', (tester) async {
       Task? saved;
       await tester.pumpWidget(
-        buildSubject(tester, onSave: (t) => saved = t),
+        buildSubject(tester, onSave: (t) async => saved = t),
       );
       await tester.pumpAndSettle();
 
