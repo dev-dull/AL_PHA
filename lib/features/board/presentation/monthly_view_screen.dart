@@ -211,12 +211,12 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = summary;
-    // Future days with only scheduled dots are "planned" not
-    // "failed" — treat as no data for color purposes.
+    // Days with only scheduled dots (no completed, missed, or
+    // inProgress) are "planned" — treat as no data for color.
+    // This covers future dots and recurring task dots on past days.
     final hasData = s != null &&
         !s.isEmpty &&
-        !(isFuture && s.completed == 0 && s.missed == 0 &&
-            s.inProgress == 0);
+        (s.completed > 0 || s.missed > 0 || s.inProgress > 0);
 
     // Determine indicator color based on activity.
     Color? indicatorColor;
