@@ -73,14 +73,26 @@ class SeriesActions {
     final taskRepo = _ref.read(taskRepositoryProvider);
 
     // Safety check: don't create a duplicate if already materialized.
+    // But ensure the existing task has the latest series tags.
     final existing = await taskRepo.getByBoard(boardId);
-    final alreadyExists = existing.any(
-      (t) => t.seriesId == series.id || t.title == series.title,
-    );
-    if (alreadyExists) {
-      return existing.firstWhere(
-        (t) => t.seriesId == series.id || t.title == series.title,
-      );
+    final match = existing
+        .where((t) => t.seriesId == series.id || t.title == series.title)
+        .firstOrNull;
+    if (match != null) {
+      // Ensure tags are synced even on pre-existing tasks.
+      final seriesTagRepo = _ref.read(seriesTagRepositoryProvider);
+      final taskTagRepo = _ref.read(taskTagRepositoryProvider);
+      final sTags = await seriesTagRepo.getTagsForSeries(series.id);
+      if (sTags.isNotEmpty) {
+        final existingTags = await taskTagRepo.getTagsForTask(match.id);
+        if (existingTags.length != sTags.length) {
+          await taskTagRepo.setTagsForTask(
+            match.id,
+            sTags.map((t) => t.id).toList(),
+          );
+        }
+      }
+      return match;
     }
 
     final markerRepo = _ref.read(markerRepositoryProvider);
