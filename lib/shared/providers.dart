@@ -7,6 +7,8 @@ import 'package:alpha/features/marker/data/marker_repository.dart';
 import 'package:alpha/features/series/data/series_repository.dart';
 import 'package:alpha/features/series/data/series_tag_repository.dart';
 import 'package:alpha/features/tag/data/tag_repository.dart';
+import 'package:alpha/features/sync/data/change_tracker.dart';
+import 'package:alpha/features/sync/data/sync_meta_repository.dart';
 import 'package:alpha/features/tag/data/task_tag_repository.dart';
 import 'package:alpha/features/task/data/task_note_repository.dart';
 
@@ -71,4 +73,16 @@ TagRepository tagRepository(TagRepositoryRef ref) {
 TaskTagRepository taskTagRepository(TaskTagRepositoryRef ref) {
   final db = ref.watch(alphaDatabaseProvider);
   return TaskTagRepository(db);
+}
+
+@Riverpod(keepAlive: true)
+SyncMetaRepository syncMetaRepository(SyncMetaRepositoryRef ref) {
+  final db = ref.watch(alphaDatabaseProvider);
+  return SyncMetaRepository(db);
+}
+
+@Riverpod(keepAlive: true)
+ChangeTracker changeTracker(ChangeTrackerRef ref) {
+  final db = ref.watch(alphaDatabaseProvider);
+  return ChangeTracker(db);
 }

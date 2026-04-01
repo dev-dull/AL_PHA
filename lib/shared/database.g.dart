@@ -907,6 +907,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _completedAtMeta = const VerificationMeta(
     'completedAt',
   );
@@ -1009,6 +1020,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
     priority,
     position,
     createdAt,
+    updatedAt,
     completedAt,
     deadline,
     migratedFromBoardId,
@@ -1087,6 +1099,12 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
       );
     } else if (isInserting) {
       context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
     }
     if (data.containsKey('completed_at')) {
       context.handle(
@@ -1192,6 +1210,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, TaskRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
       completedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
@@ -1242,6 +1264,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final int priority;
   final int position;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   final DateTime? completedAt;
   final DateTime? deadline;
   final String? migratedFromBoardId;
@@ -1259,6 +1282,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     required this.priority,
     required this.position,
     required this.createdAt,
+    this.updatedAt,
     this.completedAt,
     this.deadline,
     this.migratedFromBoardId,
@@ -1279,6 +1303,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     map['priority'] = Variable<int>(priority);
     map['position'] = Variable<int>(position);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
     }
@@ -1314,6 +1341,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       priority: Value(priority),
       position: Value(position),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
@@ -1353,6 +1383,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       priority: serializer.fromJson<int>(json['priority']),
       position: serializer.fromJson<int>(json['position']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
       deadline: serializer.fromJson<DateTime?>(json['deadline']),
       migratedFromBoardId: serializer.fromJson<String?>(
@@ -1379,6 +1410,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'priority': serializer.toJson<int>(priority),
       'position': serializer.toJson<int>(position),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
       'deadline': serializer.toJson<DateTime?>(deadline),
       'migratedFromBoardId': serializer.toJson<String?>(migratedFromBoardId),
@@ -1399,6 +1431,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     int? priority,
     int? position,
     DateTime? createdAt,
+    Value<DateTime?> updatedAt = const Value.absent(),
     Value<DateTime?> completedAt = const Value.absent(),
     Value<DateTime?> deadline = const Value.absent(),
     Value<String?> migratedFromBoardId = const Value.absent(),
@@ -1416,6 +1449,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     priority: priority ?? this.priority,
     position: position ?? this.position,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
     deadline: deadline.present ? deadline.value : this.deadline,
     migratedFromBoardId: migratedFromBoardId.present
@@ -1445,6 +1479,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       priority: data.priority.present ? data.priority.value : this.priority,
       position: data.position.present ? data.position.value : this.position,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
@@ -1477,6 +1512,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('priority: $priority, ')
           ..write('position: $position, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('completedAt: $completedAt, ')
           ..write('deadline: $deadline, ')
           ..write('migratedFromBoardId: $migratedFromBoardId, ')
@@ -1499,6 +1535,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     priority,
     position,
     createdAt,
+    updatedAt,
     completedAt,
     deadline,
     migratedFromBoardId,
@@ -1520,6 +1557,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.priority == this.priority &&
           other.position == this.position &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
           other.completedAt == this.completedAt &&
           other.deadline == this.deadline &&
           other.migratedFromBoardId == this.migratedFromBoardId &&
@@ -1539,6 +1577,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
   final Value<int> priority;
   final Value<int> position;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
   final Value<DateTime?> completedAt;
   final Value<DateTime?> deadline;
   final Value<String?> migratedFromBoardId;
@@ -1557,6 +1596,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.priority = const Value.absent(),
     this.position = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
     this.deadline = const Value.absent(),
     this.migratedFromBoardId = const Value.absent(),
@@ -1576,6 +1616,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     this.priority = const Value.absent(),
     required int position,
     required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
     this.completedAt = const Value.absent(),
     this.deadline = const Value.absent(),
     this.migratedFromBoardId = const Value.absent(),
@@ -1599,6 +1640,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Expression<int>? priority,
     Expression<int>? position,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<DateTime>? completedAt,
     Expression<DateTime>? deadline,
     Expression<String>? migratedFromBoardId,
@@ -1618,6 +1660,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       if (priority != null) 'priority': priority,
       if (position != null) 'position': position,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (completedAt != null) 'completed_at': completedAt,
       if (deadline != null) 'deadline': deadline,
       if (migratedFromBoardId != null)
@@ -1641,6 +1684,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     Value<int>? priority,
     Value<int>? position,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? updatedAt,
     Value<DateTime?>? completedAt,
     Value<DateTime?>? deadline,
     Value<String?>? migratedFromBoardId,
@@ -1660,6 +1704,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
       priority: priority ?? this.priority,
       position: position ?? this.position,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       completedAt: completedAt ?? this.completedAt,
       deadline: deadline ?? this.deadline,
       migratedFromBoardId: migratedFromBoardId ?? this.migratedFromBoardId,
@@ -1698,6 +1743,9 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
@@ -1742,6 +1790,7 @@ class TasksCompanion extends UpdateCompanion<TaskRow> {
           ..write('priority: $priority, ')
           ..write('position: $position, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('completedAt: $completedAt, ')
           ..write('deadline: $deadline, ')
           ..write('migratedFromBoardId: $migratedFromBoardId, ')
@@ -4001,6 +4050,214 @@ class SeriesTagsCompanion extends UpdateCompanion<SeriesTagRow> {
   }
 }
 
+class $SyncMetaTable extends SyncMeta
+    with TableInfo<$SyncMetaTable, SyncMetaRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncMetaRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  SyncMetaRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncMetaRow(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncMetaTable createAlias(String alias) {
+    return $SyncMetaTable(attachedDatabase, alias);
+  }
+}
+
+class SyncMetaRow extends DataClass implements Insertable<SyncMetaRow> {
+  final String key;
+  final String value;
+  const SyncMetaRow({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  SyncMetaCompanion toCompanion(bool nullToAbsent) {
+    return SyncMetaCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory SyncMetaRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncMetaRow(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  SyncMetaRow copyWith({String? key, String? value}) =>
+      SyncMetaRow(key: key ?? this.key, value: value ?? this.value);
+  SyncMetaRow copyWithCompanion(SyncMetaCompanion data) {
+    return SyncMetaRow(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaRow(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncMetaRow &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class SyncMetaCompanion extends UpdateCompanion<SyncMetaRow> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const SyncMetaCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncMetaCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<SyncMetaRow> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncMetaCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return SyncMetaCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AlphaDatabase extends GeneratedDatabase {
   _$AlphaDatabase(QueryExecutor e) : super(e);
   $AlphaDatabaseManager get managers => $AlphaDatabaseManager(this);
@@ -4014,6 +4271,7 @@ abstract class _$AlphaDatabase extends GeneratedDatabase {
   late final $RecurringSeriesTableTable recurringSeriesTable =
       $RecurringSeriesTableTable(this);
   late final $SeriesTagsTable seriesTags = $SeriesTagsTable(this);
+  late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4028,6 +4286,7 @@ abstract class _$AlphaDatabase extends GeneratedDatabase {
     taskTags,
     recurringSeriesTable,
     seriesTags,
+    syncMeta,
   ];
 }
 
@@ -4980,6 +5239,7 @@ typedef $$TasksTableCreateCompanionBuilder =
       Value<int> priority,
       required int position,
       required DateTime createdAt,
+      Value<DateTime?> updatedAt,
       Value<DateTime?> completedAt,
       Value<DateTime?> deadline,
       Value<String?> migratedFromBoardId,
@@ -5000,6 +5260,7 @@ typedef $$TasksTableUpdateCompanionBuilder =
       Value<int> priority,
       Value<int> position,
       Value<DateTime> createdAt,
+      Value<DateTime?> updatedAt,
       Value<DateTime?> completedAt,
       Value<DateTime?> deadline,
       Value<String?> migratedFromBoardId,
@@ -5129,6 +5390,11 @@ class $$TasksTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5315,6 +5581,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
     builder: (column) => ColumnOrderings(column),
@@ -5410,6 +5681,9 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get completedAt => $composableBuilder(
     column: $table.completedAt,
@@ -5585,6 +5859,7 @@ class $$TasksTableTableManager
                 Value<int> priority = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime?> deadline = const Value.absent(),
                 Value<String?> migratedFromBoardId = const Value.absent(),
@@ -5603,6 +5878,7 @@ class $$TasksTableTableManager
                 priority: priority,
                 position: position,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 completedAt: completedAt,
                 deadline: deadline,
                 migratedFromBoardId: migratedFromBoardId,
@@ -5623,6 +5899,7 @@ class $$TasksTableTableManager
                 Value<int> priority = const Value.absent(),
                 required int position,
                 required DateTime createdAt,
+                Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
                 Value<DateTime?> deadline = const Value.absent(),
                 Value<String?> migratedFromBoardId = const Value.absent(),
@@ -5641,6 +5918,7 @@ class $$TasksTableTableManager
                 priority: priority,
                 position: position,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 completedAt: completedAt,
                 deadline: deadline,
                 migratedFromBoardId: migratedFromBoardId,
@@ -8151,6 +8429,145 @@ typedef $$SeriesTagsTableProcessedTableManager =
       SeriesTagRow,
       PrefetchHooks Function({bool seriesId, bool tagId})
     >;
+typedef $$SyncMetaTableCreateCompanionBuilder =
+    SyncMetaCompanion Function({
+      required String key,
+      required String value,
+      Value<int> rowid,
+    });
+typedef $$SyncMetaTableUpdateCompanionBuilder =
+    SyncMetaCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<int> rowid,
+    });
+
+class $$SyncMetaTableFilterComposer
+    extends Composer<_$AlphaDatabase, $SyncMetaTable> {
+  $$SyncMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncMetaTableOrderingComposer
+    extends Composer<_$AlphaDatabase, $SyncMetaTable> {
+  $$SyncMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncMetaTableAnnotationComposer
+    extends Composer<_$AlphaDatabase, $SyncMetaTable> {
+  $$SyncMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$SyncMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AlphaDatabase,
+          $SyncMetaTable,
+          SyncMetaRow,
+          $$SyncMetaTableFilterComposer,
+          $$SyncMetaTableOrderingComposer,
+          $$SyncMetaTableAnnotationComposer,
+          $$SyncMetaTableCreateCompanionBuilder,
+          $$SyncMetaTableUpdateCompanionBuilder,
+          (
+            SyncMetaRow,
+            BaseReferences<_$AlphaDatabase, $SyncMetaTable, SyncMetaRow>,
+          ),
+          SyncMetaRow,
+          PrefetchHooks Function()
+        > {
+  $$SyncMetaTableTableManager(_$AlphaDatabase db, $SyncMetaTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncMetaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncMetaCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncMetaCompanion.insert(
+                key: key,
+                value: value,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AlphaDatabase,
+      $SyncMetaTable,
+      SyncMetaRow,
+      $$SyncMetaTableFilterComposer,
+      $$SyncMetaTableOrderingComposer,
+      $$SyncMetaTableAnnotationComposer,
+      $$SyncMetaTableCreateCompanionBuilder,
+      $$SyncMetaTableUpdateCompanionBuilder,
+      (
+        SyncMetaRow,
+        BaseReferences<_$AlphaDatabase, $SyncMetaTable, SyncMetaRow>,
+      ),
+      SyncMetaRow,
+      PrefetchHooks Function()
+    >;
 
 class $AlphaDatabaseManager {
   final _$AlphaDatabase _db;
@@ -8172,4 +8589,6 @@ class $AlphaDatabaseManager {
       $$RecurringSeriesTableTableTableManager(_db, _db.recurringSeriesTable);
   $$SeriesTagsTableTableManager get seriesTags =>
       $$SeriesTagsTableTableManager(_db, _db.seriesTags);
+  $$SyncMetaTableTableManager get syncMeta =>
+      $$SyncMetaTableTableManager(_db, _db.syncMeta);
 }

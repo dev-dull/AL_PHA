@@ -178,5 +178,40 @@ final taskTagRepositoryProvider = Provider<TaskTagRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TaskTagRepositoryRef = ProviderRef<TaskTagRepository>;
+String _$syncMetaRepositoryHash() =>
+    r'030c436419a2678c20a065e2e1fb033d25ca4ac2';
+
+/// See also [syncMetaRepository].
+@ProviderFor(syncMetaRepository)
+final syncMetaRepositoryProvider = Provider<SyncMetaRepository>.internal(
+  syncMetaRepository,
+  name: r'syncMetaRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$syncMetaRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SyncMetaRepositoryRef = ProviderRef<SyncMetaRepository>;
+String _$changeTrackerHash() => r'a09b6a49d5231d7b363be3cd33819f0c3891c589';
+
+/// See also [changeTracker].
+@ProviderFor(changeTracker)
+final changeTrackerProvider = Provider<ChangeTracker>.internal(
+  changeTracker,
+  name: r'changeTrackerProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$changeTrackerHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ChangeTrackerRef = ProviderRef<ChangeTracker>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

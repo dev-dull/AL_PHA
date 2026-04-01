@@ -45,6 +45,7 @@ class Tasks extends Table {
   IntColumn get priority => integer().withDefault(const Constant(0))();
   IntColumn get position => integer()();
   DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   DateTimeColumn get deadline => dateTime().nullable()();
   TextColumn get migratedFromBoardId => text().nullable()();
@@ -141,6 +142,15 @@ class TaskTags extends Table {
   Set<Column> get primaryKey => {taskId, tagId};
 }
 
+@DataClassName('SyncMetaRow')
+class SyncMeta extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
 @DriftDatabase(tables: [
   Boards,
   BoardColumns,
@@ -151,6 +161,7 @@ class TaskTags extends Table {
   TaskTags,
   RecurringSeriesTable,
   SeriesTags,
+  SyncMeta,
 ])
 class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase() : super(_openConnection());
@@ -158,7 +169,7 @@ class AlphaDatabase extends _$AlphaDatabase {
   AlphaDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -218,6 +229,19 @@ class AlphaDatabase extends _$AlphaDatabase {
         );
         // Migrate existing recurring tasks to series.
         await _migrateRecurringToSeries();
+      }
+      if (from < 9) {
+        // Add updatedAt to tasks for sync change tracking.
+        await customStatement(
+          'ALTER TABLE tasks ADD COLUMN updated_at INTEGER',
+        );
+        // Backfill: set updatedAt = createdAt for existing tasks.
+        await customStatement(
+          'UPDATE tasks SET updated_at = created_at '
+          'WHERE updated_at IS NULL',
+        );
+        // SyncMeta table for sync state (device_id, last_sync).
+        await migrator.createTable(syncMeta);
       }
     },
   );
