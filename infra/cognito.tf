@@ -23,13 +23,6 @@ resource "aws_cognito_user_pool" "main" {
     allow_admin_create_user_only = false
   }
 
-  # Verification via email code (not link — works on mobile).
-  verification_message_template {
-    default_email_option = "CONFIRM_WITH_CODE"
-    email_subject        = "Your AlPHA verification code"
-    email_message        = "Your verification code is {####}"
-  }
-
   # Custom attribute for subscription tier.
   schema {
     attribute_data_type      = "String"
