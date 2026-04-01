@@ -18,6 +18,7 @@ class AuthCallbackScreen extends ConsumerStatefulWidget {
 class _AuthCallbackScreenState
     extends ConsumerState<AuthCallbackScreen> {
   String? _error;
+  static String? _lastExchangedCode;
 
   @override
   void initState() {
@@ -26,8 +27,25 @@ class _AuthCallbackScreenState
   }
 
   Future<void> _exchangeCode() async {
+    final code = widget.code;
+    if (code.isEmpty) {
+      setState(() => _error = 'No authorization code received');
+      return;
+    }
+
+    // Auth codes are single-use. If this code was already
+    // exchanged (e.g. by a duplicate deep link delivery),
+    // skip straight to preferences if we're signed in.
+    if (code == _lastExchangedCode) {
+      if (ref.read(authProvider).user != null) {
+        if (mounted) context.go('/preferences');
+        return;
+      }
+    }
+    _lastExchangedCode = code;
+
     try {
-      await ref.read(authProvider.notifier).handleCallback(widget.code);
+      await ref.read(authProvider.notifier).handleCallback(code);
       if (mounted) context.go('/preferences');
     } catch (e) {
       if (mounted) {

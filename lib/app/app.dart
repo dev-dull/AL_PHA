@@ -14,6 +14,10 @@ class AlphaApp extends ConsumerStatefulWidget {
 
 class _AlphaAppState extends ConsumerState<AlphaApp> {
   static const _channel = MethodChannel('app.channel/deeplink');
+  // Guard against duplicate code processing — auth codes are
+  // single-use, and the deep link may be delivered by both our
+  // custom handler and GoRouter's built-in handling.
+  String? _lastHandledCode;
 
   @override
   void initState() {
@@ -44,9 +48,8 @@ class _AlphaAppState extends ConsumerState<AlphaApp> {
 
     if (uri.scheme == 'alpha' && path == '/auth/callback') {
       final code = uri.queryParameters['code'];
-      if (code != null && code.isNotEmpty) {
-        // Navigate to the callback screen — it handles the token
-        // exchange and shows errors within its own scaffold.
+      if (code != null && code.isNotEmpty && code != _lastHandledCode) {
+        _lastHandledCode = code;
         router.go('/auth/callback?code=$code');
       }
     }
