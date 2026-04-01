@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/features/auth/providers/auth_providers.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
+import 'package:alpha/features/sync/domain/sync_status.dart';
+import 'package:alpha/features/sync/providers/sync_providers.dart';
 import 'package:alpha/features/tag/domain/tag.dart';
 import 'package:alpha/features/tag/domain/tag_palette.dart';
 import 'package:alpha/features/tag/providers/tag_providers.dart';
@@ -113,6 +115,9 @@ class PreferencesScreen extends ConsumerWidget {
           // ── Account ─────────────────────────────────
           const _SectionHeader(title: 'Account'),
           const _AccountSection(),
+
+          // ── Sync (only visible when signed in) ──────
+          const _SyncSection(),
         ],
       ),
     );
@@ -719,5 +724,68 @@ class _AccountSection extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+class _SyncSection extends ConsumerWidget {
+  const _SyncSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    if (auth.user == null) return const SizedBox.shrink();
+
+    final sync = ref.watch(syncProvider);
+    final theme = Theme.of(context);
+
+    final statusText = switch (sync.status) {
+      SyncState.idle => 'Not synced yet',
+      SyncState.syncing => 'Syncing...',
+      SyncState.synced => _formatLastSync(sync.lastSyncTime),
+      SyncState.error => sync.lastError ?? 'Sync failed',
+    };
+
+    final statusIcon = switch (sync.status) {
+      SyncState.idle => Icons.cloud_off_outlined,
+      SyncState.syncing => Icons.cloud_sync_outlined,
+      SyncState.synced => Icons.cloud_done_outlined,
+      SyncState.error => Icons.cloud_off,
+    };
+
+    final statusColor = switch (sync.status) {
+      SyncState.error => theme.colorScheme.error,
+      SyncState.synced => theme.colorScheme.primary,
+      _ => theme.colorScheme.onSurface.withValues(alpha: 0.5),
+    };
+
+    return Column(
+      children: [
+        const Divider(),
+        const _SectionHeader(title: 'Sync'),
+        ListTile(
+          leading: Icon(statusIcon, color: statusColor),
+          title: Text(statusText),
+          trailing: sync.status == SyncState.syncing
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.sync),
+                  onPressed: () =>
+                      ref.read(syncProvider.notifier).syncNow(),
+                ),
+        ),
+      ],
+    );
+  }
+
+  String _formatLastSync(DateTime? time) {
+    if (time == null) return 'Synced';
+    final diff = DateTime.now().difference(time);
+    if (diff.inSeconds < 60) return 'Synced just now';
+    if (diff.inMinutes < 60) return 'Synced ${diff.inMinutes}m ago';
+    return 'Synced ${diff.inHours}h ago';
   }
 }

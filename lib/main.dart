@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/app/app.dart';
 import 'package:alpha/features/auth/providers/auth_providers.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
+import 'package:alpha/features/sync/providers/sync_providers.dart';
 import 'package:alpha/shared/database.dart';
 import 'package:alpha/shared/providers.dart';
 
@@ -25,4 +26,9 @@ void main() async {
       child: const AlphaApp(),
     ),
   );
+
+  // Trigger initial sync if signed in (non-blocking).
+  if (container.read(authProvider).user != null) {
+    container.read(syncProvider.notifier).syncNow();
+  }
 }
