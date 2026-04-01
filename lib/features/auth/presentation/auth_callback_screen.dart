@@ -65,8 +65,8 @@ class _AuthCallbackScreenState
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
-                  onPressed: () => context.go('/'),
-                  child: const Text('Back to Home'),
+                  onPressed: () => context.go('/preferences'),
+                  child: const Text('Back to Settings'),
                 ),
               ],
             ),
