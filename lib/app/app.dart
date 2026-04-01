@@ -54,15 +54,31 @@ class _AlphaAppState extends ConsumerState<AlphaApp> {
     final uri = Uri.tryParse(url);
     if (uri == null) return;
 
-    if (uri.scheme == 'alpha' && uri.host == 'auth' &&
-        uri.path == '/callback') {
+    // Cognito redirects to alpha://auth/callback?code=XXX
+    // The URI may parse as host=auth, path=/callback
+    // or host empty, path=/auth/callback depending on platform.
+    final path = uri.host.isEmpty
+        ? uri.path
+        : '/${uri.host}${uri.path}';
+
+    if (uri.scheme == 'alpha' && path == '/auth/callback') {
       final code = uri.queryParameters['code'];
       if (code != null && code.isNotEmpty) {
-        ref.read(authProvider.notifier).handleCallback(code).then((_) {
-          router.go('/preferences');
-        }).catchError((e) {
-          debugPrint('Auth callback error: $e');
-        });
+        _handleAuthCode(code);
+      }
+    }
+  }
+
+  Future<void> _handleAuthCode(String code) async {
+    try {
+      await ref.read(authProvider.notifier).handleCallback(code);
+      router.go('/preferences');
+    } catch (e) {
+      debugPrint('Auth callback error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sign in failed: $e')),
+        );
       }
     }
   }
