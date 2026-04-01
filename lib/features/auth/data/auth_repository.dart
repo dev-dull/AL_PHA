@@ -1,16 +1,21 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import 'package:amazon_cognito_identity_dart_2/cognito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:alpha/features/auth/domain/auth_config.dart';
 import 'package:alpha/features/auth/domain/auth_state.dart';
 
-/// Stores auth tokens in SharedPreferences and handles
-/// the Cognito OAuth2 token exchange and refresh.
+/// Handles Cognito auth via the native Dart SDK.
+/// No browser, deep links, or PKCE needed.
 class AuthRepository {
   static const _tokensKey = 'auth_tokens';
   static const _userKey = 'auth_user';
+
+  final _userPool = CognitoUserPool(
+    AuthConfig.userPoolId,
+    AuthConfig.clientId,
+  );
 
   // ── Persistence ──────────────────────────────────────
 
@@ -48,77 +53,101 @@ class AuthRepository {
     await prefs.remove(_userKey);
   }
 
-  // ── OAuth2 token exchange ────────────────────────────
+  // ── Auth operations ──────────────────────────────────
 
-  /// Exchange an authorization code for tokens.
-  Future<AuthTokens> exchangeCode(String code) async {
-    final response = await http.post(
-      AuthConfig.tokenEndpoint,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'grant_type': 'authorization_code',
-        'client_id': AuthConfig.clientId,
-        'code': code,
-        'redirect_uri': AuthConfig.redirectUri,
-      },
+  /// Sign in with email + password.
+  Future<({AuthTokens tokens, AuthUser user})> signIn(
+    String email,
+    String password,
+  ) async {
+    final cognitoUser = CognitoUser(email, _userPool);
+    final authDetails = AuthenticationDetails(
+      username: email,
+      password: password,
     );
 
-    if (response.statusCode != 200) {
-      throw Exception('Token exchange failed: ${response.body}');
+    final session = await cognitoUser.authenticateUser(authDetails);
+    if (session == null) {
+      throw Exception('Authentication failed');
     }
 
-    return _parseTokenResponse(response.body);
+    return _sessionToResult(session, email);
   }
 
-  /// Refresh tokens using the refresh token.
-  Future<AuthTokens> refreshTokens(String refreshToken) async {
-    final response = await http.post(
-      AuthConfig.tokenEndpoint,
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: {
-        'grant_type': 'refresh_token',
-        'client_id': AuthConfig.clientId,
-        'refresh_token': refreshToken,
-      },
+  /// Sign up with email + password.
+  Future<String> signUp(String email, String password) async {
+    await _userPool.signUp(
+      email,
+      password,
+      userAttributes: [
+        AttributeArg(name: 'email', value: email),
+      ],
+    );
+    return email;
+  }
+
+  /// Confirm sign-up with verification code.
+  Future<void> confirmSignUp(String email, String code) async {
+    final cognitoUser = CognitoUser(email, _userPool);
+    await cognitoUser.confirmRegistration(code);
+  }
+
+  /// Resend confirmation code.
+  Future<void> resendCode(String email) async {
+    final cognitoUser = CognitoUser(email, _userPool);
+    await cognitoUser.resendConfirmationCode();
+  }
+
+  /// Refresh tokens using persisted session.
+  Future<AuthTokens?> refreshSession(AuthTokens tokens) async {
+    // We need the username to refresh — extract from ID token.
+    final user = _parseIdToken(tokens.idToken);
+    if (user == null) return null;
+
+    final cognitoUser = CognitoUser(user.email, _userPool);
+    final refreshToken = CognitoRefreshToken(tokens.refreshToken);
+
+    try {
+      final session = await cognitoUser.refreshSession(refreshToken);
+      if (session == null) return null;
+
+      final result = _sessionToResult(session, user.email);
+      return result.tokens;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────
+
+  ({AuthTokens tokens, AuthUser user}) _sessionToResult(
+    CognitoUserSession session,
+    String email,
+  ) {
+    final idToken = session.getIdToken().getJwtToken() ?? '';
+    final accessToken = session.getAccessToken().getJwtToken() ?? '';
+    final refreshToken = session.getRefreshToken()?.getToken() ?? '';
+    final expiry = session.getAccessToken().getExpiration();
+
+    final tokens = AuthTokens(
+      accessToken: accessToken,
+      idToken: idToken,
+      refreshToken: refreshToken,
+      expiresAt: DateTime.fromMillisecondsSinceEpoch(expiry * 1000),
     );
 
-    if (response.statusCode != 200) {
-      throw Exception('Token refresh failed: ${response.body}');
-    }
+    final user = _parseIdToken(idToken) ??
+        AuthUser(userId: '', email: email);
 
-    final tokens = _parseTokenResponse(response.body);
-    // Cognito doesn't return a new refresh token on refresh,
-    // so carry the original forward.
-    if (tokens.refreshToken.isEmpty) {
-      return tokens.copyWith(refreshToken: refreshToken);
-    }
-    return tokens;
+    return (tokens: tokens, user: user);
   }
 
-  /// Parse the Cognito token response JSON.
-  AuthTokens _parseTokenResponse(String body) {
-    final json = jsonDecode(body) as Map<String, dynamic>;
-    final expiresIn = json['expires_in'] as int? ?? 3600;
-
-    return AuthTokens(
-      accessToken: json['access_token'] as String,
-      idToken: json['id_token'] as String,
-      refreshToken: (json['refresh_token'] as String?) ?? '',
-      expiresAt: DateTime.now().add(Duration(seconds: expiresIn)),
-    );
-  }
-
-  /// Decode the JWT id_token to extract user info.
-  /// This is a simple base64 decode — no signature verification
-  /// (the server validates the token, not the client).
-  AuthUser? parseIdToken(String idToken) {
+  AuthUser? _parseIdToken(String idToken) {
     try {
       final parts = idToken.split('.');
       if (parts.length != 3) return null;
 
-      final payload = parts[1];
-      // JWT base64url → standard base64.
-      final normalized = base64Url.normalize(payload);
+      final normalized = base64Url.normalize(parts[1]);
       final decoded = utf8.decode(base64Url.decode(normalized));
       final claims = jsonDecode(decoded) as Map<String, dynamic>;
 

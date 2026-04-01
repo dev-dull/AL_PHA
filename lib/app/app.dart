@@ -1,62 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/app/router.dart';
 import 'package:alpha/app/theme.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 
-class AlphaApp extends ConsumerStatefulWidget {
+class AlphaApp extends ConsumerWidget {
   const AlphaApp({super.key});
 
   @override
-  ConsumerState<AlphaApp> createState() => _AlphaAppState();
-}
-
-class _AlphaAppState extends ConsumerState<AlphaApp> {
-  static const _channel = MethodChannel('app.channel/deeplink');
-  // Guard against duplicate code processing — auth codes are
-  // single-use, and the deep link may be delivered by both our
-  // custom handler and GoRouter's built-in handling.
-  String? _lastHandledCode;
-
-  @override
-  void initState() {
-    super.initState();
-    _initDeepLinks();
-  }
-
-  void _initDeepLinks() {
-    _channel.setMethodCallHandler((call) async {
-      if (call.method == 'onDeepLink') {
-        _handleDeepLink(call.arguments as String);
-      }
-    });
-
-    _channel.invokeMethod<String>('getInitialLink').then((link) {
-      if (link != null) _handleDeepLink(link);
-    }).catchError((_) {});
-  }
-
-  void _handleDeepLink(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-
-    // Cognito redirects to alpha://auth/callback?code=XXX
-    final path = uri.host.isEmpty
-        ? uri.path
-        : '/${uri.host}${uri.path}';
-
-    if (uri.scheme == 'alpha' && path == '/auth/callback') {
-      final code = uri.queryParameters['code'];
-      if (code != null && code.isNotEmpty && code != _lastHandledCode) {
-        _lastHandledCode = code;
-        router.go('/auth/callback?code=$code');
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(preferencesProvider);
 
     return MaterialApp.router(

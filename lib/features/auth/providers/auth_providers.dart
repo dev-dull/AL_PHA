@@ -1,8 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:alpha/features/auth/data/auth_repository.dart';
-import 'package:alpha/features/auth/domain/auth_config.dart';
 import 'package:alpha/features/auth/domain/auth_state.dart';
 
 part 'auth_providers.g.dart';
@@ -32,45 +30,39 @@ class Auth extends _$Auth {
     }
   }
 
-  /// Open the Cognito hosted UI for sign-in.
-  Future<void> signIn() async {
-    final uri = AuthConfig.signInUri();
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  /// Sign in with email + password.
+  Future<void> signIn(String email, String password) async {
+    final result = await _repo.signIn(email, password);
+    await _repo.saveTokens(result.tokens);
+    await _repo.saveUser(result.user);
+    state = (user: result.user, tokens: result.tokens);
   }
 
-  /// Open the Cognito hosted UI for sign-up.
-  Future<void> signUp() async {
-    final uri = AuthConfig.signUpUri();
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
+  /// Sign up with email + password. Returns the email for
+  /// the confirmation step.
+  Future<String> signUp(String email, String password) async {
+    return await _repo.signUp(email, password);
   }
 
-  /// Handle the OAuth callback redirect with authorization code.
-  Future<void> handleCallback(String code) async {
-    final tokens = await _repo.exchangeCode(code);
-    final user = _repo.parseIdToken(tokens.idToken);
-
-    if (user == null) {
-      throw Exception('Failed to parse user from ID token');
-    }
-
-    await _repo.saveTokens(tokens);
-    await _repo.saveUser(user);
-    state = (user: user, tokens: tokens);
+  /// Confirm sign-up with verification code, then auto sign-in.
+  Future<void> confirmAndSignIn(
+    String email,
+    String password,
+    String code,
+  ) async {
+    await _repo.confirmSignUp(email, code);
+    await signIn(email, password);
   }
 
-  /// Sign out: clear local state and open Cognito logout.
+  /// Resend confirmation code.
+  Future<void> resendCode(String email) async {
+    await _repo.resendCode(email);
+  }
+
+  /// Sign out: clear local state.
   Future<void> signOut() async {
     await _repo.clear();
     state = (user: null, tokens: null);
-
-    final uri = AuthConfig.signOutUri();
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 
   /// Get a valid access token, refreshing if needed.
@@ -85,20 +77,16 @@ class Auth extends _$Auth {
   }
 
   Future<String?> _tryRefresh(AuthTokens tokens) async {
-    try {
-      final refreshed = await _repo.refreshTokens(tokens.refreshToken);
-      final user = _repo.parseIdToken(refreshed.idToken) ?? state.user;
-
-      await _repo.saveTokens(refreshed);
-      if (user != null) await _repo.saveUser(user);
-      state = (user: user, tokens: refreshed);
-
-      return refreshed.accessToken;
-    } catch (_) {
-      // Refresh failed — clear auth state.
+    final refreshed = await _repo.refreshSession(tokens);
+    if (refreshed == null) {
       await _repo.clear();
       state = (user: null, tokens: null);
       return null;
     }
+
+    final user = state.user;
+    await _repo.saveTokens(refreshed);
+    state = (user: user, tokens: refreshed);
+    return refreshed.accessToken;
   }
 }

@@ -375,13 +375,13 @@ class _AccountSection extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           FilledButton.icon(
-            onPressed: () => authNotifier.signIn(),
+            onPressed: () => _showSignInDialog(context, ref),
             icon: const Icon(Icons.login),
             label: const Text('Sign In'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () => authNotifier.signUp(),
+            onPressed: () => _showSignUpDialog(context, ref),
             icon: const Icon(Icons.person_add_outlined),
             label: const Text('Create Account'),
           ),
@@ -416,5 +416,308 @@ class _AccountSection extends ConsumerWidget {
       ),
     );
     if (confirmed == true) await authNotifier.signOut();
+  }
+
+  Future<void> _showSignInDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final emailCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    String? error;
+    bool loading = false;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: const Text('Sign In'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: emailCtrl,
+                  autofocus: true,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: passCtrl,
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(ctx).colorScheme.error,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: loading
+                    ? null
+                    : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        setDialogState(() {
+                          loading = true;
+                          error = null;
+                        });
+                        try {
+                          await ref
+                              .read(authProvider.notifier)
+                              .signIn(
+                                emailCtrl.text.trim(),
+                                passCtrl.text,
+                              );
+                          if (ctx.mounted) Navigator.of(ctx).pop();
+                        } catch (e) {
+                          setDialogState(() {
+                            loading = false;
+                            error = e.toString();
+                          });
+                        }
+                      },
+                child: loading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text('Sign In'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showSignUpDialog(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final emailCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    final codeCtrl = TextEditingController();
+    bool needsConfirmation = false;
+    String? error;
+    bool loading = false;
+    String? pendingEmail;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            if (needsConfirmation) {
+              return AlertDialog(
+                title: const Text('Verify Email'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Enter the verification code sent to '
+                      '${pendingEmail ?? "your email"}.',
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: codeCtrl,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Verification code',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(ctx).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: loading
+                        ? null
+                        : () => Navigator.of(ctx).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            try {
+                              await ref
+                                  .read(authProvider.notifier)
+                                  .resendCode(pendingEmail!);
+                              setDialogState(
+                                () => error = 'Code resent!',
+                              );
+                            } catch (e) {
+                              setDialogState(
+                                () => error = e.toString(),
+                              );
+                            }
+                          },
+                    child: const Text('Resend'),
+                  ),
+                  FilledButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            setDialogState(() {
+                              loading = true;
+                              error = null;
+                            });
+                            try {
+                              await ref
+                                  .read(authProvider.notifier)
+                                  .confirmAndSignIn(
+                                    pendingEmail!,
+                                    passCtrl.text,
+                                    codeCtrl.text.trim(),
+                                  );
+                              if (ctx.mounted) {
+                                Navigator.of(ctx).pop();
+                              }
+                            } catch (e) {
+                              setDialogState(() {
+                                loading = false;
+                                error = e.toString();
+                              });
+                            }
+                          },
+                    child: loading
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('Verify'),
+                  ),
+                ],
+              );
+            }
+
+            // Sign-up form.
+            return AlertDialog(
+              title: const Text('Create Account'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: emailCtrl,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passCtrl,
+                    obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      helperText: '8+ chars, upper, lower, number',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      error!,
+                      style: TextStyle(
+                        color: Theme.of(ctx).colorScheme.error,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: loading
+                      ? null
+                      : () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: loading
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            loading = true;
+                            error = null;
+                          });
+                          try {
+                            pendingEmail = await ref
+                                .read(authProvider.notifier)
+                                .signUp(
+                                  emailCtrl.text.trim(),
+                                  passCtrl.text,
+                                );
+                            setDialogState(() {
+                              loading = false;
+                              needsConfirmation = true;
+                            });
+                          } catch (e) {
+                            setDialogState(() {
+                              loading = false;
+                              error = e.toString();
+                            });
+                          }
+                        },
+                  child: loading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Create Account'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }
