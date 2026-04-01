@@ -5,8 +5,8 @@
 resource "aws_cognito_user_pool" "main" {
   name = "${var.project}-${var.environment}"
 
-  # Sign-in: email only (no username).
-  alias_attributes         = ["email"]
+  # Sign-in: email IS the username (no separate username field).
+  username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
 
   password_policy {
