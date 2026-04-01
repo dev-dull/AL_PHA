@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:alpha/app/home_shell.dart';
+import 'package:alpha/features/auth/presentation/auth_callback_screen.dart';
 import 'package:alpha/features/board/presentation/board_detail_screen.dart';
 import 'package:alpha/features/board/presentation/board_create_screen.dart';
 import 'package:alpha/features/preferences/presentation/preferences_screen.dart';
@@ -38,6 +39,14 @@ final router = GoRouter(
       path: '/preferences',
       name: 'preferences',
       builder: (context, state) => const PreferencesScreen(),
+    ),
+    GoRoute(
+      path: '/auth/callback',
+      name: 'authCallback',
+      builder: (context, state) {
+        final code = state.uri.queryParameters['code'] ?? '';
+        return AuthCallbackScreen(code: code);
+      },
     ),
   ],
 );

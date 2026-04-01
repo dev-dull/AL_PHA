@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:alpha/features/auth/providers/auth_providers.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 import 'package:alpha/features/tag/domain/tag.dart';
 import 'package:alpha/features/tag/domain/tag_palette.dart';
@@ -106,6 +107,12 @@ class PreferencesScreen extends ConsumerWidget {
           // ── Tags ─────────────────────────────────────
           const _SectionHeader(title: 'Tags'),
           _TagManagementSection(),
+
+          const Divider(),
+
+          // ── Account ─────────────────────────────────
+          const _SectionHeader(title: 'Account'),
+          const _AccountSection(),
         ],
       ),
     );
@@ -307,5 +314,107 @@ class _TagManagementSection extends ConsumerWidget {
         await actions.create(name: name, color: selectedColor);
       }
     }
+  }
+}
+
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final auth = ref.watch(authProvider);
+    final authNotifier = ref.read(authProvider.notifier);
+    final theme = Theme.of(context);
+    final user = auth.user;
+
+    if (user != null) {
+      // Signed in.
+      return Column(
+        children: [
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: theme.colorScheme.primaryContainer,
+              child: Icon(
+                Icons.person,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+            title: Text(user.email),
+            subtitle: const Text('Signed in'),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _confirmSignOut(
+                  context,
+                  authNotifier,
+                ),
+                child: const Text('Sign Out'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      );
+    }
+
+    // Not signed in.
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Sign in to enable cloud sync across devices.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurface
+                  .withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => authNotifier.signIn(),
+            icon: const Icon(Icons.login),
+            label: const Text('Sign In'),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => authNotifier.signUp(),
+            icon: const Icon(Icons.person_add_outlined),
+            label: const Text('Create Account'),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmSignOut(
+    BuildContext context,
+    Auth authNotifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text(
+          'Your data stays on this device. '
+          'Sign in again to resume syncing.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await authNotifier.signOut();
   }
 }
