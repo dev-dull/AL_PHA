@@ -1,14 +1,74 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alpha/app/router.dart';
 import 'package:alpha/app/theme.dart';
+import 'package:alpha/features/auth/providers/auth_providers.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
 
-class AlphaApp extends ConsumerWidget {
+class AlphaApp extends ConsumerStatefulWidget {
   const AlphaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AlphaApp> createState() => _AlphaAppState();
+}
+
+class _AlphaAppState extends ConsumerState<AlphaApp> {
+  static const _channel = MethodChannel('app.channel/deeplink');
+  StreamSubscription<dynamic>? _linkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  void _initDeepLinks() {
+    // Handle deep links via the platform's initial link and stream.
+    // On macOS/iOS, the OS delivers the URL when the user clicks
+    // an alpha:// link. We intercept it and handle the OAuth code.
+    _channel.setMethodCallHandler((call) async {
+      if (call.method == 'onDeepLink') {
+        _handleDeepLink(call.arguments as String);
+      }
+    });
+
+    // Also try getInitialLink for cold-start deep links.
+    _channel.invokeMethod<String>('getInitialLink').then((link) {
+      if (link != null) _handleDeepLink(link);
+    }).catchError((_) {
+      // Channel not available on this platform — fall back to
+      // GoRouter's built-in deep link handling.
+    });
+  }
+
+  void _handleDeepLink(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+
+    if (uri.scheme == 'alpha' && uri.host == 'auth' &&
+        uri.path == '/callback') {
+      final code = uri.queryParameters['code'];
+      if (code != null && code.isNotEmpty) {
+        ref.read(authProvider.notifier).handleCallback(code).then((_) {
+          router.go('/preferences');
+        }).catchError((e) {
+          debugPrint('Auth callback error: $e');
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final prefs = ref.watch(preferencesProvider);
 
     return MaterialApp.router(
