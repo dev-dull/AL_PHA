@@ -8,6 +8,13 @@ from shared.auth import ensure_user
 from shared.db import commit, execute, execute_one, rollback
 from shared.response import error, server_time, success
 
+# Columns that are timestamps — values from SQLite may arrive
+# as epoch seconds (integers) and need conversion to datetime.
+_TIMESTAMP_COLUMNS = {
+    "created_at", "updated_at", "completed_at", "deadline",
+    "week_start", "ended_at",
+}
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -189,6 +196,18 @@ def _upsert_row(table, id_col, row_id, data, updated_at,
         return _insert_row(table, id_col, row_id, data, user_id, client_table)
 
 
+def _coerce_value(col, value):
+    """Convert SQLite epoch-second integers to datetime for Postgres."""
+    if col in _TIMESTAMP_COLUMNS and isinstance(value, (int, float)):
+        if value == 0:
+            return None
+        return datetime.fromtimestamp(value, tz=timezone.utc)
+    # SQLite booleans arrive as 0/1 integers.
+    if col in ("archived", "is_event") and isinstance(value, int):
+        return bool(value)
+    return value
+
+
 def _insert_row(table, id_col, row_id, data, user_id, client_table):
     """Insert a new row."""
     columns = TABLE_COLUMNS.get(client_table, [])
@@ -198,7 +217,7 @@ def _insert_row(table, id_col, row_id, data, user_id, client_table):
     for col in columns:
         if col in data:
             col_names.append(col)
-            values.append(data[col])
+            values.append(_coerce_value(col, data[col]))
         elif col == "id":
             col_names.append(col)
             values.append(row_id)
@@ -231,7 +250,7 @@ def _update_row(table, id_col, row_id, data, user_id, client_table):
             continue
         if col in data:
             sets.append(f"{col} = %s")
-            values.append(data[col])
+            values.append(_coerce_value(col, data[col]))
 
     if not sets:
         return False
