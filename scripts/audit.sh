@@ -184,7 +184,7 @@ else
 fi
 
 # ================================================================
-header "10. Infrastructure"
+header "10. Infrastructure: Terraform"
 # ================================================================
 
 # Check Terraform formatting.
@@ -203,6 +203,80 @@ else
   pass "No Terraform state in git"
 fi
 
+# Check all variables have descriptions.
+VARS_NO_DESC=$(grep -c 'variable "' infra/variables.tf 2>/dev/null || echo "0")
+VARS_WITH_DESC=$(grep -c 'description' infra/variables.tf 2>/dev/null || echo "0")
+if [ "$VARS_NO_DESC" -le "$VARS_WITH_DESC" ]; then
+  pass "All Terraform variables have descriptions"
+else
+  warn "$(( VARS_NO_DESC - VARS_WITH_DESC )) Terraform variables missing descriptions"
+fi
+
+# Check RDS is not publicly accessible.
+if grep -q 'publicly_accessible.*=.*true' infra/rds.tf 2>/dev/null; then
+  fail "RDS is publicly accessible"
+else
+  pass "RDS is not publicly accessible"
+fi
+
+# Check RDS storage encryption.
+if grep -q 'storage_encrypted.*=.*true' infra/rds.tf 2>/dev/null; then
+  pass "RDS storage encrypted"
+else
+  fail "RDS storage not encrypted"
+fi
+
+# Check RDS deletion protection (for non-dev).
+if grep -q 'deletion_protection' infra/rds.tf 2>/dev/null; then
+  pass "RDS deletion protection configured"
+else
+  warn "RDS missing deletion_protection"
+fi
+
+# Check S3 public access block.
+if grep -q 'block_public_acls.*=.*true' infra/s3.tf 2>/dev/null; then
+  pass "S3 public access blocked"
+else
+  fail "S3 missing public access block"
+fi
+
+# Check S3 encryption.
+if grep -q 'sse_algorithm' infra/s3.tf 2>/dev/null; then
+  pass "S3 server-side encryption enabled"
+else
+  fail "S3 missing server-side encryption"
+fi
+
+# Check Lambda functions are in VPC.
+if grep -q 'vpc_config' infra/lambda.tf 2>/dev/null; then
+  pass "Lambda functions deployed in VPC"
+else
+  warn "Lambda functions not in VPC (no private network access)"
+fi
+
+# Check for overly permissive IAM (wildcard-only resources).
+# "migrations/*" is scoped and OK. Only flag standalone "*".
+WILD_IAM=$(grep -n 'resources.*=.*\["[*]"\]' infra/iam.tf 2>/dev/null || true)
+if [ -n "$WILD_IAM" ]; then
+  fail "Wildcard IAM resource in iam.tf — use specific ARNs"
+else
+  pass "IAM policies use scoped resource ARNs"
+fi
+
+# Check API Gateway has authorizer.
+if grep -q 'authorizer_type.*JWT' infra/api_gateway.tf 2>/dev/null; then
+  pass "API Gateway has JWT authorizer"
+else
+  fail "API Gateway missing JWT authorizer"
+fi
+
+# Check CORS is not wildcard in production (warn for dev).
+if grep -q 'allow_origins.*\*' infra/api_gateway.tf 2>/dev/null; then
+  warn "API Gateway CORS allows all origins (restrict for production)"
+else
+  pass "API Gateway CORS restricted"
+fi
+
 # ================================================================
 header "11. Schema consistency"
 # ================================================================
@@ -215,6 +289,74 @@ if [ "$DRIFT_VERSION" -gt 0 ] && [ "$PG_MIGRATIONS" -gt 0 ]; then
 else
   warn "Could not verify schema versions"
 fi
+
+# ================================================================
+header "12. Test coverage"
+# ================================================================
+
+# Check that every feature directory has at least one test.
+MISSING_TESTS=""
+for feature_dir in lib/features/*/; do
+  feature=$(basename "$feature_dir")
+  # Skip features that are purely UI shells (no testable logic).
+  if [ "$feature" = "template" ] || [ "$feature" = "views" ]; then
+    continue
+  fi
+  has_test=$(find test/ -name '*.dart' -exec grep -l "$feature" {} \; 2>/dev/null | head -1)
+  if [ -z "$has_test" ]; then
+    MISSING_TESTS="${MISSING_TESTS}${feature}, "
+  fi
+done
+
+if [ -z "$MISSING_TESTS" ]; then
+  pass "All features have test coverage"
+else
+  warn "Features missing tests: ${MISSING_TESTS%, }"
+fi
+
+# Check required test categories exist.
+REQUIRED_TESTS=(
+  "change_tracker"    "Sync change tracking"
+  "first_day_switch"  "First-day-of-week switching"
+  "recurring_series"  "Recurring series lifecycle"
+  "tag_carry"         "Tag carry-over to materialized instances"
+  "day_summary"       "Day summary for overviews"
+  "auto_fill"         "Auto-fill markers (done early / missed)"
+  "week_utils"        "Week utility functions"
+  "task_sort"         "Task sorting modes"
+  "marker_symbol"     "Marker symbol enum"
+)
+
+MISSING_REQUIRED=""
+for ((i=0; i<${#REQUIRED_TESTS[@]}; i+=2)); do
+  pattern="${REQUIRED_TESTS[$i]}"
+  label="${REQUIRED_TESTS[$((i+1))]}"
+  if ! find test/ -name "*${pattern}*" -print -quit 2>/dev/null | grep -q .; then
+    MISSING_REQUIRED="${MISSING_REQUIRED}${label}, "
+  fi
+done
+
+if [ -z "$MISSING_REQUIRED" ]; then
+  pass "All required test categories present (${#REQUIRED_TESTS[@]}/2 categories)"
+else
+  fail "Missing required tests: ${MISSING_REQUIRED%, }"
+fi
+
+# Check that Lambda handlers have Python tests.
+if [ -d lambda/tests ] || [ -d lambda/test ]; then
+  PYTEST_COUNT=$(find lambda/tests lambda/test -name 'test_*.py' 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$PYTEST_COUNT" -gt 0 ]; then
+    pass "${PYTEST_COUNT} Lambda test file(s)"
+  else
+    warn "Lambda test directory exists but no test files"
+  fi
+else
+  warn "No Lambda/Python tests (lambda/tests/ directory missing)"
+fi
+
+# Count total test assertions (rough metric).
+TOTAL_EXPECTS=$(grep -r 'expect(' test/ --include='*.dart' 2>/dev/null | wc -l | tr -d ' ')
+pass "${TOTAL_EXPECTS} test assertions across test suite"
 
 # ================================================================
 # Summary
