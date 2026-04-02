@@ -30,6 +30,17 @@ locals {
 # the CI pipeline builds per-function zips with dependencies.
 # For Terraform, this packages the source so `terraform apply`
 # can create the functions without a separate build step.
+# psycopg2 Lambda layer — built locally and uploaded.
+# Rebuild with: pip install --platform manylinux2014_x86_64
+#   --only-binary=:all: --python-version 3.12
+#   --target /tmp/lambda-layer/python psycopg2-binary==2.9.9
+resource "aws_lambda_layer_version" "psycopg2" {
+  layer_name          = "${var.project}-psycopg2"
+  filename            = "${path.module}/.build/psycopg2-layer.zip"
+  compatible_runtimes = [local.lambda_runtime]
+  source_code_hash    = filebase64sha256("${path.module}/.build/psycopg2-layer.zip")
+}
+
 data "archive_file" "lambda_package" {
   type        = "zip"
   source_dir  = local.lambda_src_dir
@@ -55,6 +66,8 @@ resource "aws_lambda_function" "functions" {
   environment {
     variables = local.lambda_env
   }
+
+  layers = [aws_lambda_layer_version.psycopg2.arn]
 
   vpc_config {
     subnet_ids         = [aws_subnet.private_a.id, aws_subnet.private_b.id]
