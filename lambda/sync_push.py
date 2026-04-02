@@ -165,19 +165,36 @@ def lambda_handler(event, context):
     })
 
 
-# Tables that use created_at instead of updated_at for timestamps.
-_CREATED_AT_TABLES = {"tags", "recurring_series"}
+# Map client table → timestamp column for conflict resolution.
+# Tables not listed here have no timestamp — always upsert.
+_TIMESTAMP_COL = {
+    "boards": "updated_at",
+    "tasks": "updated_at",
+    "markers": "updated_at",
+    "task_notes": "updated_at",
+    "tags": "created_at",
+    "recurring_series": "created_at",
+    # board_columns has no timestamp — always upsert.
+}
 
 
 def _upsert_row(table, id_col, row_id, data, updated_at,
                  deleted, user_id, client_table):
     """Upsert a single row. Returns True if accepted."""
-    ts_col = "created_at" if client_table in _CREATED_AT_TABLES else "updated_at"
+    ts_col = _TIMESTAMP_COL.get(client_table)
 
-    existing = execute_one(
-        f"SELECT {ts_col} as ts, deleted_at FROM {table} WHERE {id_col} = %s",
-        (row_id,),
-    )
+    if ts_col:
+        existing = execute_one(
+            f"SELECT {ts_col} as ts, deleted_at FROM {table} "
+            f"WHERE {id_col} = %s",
+            (row_id,),
+        )
+    else:
+        # No timestamp column — just check existence.
+        existing = execute_one(
+            f"SELECT 1 as ts FROM {table} WHERE {id_col} = %s",
+            (row_id,),
+        )
 
     if deleted:
         if existing:
@@ -188,12 +205,15 @@ def _upsert_row(table, id_col, row_id, data, updated_at,
         return True
 
     if existing:
-        server_ts = existing["ts"]
-        if server_ts and updated_at <= server_ts:
-            return False  # Server wins tie
-        return _update_row(table, id_col, row_id, data, user_id, client_table)
+        if ts_col:
+            server_ts = existing["ts"]
+            if server_ts and updated_at <= server_ts:
+                return False  # Server wins tie
+        return _update_row(table, id_col, row_id, data, user_id,
+                           client_table)
     else:
-        return _insert_row(table, id_col, row_id, data, user_id, client_table)
+        return _insert_row(table, id_col, row_id, data, user_id,
+                           client_table)
 
 
 def _coerce_value(col, value):
