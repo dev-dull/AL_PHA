@@ -115,9 +115,6 @@ class PreferencesScreen extends ConsumerWidget {
           // ── Account ─────────────────────────────────
           const _SectionHeader(title: 'Account'),
           const _AccountSection(),
-
-          // ── Sync (only visible when signed in) ──────
-          const _SyncSection(),
         ],
       ),
     );
@@ -333,7 +330,29 @@ class _AccountSection extends ConsumerWidget {
     final user = auth.user;
 
     if (user != null) {
-      // Signed in.
+      // Signed in — show account info + sync status.
+      final sync = ref.watch(syncProvider);
+
+      final syncText = switch (sync.status) {
+        SyncState.idle => 'Not synced yet',
+        SyncState.syncing => 'Syncing...',
+        SyncState.synced => _formatLastSync(sync.lastSyncTime),
+        SyncState.error => sync.lastError ?? 'Sync failed',
+      };
+
+      final syncIcon = switch (sync.status) {
+        SyncState.idle => Icons.cloud_off_outlined,
+        SyncState.syncing => Icons.cloud_sync_outlined,
+        SyncState.synced => Icons.cloud_done_outlined,
+        SyncState.error => Icons.cloud_off,
+      };
+
+      final syncColor = switch (sync.status) {
+        SyncState.error => theme.colorScheme.error,
+        SyncState.synced => theme.colorScheme.primary,
+        _ => theme.colorScheme.onSurface.withValues(alpha: 0.5),
+      };
+
       return Column(
         children: [
           ListTile(
@@ -346,6 +365,21 @@ class _AccountSection extends ConsumerWidget {
             ),
             title: Text(user.email),
             subtitle: const Text('Signed in'),
+          ),
+          ListTile(
+            leading: Icon(syncIcon, color: syncColor),
+            title: Text(syncText),
+            trailing: sync.status == SyncState.syncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    icon: const Icon(Icons.sync),
+                    onPressed: () =>
+                        ref.read(syncProvider.notifier).syncNow(),
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -396,6 +430,14 @@ class _AccountSection extends ConsumerWidget {
     );
   }
 
+  String _formatLastSync(DateTime? time) {
+    if (time == null) return 'Synced';
+    final diff = DateTime.now().difference(time);
+    if (diff.inSeconds < 60) return 'Synced just now';
+    if (diff.inMinutes < 60) return 'Synced ${diff.inMinutes}m ago';
+    return 'Synced ${diff.inHours}h ago';
+  }
+
   Future<void> _confirmSignOut(
     BuildContext context,
     Auth authNotifier,
@@ -436,6 +478,28 @@ class _AccountSection extends ConsumerWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
+          Future<void> submit() async {
+            if (loading) return;
+            setDialogState(() {
+              loading = true;
+              error = null;
+            });
+            try {
+              await ref
+                  .read(authProvider.notifier)
+                  .signIn(
+                    emailCtrl.text.trim(),
+                    passCtrl.text,
+                  );
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            } catch (e) {
+              setDialogState(() {
+                loading = false;
+                error = e.toString();
+              });
+            }
+          }
+
           return AlertDialog(
             title: const Text('Sign In'),
             content: Column(
@@ -456,6 +520,7 @@ class _AccountSection extends ConsumerWidget {
                   controller: passCtrl,
                   obscureText: true,
                   textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => submit(),
                   decoration: const InputDecoration(
                     labelText: 'Password',
                     border: OutlineInputBorder(),
@@ -481,28 +546,7 @@ class _AccountSection extends ConsumerWidget {
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: loading
-                    ? null
-                    : () async {
-                        setDialogState(() {
-                          loading = true;
-                          error = null;
-                        });
-                        try {
-                          await ref
-                              .read(authProvider.notifier)
-                              .signIn(
-                                emailCtrl.text.trim(),
-                                passCtrl.text,
-                              );
-                          if (ctx.mounted) Navigator.of(ctx).pop();
-                        } catch (e) {
-                          setDialogState(() {
-                            loading = false;
-                            error = e.toString();
-                          });
-                        }
-                      },
+                onPressed: loading ? null : submit,
                 child: loading
                     ? const SizedBox(
                         width: 16,
@@ -535,9 +579,56 @@ class _AccountSection extends ConsumerWidget {
     await showDialog(
       context: context,
       builder: (ctx) {
-
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
+            Future<void> submitVerify() async {
+              if (loading) return;
+              setDialogState(() {
+                loading = true;
+                error = null;
+              });
+              try {
+                await ref
+                    .read(authProvider.notifier)
+                    .confirmAndSignIn(
+                      pendingEmail!,
+                      passCtrl.text,
+                      codeCtrl.text.trim(),
+                    );
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              } catch (e) {
+                setDialogState(() {
+                  loading = false;
+                  error = e.toString();
+                });
+              }
+            }
+
+            Future<void> submitSignUp() async {
+              if (loading) return;
+              setDialogState(() {
+                loading = true;
+                error = null;
+              });
+              try {
+                pendingEmail = await ref
+                    .read(authProvider.notifier)
+                    .signUp(
+                      emailCtrl.text.trim(),
+                      passCtrl.text,
+                    );
+                setDialogState(() {
+                  loading = false;
+                  needsConfirmation = true;
+                });
+              } catch (e) {
+                setDialogState(() {
+                  loading = false;
+                  error = e.toString();
+                });
+              }
+            }
+
             if (needsConfirmation) {
               return AlertDialog(
                 title: const Text('Verify Email'),
@@ -553,6 +644,8 @@ class _AccountSection extends ConsumerWidget {
                       controller: codeCtrl,
                       autofocus: true,
                       keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => submitVerify(),
                       decoration: const InputDecoration(
                         labelText: 'Verification code',
                         border: OutlineInputBorder(),
@@ -597,31 +690,7 @@ class _AccountSection extends ConsumerWidget {
                     child: const Text('Resend'),
                   ),
                   FilledButton(
-                    onPressed: loading
-                        ? null
-                        : () async {
-                            setDialogState(() {
-                              loading = true;
-                              error = null;
-                            });
-                            try {
-                              await ref
-                                  .read(authProvider.notifier)
-                                  .confirmAndSignIn(
-                                    pendingEmail!,
-                                    passCtrl.text,
-                                    codeCtrl.text.trim(),
-                                  );
-                              if (ctx.mounted) {
-                                Navigator.of(ctx).pop();
-                              }
-                            } catch (e) {
-                              setDialogState(() {
-                                loading = false;
-                                error = e.toString();
-                              });
-                            }
-                          },
+                    onPressed: loading ? null : submitVerify,
                     child: loading
                         ? const SizedBox(
                             width: 16,
@@ -636,7 +705,6 @@ class _AccountSection extends ConsumerWidget {
               );
             }
 
-            // Sign-up form.
             return AlertDialog(
               title: const Text('Create Account'),
               content: Column(
@@ -657,6 +725,7 @@ class _AccountSection extends ConsumerWidget {
                     controller: passCtrl,
                     obscureText: true,
                     textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => submitSignUp(),
                     decoration: const InputDecoration(
                       labelText: 'Password',
                       helperText: '8+ chars, upper, lower, number',
@@ -683,31 +752,7 @@ class _AccountSection extends ConsumerWidget {
                   child: const Text('Cancel'),
                 ),
                 FilledButton(
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          setDialogState(() {
-                            loading = true;
-                            error = null;
-                          });
-                          try {
-                            pendingEmail = await ref
-                                .read(authProvider.notifier)
-                                .signUp(
-                                  emailCtrl.text.trim(),
-                                  passCtrl.text,
-                                );
-                            setDialogState(() {
-                              loading = false;
-                              needsConfirmation = true;
-                            });
-                          } catch (e) {
-                            setDialogState(() {
-                              loading = false;
-                              error = e.toString();
-                            });
-                          }
-                        },
+                  onPressed: loading ? null : submitSignUp,
                   child: loading
                       ? const SizedBox(
                           width: 16,
@@ -724,68 +769,5 @@ class _AccountSection extends ConsumerWidget {
         );
       },
     );
-  }
-}
-
-class _SyncSection extends ConsumerWidget {
-  const _SyncSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
-    if (auth.user == null) return const SizedBox.shrink();
-
-    final sync = ref.watch(syncProvider);
-    final theme = Theme.of(context);
-
-    final statusText = switch (sync.status) {
-      SyncState.idle => 'Not synced yet',
-      SyncState.syncing => 'Syncing...',
-      SyncState.synced => _formatLastSync(sync.lastSyncTime),
-      SyncState.error => sync.lastError ?? 'Sync failed',
-    };
-
-    final statusIcon = switch (sync.status) {
-      SyncState.idle => Icons.cloud_off_outlined,
-      SyncState.syncing => Icons.cloud_sync_outlined,
-      SyncState.synced => Icons.cloud_done_outlined,
-      SyncState.error => Icons.cloud_off,
-    };
-
-    final statusColor = switch (sync.status) {
-      SyncState.error => theme.colorScheme.error,
-      SyncState.synced => theme.colorScheme.primary,
-      _ => theme.colorScheme.onSurface.withValues(alpha: 0.5),
-    };
-
-    return Column(
-      children: [
-        const Divider(),
-        const _SectionHeader(title: 'Sync'),
-        ListTile(
-          leading: Icon(statusIcon, color: statusColor),
-          title: Text(statusText),
-          trailing: sync.status == SyncState.syncing
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : IconButton(
-                  icon: const Icon(Icons.sync),
-                  onPressed: () =>
-                      ref.read(syncProvider.notifier).syncNow(),
-                ),
-        ),
-      ],
-    );
-  }
-
-  String _formatLastSync(DateTime? time) {
-    if (time == null) return 'Synced';
-    final diff = DateTime.now().difference(time);
-    if (diff.inSeconds < 60) return 'Synced just now';
-    if (diff.inMinutes < 60) return 'Synced ${diff.inMinutes}m ago';
-    return 'Synced ${diff.inHours}h ago';
   }
 }
