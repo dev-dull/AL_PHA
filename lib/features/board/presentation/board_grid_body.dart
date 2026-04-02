@@ -30,6 +30,23 @@ import 'package:alpha/features/preferences/providers/preferences_providers.dart'
 import 'package:alpha/features/task/providers/task_providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
+/// Convert a stored UTC "HH:mm" string to local time for display.
+String _utcTimeToLocal(String utcTime) {
+  final parts = utcTime.split(':');
+  if (parts.length != 2) return utcTime;
+  final now = DateTime.now();
+  final utcDt = DateTime.utc(
+    now.year, now.month, now.day,
+    int.parse(parts[0]), int.parse(parts[1]),
+  );
+  final local = utcDt.toLocal();
+  final h = local.hour;
+  final m = local.minute;
+  final amPm = h >= 12 ? 'PM' : 'AM';
+  final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+  return '$h12:${m.toString().padLeft(2, '0')} $amPm';
+}
+
 /// The board grid body: column headers + task rows with markers.
 /// Used by both [BoardDetailScreen] and [WeeklyViewScreen].
 class BoardGridBody extends ConsumerStatefulWidget {
@@ -1181,7 +1198,7 @@ class BoardRow extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(left: 4),
                         child: Text(
-                          task.scheduledTime!,
+                          _utcTimeToLocal(task.scheduledTime!),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(
                               alpha: isStrikethrough ? 0.3 : 0.5,
@@ -1314,7 +1331,7 @@ class VirtualBoardRow extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.only(left: 4),
                         child: Text(
-                          series.scheduledTime!,
+                          _utcTimeToLocal(series.scheduledTime!),
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: theme.colorScheme.onSurface.withValues(
                               alpha: 0.5,

@@ -118,10 +118,12 @@ List<ParsedEvent> parseICalString(String icsContent) {
     final dtStart = component.start;
     if (dtStart != null) {
       startDate = dtStart;
-      final hour = dtStart.hour.toString().padLeft(2, '0');
-      final minute = dtStart.minute.toString().padLeft(2, '0');
+      // Convert to UTC for storage.
+      final utc = dtStart.toUtc();
+      final hour = utc.hour.toString().padLeft(2, '0');
+      final minute = utc.minute.toString().padLeft(2, '0');
       // Only set time if it's not midnight (all-day events).
-      if (dtStart.hour != 0 || dtStart.minute != 0) {
+      if (utc.hour != 0 || utc.minute != 0) {
         scheduledTime = '$hour:$minute';
       }
     }

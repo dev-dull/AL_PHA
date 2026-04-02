@@ -133,20 +133,32 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     _selectedTagIds = widget.currentTags.map((t) => t.id).toList();
   }
 
+  /// Parse a stored UTC "HH:mm" string to a local TimeOfDay.
   static TimeOfDay? _parseTime(String? time) {
     if (time == null) return null;
     final parts = time.split(':');
     if (parts.length != 2) return null;
-    return TimeOfDay(
-      hour: int.parse(parts[0]),
-      minute: int.parse(parts[1]),
+    final utcHour = int.parse(parts[0]);
+    final utcMinute = int.parse(parts[1]);
+    // Convert UTC time to local for display.
+    final now = DateTime.now();
+    final utcDt = DateTime.utc(
+      now.year, now.month, now.day, utcHour, utcMinute,
     );
+    final local = utcDt.toLocal();
+    return TimeOfDay(hour: local.hour, minute: local.minute);
   }
 
+  /// Convert a local TimeOfDay to a UTC "HH:mm" string for storage.
   static String? _formatTime(TimeOfDay? time) {
     if (time == null) return null;
-    return '${time.hour.toString().padLeft(2, '0')}:'
-        '${time.minute.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final localDt = DateTime(
+      now.year, now.month, now.day, time.hour, time.minute,
+    );
+    final utc = localDt.toUtc();
+    return '${utc.hour.toString().padLeft(2, '0')}:'
+        '${utc.minute.toString().padLeft(2, '0')}';
   }
 
   @override

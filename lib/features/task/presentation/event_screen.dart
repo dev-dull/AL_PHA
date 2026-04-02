@@ -55,8 +55,15 @@ class _EventScreenState extends ConsumerState<EventScreen> {
 
     String? timeStr;
     if (_scheduledTime != null) {
-      timeStr = '${_scheduledTime!.hour.toString().padLeft(2, '0')}:'
-          '${_scheduledTime!.minute.toString().padLeft(2, '0')}';
+      // Convert local TimeOfDay to UTC for storage.
+      final now = DateTime.now();
+      final localDt = DateTime(
+        now.year, now.month, now.day,
+        _scheduledTime!.hour, _scheduledTime!.minute,
+      );
+      final utc = localDt.toUtc();
+      timeStr = '${utc.hour.toString().padLeft(2, '0')}:'
+          '${utc.minute.toString().padLeft(2, '0')}';
     }
 
     final rrule = buildRRule(_recurrence, _selectedDays);
@@ -151,9 +158,17 @@ class _EventScreenState extends ConsumerState<EventScreen> {
           if (event.scheduledTime != null) {
             final parts = event.scheduledTime!.split(':');
             if (parts.length == 2) {
+              // Convert stored UTC time to local for the picker.
+              final now = DateTime.now();
+              final utcDt = DateTime.utc(
+                now.year, now.month, now.day,
+                int.parse(parts[0]),
+                int.parse(parts[1]),
+              );
+              final local = utcDt.toLocal();
               _scheduledTime = TimeOfDay(
-                hour: int.parse(parts[0]),
-                minute: int.parse(parts[1]),
+                hour: local.hour,
+                minute: local.minute,
               );
             }
           }
