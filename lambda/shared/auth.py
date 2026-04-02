@@ -1,6 +1,6 @@
 """JWT/Cognito helpers for Lambda functions."""
 
-from shared.db import execute
+from shared.db import get_connection, commit
 
 
 def get_user_id(event):
@@ -29,7 +29,9 @@ def ensure_user(event):
     """Return user_id or raise if not authenticated.
 
     Also ensures the user row exists in the database (auto-created
-    on first sync from the Cognito JWT claims).
+    on first sync from the Cognito JWT claims). The user INSERT is
+    committed immediately so it persists even if the sync transaction
+    rolls back.
     """
     user_id = get_user_id(event)
     if not user_id:
@@ -37,14 +39,16 @@ def ensure_user(event):
 
     email = get_email(event)
 
-    # Upsert user row — creates on first sync, no-op after.
-    execute(
-        """
-        INSERT INTO users (id, email)
-        VALUES (%s, %s)
-        ON CONFLICT (id) DO NOTHING
-        """,
-        (user_id, email),
-    )
+    conn = get_connection()
+    with conn.cursor() as cur:
+        cur.execute(
+            "INSERT INTO users (id, email) VALUES (%s, %s) "
+            "ON CONFLICT (id) DO NOTHING",
+            (user_id, email),
+        )
+    # Commit the user row immediately so it's visible to
+    # subsequent FK-dependent inserts even if the outer
+    # sync transaction fails and rolls back.
+    commit()
 
     return user_id
