@@ -14,6 +14,10 @@ def get_connection():
     """Return a reusable Postgres connection (cached across warm invocations)."""
     global _conn
     if _conn is not None and not _conn.closed:
+        # Reset connection if it's in an error state from a
+        # previous failed invocation.
+        if _conn.info.transaction_status != 0:  # IDLE = 0
+            _conn.rollback()
         return _conn
 
     secret_arn = os.environ["DB_SECRET_ARN"]

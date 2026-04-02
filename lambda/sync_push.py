@@ -88,13 +88,29 @@ def lambda_handler(event, context):
     accepted = 0
     rejected = 0
 
+    # Sort changes by dependency order so FK constraints are
+    # satisfied: parents before children.
+    _TABLE_ORDER = {
+        "tags": 0, "boards": 1, "board_columns": 2,
+        "recurring_series": 3, "tasks": 4, "markers": 5,
+        "task_notes": 6, "task_tags": 7, "series_tags": 8,
+    }
+    changes.sort(key=lambda c: _TABLE_ORDER.get(c.get("table", ""), 99))
+
     try:
-        for change in changes:
+        logger.info("Processing %d changes for user %s, device %s",
+                    len(changes), user_id, device_id)
+
+        for i, change in enumerate(changes):
             table = change.get("table")
             row_id = change.get("id")
             data = change.get("data", {})
             updated_at = change.get("updated_at")
             deleted = change.get("deleted", False)
+
+            logger.info("Change %d/%d: table=%s id=%s deleted=%s",
+                        i + 1, len(changes), table,
+                        str(row_id)[:8] if row_id else "None", deleted)
 
             if table not in SYNCABLE_TABLES:
                 logger.warning("Unknown table: %s", table)
@@ -102,6 +118,7 @@ def lambda_handler(event, context):
                 continue
 
             if not row_id and table not in ("task_tags", "series_tags"):
+                logger.warning("Missing id for table %s", table)
                 rejected += 1
                 continue
 
@@ -110,6 +127,7 @@ def lambda_handler(event, context):
                 if ts.tzinfo is None:
                     ts = ts.replace(tzinfo=timezone.utc)
             except (ValueError, TypeError):
+                logger.warning("Invalid timestamp: %s", updated_at)
                 rejected += 1
                 continue
 
@@ -131,14 +149,28 @@ def lambda_handler(event, context):
                     rejected += 1
             else:
                 pg_table, id_col, has_user_id = SYNCABLE_TABLES[table]
-                if _upsert_row(
-                    pg_table, id_col, row_id, data, ts,
-                    deleted, user_id if has_user_id else None,
-                    table,
-                ):
-                    accepted += 1
-                else:
-                    rejected += 1
+                logger.info("  → upsert %s.%s = %s (user_id=%s)",
+                            pg_table, id_col, str(row_id)[:8],
+                            "yes" if has_user_id else "no")
+                try:
+                    if _upsert_row(
+                        pg_table, id_col, row_id, data, ts,
+                        deleted, user_id if has_user_id else None,
+                        table,
+                    ):
+                        accepted += 1
+                        logger.info("  → accepted")
+                    else:
+                        rejected += 1
+                        logger.info("  → rejected (server wins)")
+                except Exception as row_err:
+                    logger.error("  → FAILED: %s", row_err)
+                    logger.error("  → data keys: %s",
+                                 list(data.keys()))
+                    logger.error("  → data sample: %s",
+                                 {k: repr(v)[:50]
+                                  for k, v in list(data.items())[:5]})
+                    raise
 
         # Update sync cursor for this device.
         now = datetime.now(timezone.utc)
