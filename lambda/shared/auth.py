@@ -1,14 +1,14 @@
 """JWT/Cognito helpers for Lambda functions."""
 
-from shared.db import get_connection, commit
+import logging
+
+from shared.db import get_connection
+
+logger = logging.getLogger()
 
 
 def get_user_id(event):
-    """Extract Cognito user ID (sub) from API Gateway v2 JWT authorizer.
-
-    API Gateway v2 with a JWT authorizer puts the decoded claims in
-    event["requestContext"]["authorizer"]["jwt"]["claims"].
-    """
+    """Extract Cognito user ID (sub) from API Gateway v2 JWT authorizer."""
     try:
         claims = event["requestContext"]["authorizer"]["jwt"]["claims"]
         return claims["sub"]
@@ -28,10 +28,8 @@ def get_email(event):
 def ensure_user(event):
     """Return user_id or raise if not authenticated.
 
-    Also ensures the user row exists in the database (auto-created
-    on first sync from the Cognito JWT claims). The user INSERT is
-    committed immediately so it persists even if the sync transaction
-    rolls back.
+    Ensures the user row exists via a dedicated autocommit connection
+    so the row persists regardless of the sync transaction outcome.
     """
     user_id = get_user_id(event)
     if not user_id:
@@ -40,15 +38,17 @@ def ensure_user(event):
     email = get_email(event)
 
     conn = get_connection()
-    with conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO users (id, email) VALUES (%s, %s) "
-            "ON CONFLICT (id) DO NOTHING",
-            (user_id, email),
-        )
-    # Commit the user row immediately so it's visible to
-    # subsequent FK-dependent inserts even if the outer
-    # sync transaction fails and rolls back.
-    commit()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO users (id, email) VALUES (%s, %s) "
+                "ON CONFLICT (id) DO NOTHING",
+                (user_id, email),
+            )
+        logger.info("ensure_user: %s (%s)", user_id[:8], email)
+    finally:
+        conn.autocommit = old_autocommit
 
     return user_id

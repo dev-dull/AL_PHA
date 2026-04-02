@@ -1,11 +1,15 @@
 """Postgres connection helper for Lambda functions."""
 
 import json
+import logging
 import os
 
 import boto3
 import psycopg2
+import psycopg2.extensions
 from psycopg2.extras import RealDictCursor
+
+logger = logging.getLogger()
 
 _conn = None
 
@@ -13,11 +17,22 @@ _conn = None
 def get_connection():
     """Return a reusable Postgres connection (cached across warm invocations)."""
     global _conn
-    if _conn is not None and not _conn.closed:
-        # Reset connection if it's in an error state from a
-        # previous failed invocation.
-        if _conn.info.transaction_status != 0:  # IDLE = 0
-            _conn.rollback()
+
+    if _conn is not None:
+        if _conn.closed:
+            logger.info("DB connection closed, reconnecting")
+            _conn = None
+        else:
+            # Reset if in error or aborted transaction state.
+            status = _conn.get_transaction_status()
+            if status == psycopg2.extensions.TRANSACTION_STATUS_INERROR:
+                logger.info("DB connection in error state, rolling back")
+                _conn.rollback()
+            elif status == psycopg2.extensions.TRANSACTION_STATUS_UNKNOWN:
+                logger.info("DB connection in unknown state, reconnecting")
+                _conn = None
+
+    if _conn is not None:
         return _conn
 
     secret_arn = os.environ["DB_SECRET_ARN"]
@@ -39,6 +54,7 @@ def get_connection():
         connect_timeout=5,
     )
     _conn.autocommit = False
+    logger.info("DB connected to %s:%s/%s", host, port, dbname)
     return _conn
 
 

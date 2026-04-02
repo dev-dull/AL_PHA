@@ -25,11 +25,23 @@ class Sync extends _$Sync {
   /// Run a full sync cycle: push local changes, pull remote.
   Future<void> syncNow() async {
     final auth = ref.read(authProvider);
-    if (auth.user == null || auth.tokens == null) return;
+    if (auth.user == null || auth.tokens == null) {
+      debugPrint('[SYNC] Not signed in, skipping');
+      return;
+    }
 
     final accessToken =
         await ref.read(authProvider.notifier).getAccessToken();
-    if (accessToken == null) return;
+    if (accessToken == null) {
+      debugPrint('[SYNC] No access token (expired/refresh failed)');
+      state = (
+        status: SyncState.error,
+        lastError: 'Session expired — sign in again',
+        lastSyncTime: state.lastSyncTime,
+      );
+      return;
+    }
+    debugPrint('[SYNC] Starting sync...');
 
     state = (
       status: SyncState.syncing,
