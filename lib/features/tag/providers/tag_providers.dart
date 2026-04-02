@@ -43,7 +43,7 @@ class TagActions {
       name: name,
       color: color,
       position: all.length,
-      createdAt: DateTime.now(),
+      createdAt: DateTime.now().toUtc(),
     );
     return repo.create(tag);
   }

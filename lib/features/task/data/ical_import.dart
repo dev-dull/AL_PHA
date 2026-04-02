@@ -192,7 +192,7 @@ Task parsedEventToTask({
     title: event.title,
     description: event.description,
     position: position,
-    createdAt: DateTime.now(),
+    createdAt: DateTime.now().toUtc(),
     isEvent: true,
     scheduledTime: event.scheduledTime,
     recurrenceRule: event.recurrenceRule,

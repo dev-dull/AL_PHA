@@ -76,7 +76,7 @@ class MarkerActions {
             columnId: columnId,
             boardId: boardId,
             symbol: MarkerSymbol.migratedForward,
-            updatedAt: DateTime.now(),
+            updatedAt: DateTime.now().toUtc(),
           ),
         );
         await _migrateTaskToNextWeek(boardId: boardId, taskId: taskId);
@@ -95,7 +95,7 @@ class MarkerActions {
           columnId: columnId,
           boardId: boardId,
           symbol: MarkerSymbol.cycleStart,
-          updatedAt: DateTime.now(),
+          updatedAt: DateTime.now().toUtc(),
         ),
       );
     } else {
@@ -105,7 +105,7 @@ class MarkerActions {
         await repo.remove(taskId, columnId);
       } else {
         await repo.set(
-          existing.copyWith(symbol: next, updatedAt: DateTime.now()),
+          existing.copyWith(symbol: next, updatedAt: DateTime.now().toUtc()),
         );
         if (next == MarkerSymbol.x) {
           await _autoFillDoneEarly(
@@ -146,7 +146,7 @@ class MarkerActions {
       await repo.remove(taskId, columnId);
     } else if (existing != null) {
       await repo.set(
-        existing.copyWith(symbol: symbol, updatedAt: DateTime.now()),
+        existing.copyWith(symbol: symbol, updatedAt: DateTime.now().toUtc()),
       );
     } else {
       await repo.set(
@@ -156,7 +156,7 @@ class MarkerActions {
           columnId: columnId,
           boardId: boardId,
           symbol: symbol,
-          updatedAt: DateTime.now(),
+          updatedAt: DateTime.now().toUtc(),
         ),
       );
     }
@@ -263,7 +263,7 @@ class MarkerActions {
         _ref.read(preferencesProvider).firstDayOfWeek;
     final columnRepo = _ref.read(columnRepositoryProvider);
     final boardId = _uuid.v4();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
 
     await boardRepo.create(
       Board(
@@ -343,7 +343,7 @@ class MarkerActions {
       if (hasMarker) dotPositions.add(col.position);
     }
 
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
 
     final newTaskId = _uuid.v4();
     await taskRepo.create(

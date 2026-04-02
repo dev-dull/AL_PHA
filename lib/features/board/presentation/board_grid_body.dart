@@ -339,7 +339,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
             boardId: widget.boardId,
             title: title.trim(),
             position: currentCount,
-            createdAt: DateTime.now(),
+            createdAt: DateTime.now().toUtc(),
           ),
         );
   }

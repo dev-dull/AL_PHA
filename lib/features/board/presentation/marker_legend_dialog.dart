@@ -139,7 +139,7 @@ class _MarkerLegendDialog extends StatelessWidget {
                         name: TagPalette.colors[i].name,
                         color: TagPalette.colors[i].value,
                         position: i,
-                        createdAt: DateTime.now(),
+                        createdAt: DateTime.now().toUtc(),
                       ),
                   ],
                   size: 24,

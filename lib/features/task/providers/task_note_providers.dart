@@ -30,7 +30,7 @@ class TaskNoteActions {
     required String content,
   }) async {
     final repo = _ref.read(taskNoteRepositoryProvider);
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     final note = TaskNote(
       id: _uuid.v4(),
       taskId: taskId,

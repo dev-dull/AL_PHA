@@ -89,7 +89,7 @@ class SeriesRepository {
     await (_db.update(_db.recurringSeriesTable)
           ..where((s) => s.id.equals(id)))
         .write(
-      RecurringSeriesTableCompanion(endedAt: Value(DateTime.now())),
+      RecurringSeriesTableCompanion(endedAt: Value(DateTime.now().toUtc())),
     );
   }
 

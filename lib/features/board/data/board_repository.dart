@@ -143,7 +143,7 @@ class BoardRepository {
     await (_db.update(_db.boards)..where((b) => b.id.equals(id))).write(
       BoardsCompanion(
         archived: const Value(true),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now().toUtc()),
       ),
     );
   }

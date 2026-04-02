@@ -126,7 +126,7 @@ class _NoteItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final timestamp = DateFormat.MMMd().add_jm().format(note.createdAt);
+    final timestamp = DateFormat.MMMd().add_jm().format(note.createdAt.toLocal());
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

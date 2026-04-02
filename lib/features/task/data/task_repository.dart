@@ -42,7 +42,7 @@ class TaskRepository {
             priority: Value(task.priority),
             position: task.position,
             createdAt: task.createdAt,
-            updatedAt: Value(DateTime.now()),
+            updatedAt: Value(DateTime.now().toUtc()),
             completedAt: Value(task.completedAt),
             deadline: Value(task.deadline),
             migratedFromBoardId: Value(task.migratedFromBoardId),
@@ -84,7 +84,7 @@ class TaskRepository {
         state: Value(task.state.name),
         priority: Value(task.priority),
         position: Value(task.position),
-        updatedAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now().toUtc()),
         completedAt: Value(task.completedAt),
         deadline: Value(task.deadline),
         isEvent: Value(task.isEvent),
@@ -97,7 +97,7 @@ class TaskRepository {
   }
 
   Future<Task> complete(String id) async {
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
     await (_db.update(_db.tasks)..where((t) => t.id.equals(id))).write(
       TasksCompanion(
         state: Value(domain.TaskState.complete.name),

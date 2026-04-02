@@ -22,7 +22,7 @@ Future<String> weeklyBoard(WeeklyBoardRef ref, DateTime weekStart) async {
   // Auto-create board + columns.
   const uuid = Uuid();
   final boardId = uuid.v4();
-  final now = DateTime.now();
+  final now = DateTime.now().toUtc();
 
   await repo.create(
     Board(

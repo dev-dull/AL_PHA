@@ -23,12 +23,16 @@ def error(message, status=400):
 
 
 def server_time():
-    """Return current UTC time as ISO string."""
+    """Return current UTC time as ISO string (used in sync responses)."""
     return datetime.now(timezone.utc).isoformat()
 
 
 def _serialize(obj):
-    """JSON serializer for objects not serializable by default."""
+    """JSON serializer for objects not serializable by default.
+
+    Converts datetime to UTC epoch seconds (integer) so the Flutter
+    client can store them directly in SQLite without conversion.
+    """
     if isinstance(obj, datetime):
-        return obj.isoformat()
+        return int(obj.replace(tzinfo=timezone.utc).timestamp())
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")

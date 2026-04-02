@@ -13,7 +13,7 @@ Future<String> exportDataAsJson(AlphaDatabase db) async {
   final notes = await db.select(db.taskNotes).get();
 
   final data = {
-    'exportedAt': DateTime.now().toIso8601String(),
+    'exportedAt': DateTime.now().toUtc().toIso8601String(),
     'version': db.schemaVersion,
     'boards': boards
         .map((b) => {

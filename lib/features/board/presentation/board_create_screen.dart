@@ -48,7 +48,7 @@ class _BoardCreateScreenState extends ConsumerState<BoardCreateScreen> {
       final firstDay =
           ref.read(preferencesProvider).firstDayOfWeek;
       const uuid = Uuid();
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final boardId = uuid.v4();
       final weekStart =
           startOfWeek(now, firstDay: firstDay);

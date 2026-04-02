@@ -42,7 +42,7 @@ class SeriesActions {
       recurrenceRule: task.recurrenceRule!,
       isEvent: task.isEvent,
       scheduledTime: task.scheduledTime,
-      createdAt: boardWeekStart ?? DateTime.now(),
+      createdAt: (boardWeekStart ?? DateTime.now()).toUtc(),
     );
     await repo.create(series);
 
@@ -102,7 +102,7 @@ class SeriesActions {
 
     final existingTasks = await taskRepo.getByBoard(boardId);
     final taskId = _uuid.v4();
-    final now = DateTime.now();
+    final now = DateTime.now().toUtc();
 
     final task = Task(
       id: taskId,
