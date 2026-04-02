@@ -139,14 +139,38 @@ class Sync extends _$Sync {
     'deleted_at', 'user_id',
   };
 
+  // Columns that are timestamps — Postgres returns ISO strings,
+  // but Drift/SQLite expects epoch seconds (integers).
+  static const _timestampColumns = {
+    'created_at', 'updated_at', 'completed_at', 'deadline',
+    'week_start', 'ended_at',
+  };
+
+  /// Convert a Postgres ISO timestamp string to epoch seconds
+  /// for SQLite storage. Returns the value unchanged if it's
+  /// already an int or null.
+  static dynamic _toEpochSeconds(String key, dynamic value) {
+    if (!_timestampColumns.contains(key)) return value;
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      final dt = DateTime.tryParse(value);
+      if (dt != null) return dt.millisecondsSinceEpoch ~/ 1000;
+    }
+    return value;
+  }
+
   Future<void> _upsertLocal(
     dynamic db,
     String table,
     Map<String, dynamic> data,
   ) async {
-    // Strip columns that exist on the server but not locally.
-    final filtered = Map.of(data)
-      ..removeWhere((k, _) => _serverOnlyColumns.contains(k));
+    // Strip server-only columns and convert timestamps.
+    final filtered = <String, dynamic>{};
+    for (final entry in data.entries) {
+      if (_serverOnlyColumns.contains(entry.key)) continue;
+      filtered[entry.key] = _toEpochSeconds(entry.key, entry.value);
+    }
 
     // Build column list and values from the data map.
     final columns = filtered.keys.toList();
