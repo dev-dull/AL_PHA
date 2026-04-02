@@ -164,13 +164,13 @@ def lambda_handler(event, context):
                         rejected += 1
                         logger.info("  → rejected (server wins)")
                 except Exception as row_err:
-                    logger.error("  → FAILED: %s", row_err)
-                    logger.error("  → data keys: %s",
-                                 list(data.keys()))
-                    logger.error("  → data sample: %s",
-                                 {k: repr(v)[:50]
-                                  for k, v in list(data.items())[:5]})
-                    raise
+                    logger.warning("  → skipped: %s", row_err)
+                    rejected += 1
+                    # Roll back just this statement so the
+                    # transaction can continue with the rest.
+                    rollback()
+                    # Re-create the user row (lost in rollback).
+                    ensure_user(event)
 
         # Update sync cursor for this device.
         now = datetime.now(timezone.utc)
