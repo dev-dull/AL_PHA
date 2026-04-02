@@ -171,7 +171,8 @@ class ChangeTracker {
     required List<String> columns,
   }) async {
     final rows = await _db.customSelect(
-      'SELECT * FROM $tableName WHERE $timestampColumn > ?',
+      'SELECT * FROM $tableName '
+      'WHERE $timestampColumn > ? OR $timestampColumn IS NULL',
       variables: [Variable(sinceEpoch)],
     ).get();
 
