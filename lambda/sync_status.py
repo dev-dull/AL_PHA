@@ -2,6 +2,8 @@
 
 import logging
 
+from psycopg2 import sql
+
 from shared.auth import ensure_user
 from shared.db import execute, execute_one
 from shared.response import error, server_time, success
@@ -37,8 +39,14 @@ def lambda_handler(event, context):
             ("recurring_series", "user_id"),
         ]:
             row = execute_one(
-                f"SELECT COUNT(*) as count FROM {table} "
-                f"WHERE {col} = %s AND deleted_at IS NULL",
+                sql.SQL(
+                    "SELECT COUNT(*) as count FROM {tbl} "
+                    "WHERE {col} = %s AND {da} IS NULL"
+                ).format(
+                    tbl=sql.Identifier(table),
+                    col=sql.Identifier(col),
+                    da=sql.Identifier("deleted_at"),
+                ),
                 (user_id,),
             )
             counts[table] = row["count"] if row else 0

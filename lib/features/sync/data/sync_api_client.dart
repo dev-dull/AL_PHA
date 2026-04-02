@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:alpha/features/sync/data/change_tracker.dart';
@@ -103,7 +102,7 @@ class SyncApiClient {
     required Map<String, dynamic> body,
   }) async {
     final uri = Uri.parse('$_apiUrl$path');
-    debugPrint('[SYNC] POST $path');
+
 
     return _http.post(
       uri,
@@ -120,7 +119,7 @@ class SyncApiClient {
     required String accessToken,
   }) async {
     final uri = Uri.parse('$_apiUrl$path');
-    debugPrint('[SYNC] GET $path');
+
 
     return _http.get(
       uri,

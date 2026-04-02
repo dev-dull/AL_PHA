@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
@@ -26,15 +25,11 @@ class Sync extends _$Sync {
   /// Run a full sync cycle: push local changes, pull remote.
   Future<void> syncNow() async {
     final auth = ref.read(authProvider);
-    if (auth.user == null || auth.tokens == null) {
-      debugPrint('[SYNC] Not signed in, skipping');
-      return;
-    }
+    if (auth.user == null || auth.tokens == null) return;
 
     final accessToken =
         await ref.read(authProvider.notifier).getAccessToken();
     if (accessToken == null) {
-      debugPrint('[SYNC] No access token (expired/refresh failed)');
       state = (
         status: SyncState.error,
         lastError: 'Session expired — sign in again',
@@ -42,8 +37,6 @@ class Sync extends _$Sync {
       );
       return;
     }
-    debugPrint('[SYNC] Starting sync...');
-
     state = (
       status: SyncState.syncing,
       lastError: null,
@@ -66,13 +59,11 @@ class Sync extends _$Sync {
       // ── Push ──
       final changes = await tracker.getChangesSince(lastSync);
       if (changes.isNotEmpty) {
-        final pushResult = await _api.push(
+        await _api.push(
           accessToken: accessToken,
           deviceId: deviceId,
           changes: changes,
         );
-        debugPrint('[SYNC] Push: ${pushResult.accepted} accepted, '
-            '${pushResult.rejected} rejected');
       }
 
       // ── Pull ──
@@ -83,7 +74,6 @@ class Sync extends _$Sync {
       );
       if (pullResult.changes.isNotEmpty) {
         await _applyRemoteChanges(pullResult.changes);
-        debugPrint('[SYNC] Pull: ${pullResult.changes.length} changes');
       }
 
       // Update sync cursor.
@@ -97,7 +87,6 @@ class Sync extends _$Sync {
         lastSyncTime: serverTime,
       );
     } catch (e) {
-      debugPrint('[SYNC] Error: $e');
       state = (
         status: SyncState.error,
         lastError: e.toString(),

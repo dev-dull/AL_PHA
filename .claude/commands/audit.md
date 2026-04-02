@@ -1,7 +1,18 @@
-Run the project audit after code changes. Execute these in sequence, stopping if any fails:
+Run the full repo audit. Execute:
 
-1. `flutter test test/audit/codebase_audit_test.dart` — structural checks (repo fields, async callbacks, provider safety, tag sync, imports, schema, exports)
-2. `flutter analyze --fatal-infos` — static analysis, zero tolerance
-3. `flutter test` — full test suite (unit + smoke tests)
+`./scripts/audit.sh`
 
-Report results of each step. If any step fails, show failure details and stop.
+This runs 11 audit categories:
+1. Flutter structural audit (codebase_audit_test.dart)
+2. Static analysis (flutter analyze --fatal-infos)
+3. Full test suite
+4. Dependency health (Flutter)
+5. Dependency health (Python/Lambda)
+6. Security: credentials & secrets
+7. Security: Python/Lambda SQL injection
+8. Security: Flutter input handling
+9. Code quality (TODOs, print statements, debugPrint)
+10. Infrastructure (Terraform formatting, state files)
+11. Schema consistency (Drift vs Postgres)
+
+Report the full output. If any FAIL items exist, show details and suggest fixes.
