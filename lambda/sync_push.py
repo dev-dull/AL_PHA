@@ -158,11 +158,17 @@ def lambda_handler(event, context):
     })
 
 
+# Tables that use created_at instead of updated_at for timestamps.
+_CREATED_AT_TABLES = {"tags", "recurring_series"}
+
+
 def _upsert_row(table, id_col, row_id, data, updated_at,
                  deleted, user_id, client_table):
     """Upsert a single row. Returns True if accepted."""
+    ts_col = "created_at" if client_table in _CREATED_AT_TABLES else "updated_at"
+
     existing = execute_one(
-        f"SELECT updated_at, deleted_at FROM {table} WHERE {id_col} = %s",
+        f"SELECT {ts_col} as ts, deleted_at FROM {table} WHERE {id_col} = %s",
         (row_id,),
     )
 
@@ -172,11 +178,10 @@ def _upsert_row(table, id_col, row_id, data, updated_at,
                 f"UPDATE {table} SET deleted_at = %s WHERE {id_col} = %s",
                 (updated_at, row_id),
             )
-        # Nothing to do if row doesn't exist and it's a delete.
         return True
 
     if existing:
-        server_ts = existing["updated_at"]
+        server_ts = existing["ts"]
         if server_ts and updated_at <= server_ts:
             return False  # Server wins tie
         return _update_row(table, id_col, row_id, data, user_id, client_table)
