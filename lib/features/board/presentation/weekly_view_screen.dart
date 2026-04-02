@@ -220,10 +220,14 @@ class _SyncIndicator extends ConsumerWidget {
       SyncState.error => Icons.cloud_off,
     };
 
+    final green = theme.brightness == Brightness.dark
+        ? const Color(0xFF8FC4A0)
+        : const Color(0xFF3D7A55);
+
     final color = switch (sync.status) {
       SyncState.error => theme.colorScheme.error,
-      SyncState.synced => theme.colorScheme.onSurface.withValues(alpha: 0.3),
-      SyncState.syncing => theme.colorScheme.primary,
+      SyncState.syncing => green,
+      SyncState.synced => green.withValues(alpha: 0.4),
       SyncState.idle => theme.colorScheme.onSurface.withValues(alpha: 0.2),
     };
 
