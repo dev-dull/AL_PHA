@@ -34,7 +34,7 @@ infra/
 - Custom attributes: plan_tier (free | sync | migrating)
 ```
 
-Uses Cognito hosted UI for MVP (faster to ship). Custom Flutter sign-in screens can replace it later for better theming.
+Uses native SRP auth via `amazon_cognito_identity_dart_2` with in-app sign-in/sign-up/verification dialogs (no browser redirect).
 
 ### RDS Postgres
 
@@ -76,7 +76,7 @@ Schema migrations are NOT managed by Terraform. See "Schema Migrations" section 
 - Dependencies: psycopg2-binary (Postgres), packaged as Lambda layer or zip
 ```
 
-**Preference question:** Dart or Node.js for Lambda? Dart keeps the codebase single-language but Lambda tooling is less mature. Node.js has first-class Lambda support and the pg library is battle-tested.
+**Decided:** Python 3.12 for Lambda (developer's primary backend language). psycopg2 packaged as Lambda layer.
 
 ### S3 (Migration Transfers)
 
@@ -116,7 +116,7 @@ Flyway runs as `docker run flyway/flyway migrate` in CI (GitHub Actions) on merg
 
 ### Initial Schema (V001)
 
-Maps 1:1 to the Drift/SQLite schema v7, plus sync metadata:
+Maps to the Drift/SQLite schema (now at v9), plus sync metadata:
 
 ```sql
 -- Users (Cognito is authoritative, this caches profile data)
@@ -233,19 +233,20 @@ Key differences from SQLite schema:
 - `updated_at` on tasks (already exists on markers/notes, added to tasks for conflict resolution)
 - `sync_cursors` tracks each device's last sync point
 
-### Lambda Directory Structure
+### Lambda Directory Structure (Implemented)
 
 ```
 lambda/
-├── requirements.txt       # psycopg2-binary, etc.
-├── sync_push.py           # POST /sync/push handler
-├── sync_pull.py           # POST /sync/pull handler
-├── sync_status.py         # GET /sync/status handler
-├── migrate_upload.py      # POST /migrate/upload handler
-├── migrate_download.py    # POST /migrate/download/{code} handler
+├── requirements.txt       # psycopg2-binary
+├── sync_push.py           # POST /sync/push — upsert with LWW, FK dependency ordering, orphan skipping
+├── sync_pull.py           # POST /sync/pull — changes since cursor in FK dependency order
+├── sync_status.py         # GET /sync/status — device list and per-table row counts
+├── migrate_upload.py      # POST /migrate/upload — S3 blob storage with transfer codes
+├── migrate_download.py    # POST /migrate/download/{code} — one-time retrieval + S3 deletion
 └── shared/
-    ├── db.py              # Postgres connection helper
-    └── auth.py            # JWT/Cognito helpers
+    ├── db.py              # Connection pooling (psycopg2), transaction management
+    ├── auth.py            # JWT extraction, auto-user creation with autocommit
+    └── response.py        # JSON serialization with epoch-second timestamps
 ```
 
 ### Schema Versioning Strategy
@@ -399,9 +400,10 @@ Device logic:
 
 ## Flutter Client Changes
 
-### New Packages
-- `amplify_auth_cognito` for Cognito hosted UI auth
-- `http` or `dio` for sync/migration API calls
+### New Packages (Implemented)
+- `amazon_cognito_identity_dart_2` for native SRP Cognito auth (no browser redirect)
+- `http` for sync/migration API calls
+- `shared_preferences` for token persistence
 
 ### New Feature Directory
 
@@ -420,7 +422,7 @@ lib/features/sync/
     └── migration_screen.dart      # Transfer flow UI
 ```
 
-### Local Schema Changes (Drift v8)
+### Local Schema Changes (Drift v9 — Implemented)
 
 ```dart
 // Add to all data tables:
@@ -527,34 +529,35 @@ jobs:
 
 ## Implementation Order
 
-### Phase 1: Infrastructure (Terraform)
-1. Set up Terraform backend (S3 state bucket + DynamoDB lock table)
-2. Deploy Cognito user pool
-3. Deploy RDS Postgres
-4. Run initial schema migration (V001)
-5. Deploy API Gateway + Lambda stubs
-6. Deploy S3 migration bucket
+### Phase 1: Infrastructure (Terraform) -- DONE
+1. ~~Set up Terraform backend (S3 state bucket + DynamoDB lock table)~~ -- bootstrap.sh
+2. ~~Deploy Cognito user pool~~ -- cognito.tf
+3. ~~Deploy RDS Postgres~~ -- rds.tf (db.t4g.micro, Postgres 16, private subnet)
+4. ~~Run initial schema migration (V001)~~ -- V001 + V002 via bastion
+5. ~~Deploy API Gateway + Lambda stubs~~ -- api_gateway.tf, lambda.tf (5 functions)
+6. ~~Deploy S3 migration bucket~~ -- s3.tf (24h lifecycle)
+Also deployed: VPC, IAM roles, Secrets Manager VPC endpoint, psycopg2 Lambda layer, bastion module (infra/bastion/), teardown.sh
 
-### Phase 2: One-Time Migration
-7. Implement Lambda: migrate/upload, migrate/download
-8. Implement Flutter: migration_screen.dart, migration_repository.dart
-9. Add "Transfer Data" to Settings screen
-10. Test: export on one device, import on another
+### Phase 2: One-Time Migration -- PARTIALLY DONE
+7. ~~Implement Lambda: migrate/upload, migrate/download~~ -- DONE (S3 blob + transfer codes, one-time retrieval)
+8. Implement Flutter: migration_screen.dart, migration_repository.dart -- NOT YET (see #35)
+9. Add "Transfer Data" to Settings screen -- NOT YET
+10. Test: export on one device, import on another -- NOT YET
 
-### Phase 3: Auth
-11. Implement Flutter auth flow (sign up, sign in, sign out)
-12. Add auth state to Settings screen
-13. Gate sync features behind auth + plan_tier
+### Phase 3: Auth -- DONE
+11. ~~Implement Flutter auth flow (sign up, sign in, sign out)~~ -- native SRP via amazon_cognito_identity_dart_2 (no browser redirect)
+12. ~~Add auth state to Settings screen~~ -- Account section with sync status
+13. Gate sync features behind auth + plan_tier -- auth gating done, plan_tier gating deferred to #33
 
-### Phase 4: Sync
-14. Implement Lambda: sync/push, sync/pull
-15. Implement Flutter: sync_repository.dart, change tracking
-16. Add sync trigger points (app open, after write, periodic)
-17. Add sync indicator to app bar
-18. Test: modify on device A, see changes on device B
+### Phase 4: Sync -- DONE
+14. ~~Implement Lambda: sync/push, sync/pull~~ -- LWW upsert, FK dependency ordering, orphan row skipping
+15. ~~Implement Flutter: sync_repository.dart, change tracking~~ -- 12 change tracker smoke tests
+16. ~~Add sync trigger points (app open, after write, periodic)~~ -- app start (3s), data changes (5s debounce), Sync Now button
+17. ~~Add sync indicator to app bar~~ -- cloud icon (green=syncing, faded green=synced, red=error)
+18. Test: modify on device A, see changes on device B -- manual testing in progress
 
-### Phase 5: Payments
-19. RevenueCat or Stripe for subscription management
+### Phase 5: Payments -- NOT STARTED
+19. RevenueCat or Stripe for subscription management -- see #33
 20. Gate sync behind paid plan
 21. Gate migration behind one-time purchase
 
@@ -576,8 +579,11 @@ jobs:
 
 ## Decisions
 
-1. **Lambda runtime:** Python (developer's primary backend language). If a strong reason to switch arises, Node.js as fallback.
+1. **Lambda runtime:** Python 3.12 (developer's primary backend language). psycopg2 packaged as Lambda layer.
 2. **Migration tool:** Flyway. Heavier than golang-migrate but validation/repair features are worth it for planned, infrequent migrations. Runs as Docker container in CI.
-3. **Cognito UI:** Hosted sign-in for faster implementation. Custom Flutter sign-in screens can replace it later.
+3. **Cognito UI:** Changed from hosted sign-in to native SRP via `amazon_cognito_identity_dart_2` for better UX (no browser redirect). In-app dialogs for sign-in, sign-up, and email verification.
 4. **Change tracking:** Timestamp scan (compare `updatedAt > lastSyncTime`). Simpler implementation; data is <10MB so full scan is milliseconds. Changelog table can be added later if needed.
 5. **Team planners:** Skip `board_members` table for now. Add as a future Flyway migration when the feature is designed.
+6. **Timestamp serialization:** Lambda returns epoch seconds (not ISO strings). All Flutter storage uses UTC; display converts to local timezone.
+7. **SQL injection prevention:** All dynamic table/column names use `psycopg2.sql.Identifier` — no string interpolation in SQL.
+8. **Sync pull handling:** Client strips server-only columns, converts epoch-second timestamps, and deduplicates boards by week_start.
