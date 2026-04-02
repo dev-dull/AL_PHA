@@ -8,7 +8,10 @@ import 'package:alpha/features/board/presentation/marker_legend_dialog.dart';
 import 'package:alpha/features/board/providers/weekly_board_provider.dart';
 import 'package:alpha/features/marker/providers/marker_providers.dart';
 import 'package:alpha/features/preferences/domain/app_preferences.dart';
+import 'package:alpha/features/auth/providers/auth_providers.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
+import 'package:alpha/features/sync/domain/sync_status.dart';
+import 'package:alpha/features/sync/providers/sync_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
 
@@ -115,7 +118,14 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
       appBar: AppBar(
         title: GestureDetector(
           onTap: isCurrentWeek ? null : _goToToday,
-          child: Text(title),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(title),
+              if (ref.watch(authProvider).user != null)
+                _SyncIndicator(),
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -193,6 +203,33 @@ class _WeekPage extends ConsumerWidget {
           BoardGridBody(key: ValueKey(boardId), boardId: boardId),
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, st) => Center(child: Text('Error: $e')),
+    );
+  }
+}
+
+class _SyncIndicator extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sync = ref.watch(syncProvider);
+    final theme = Theme.of(context);
+
+    final icon = switch (sync.status) {
+      SyncState.idle => Icons.cloud_off_outlined,
+      SyncState.syncing => Icons.cloud_sync_outlined,
+      SyncState.synced => Icons.cloud_done_outlined,
+      SyncState.error => Icons.cloud_off,
+    };
+
+    final color = switch (sync.status) {
+      SyncState.error => theme.colorScheme.error,
+      SyncState.synced => theme.colorScheme.onSurface.withValues(alpha: 0.3),
+      SyncState.syncing => theme.colorScheme.primary,
+      SyncState.idle => theme.colorScheme.onSurface.withValues(alpha: 0.2),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: Icon(icon, size: 14, color: color),
     );
   }
 }

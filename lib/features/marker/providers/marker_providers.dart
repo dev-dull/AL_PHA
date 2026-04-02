@@ -9,7 +9,9 @@ import 'package:alpha/features/marker/domain/marker.dart';
 import 'package:alpha/features/marker/domain/marker_symbol.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
+import 'package:alpha/features/auth/providers/auth_providers.dart';
 import 'package:alpha/features/preferences/providers/preferences_providers.dart';
+import 'package:alpha/features/sync/providers/sync_providers.dart';
 import 'package:alpha/features/task/providers/task_providers.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/shared/week_utils.dart';
@@ -53,6 +55,16 @@ class MarkerActions {
   static const _uuid = Uuid();
 
   MarkerActions(this._ref);
+
+  void _scheduleSync() {
+    try {
+      final auth = _ref.read(authProvider);
+      if (auth.user == null) return;
+      _ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
+    } catch (_) {
+      // Sync provider may not be initialized yet.
+    }
+  }
 
   /// Cycles a marker: empty → DOT → SLASH → X → empty.
   /// Migration column: empty → > → empty.
@@ -123,6 +135,7 @@ class MarkerActions {
         );
       }
     }
+    _scheduleSync();
   }
 
   /// Sets a marker to a specific symbol (used by the picker).
@@ -179,6 +192,7 @@ class MarkerActions {
         await _isMigrationColumn(boardId, columnId)) {
       await _migrateTaskToNextWeek(boardId: boardId, taskId: taskId);
     }
+    _scheduleSync();
   }
 
   Future<void> _autoFillDoneEarly({

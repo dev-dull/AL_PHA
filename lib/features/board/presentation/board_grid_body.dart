@@ -23,6 +23,8 @@ import 'package:alpha/features/task/domain/recurrence.dart';
 import 'package:alpha/features/task/domain/task.dart';
 import 'package:alpha/shared/providers.dart';
 import 'package:alpha/features/board/providers/board_providers.dart';
+import 'package:alpha/features/auth/providers/auth_providers.dart';
+import 'package:alpha/features/sync/providers/sync_providers.dart';
 import 'package:alpha/features/task/domain/task_sort.dart';
 import 'package:alpha/features/task/domain/task_state.dart';
 import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
@@ -177,12 +179,7 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       },
       onSave: (updated) async {
         await ref.read(taskActionsProvider).update(updated);
-        // If the task just became recurring and has no series,
-        // create one automatically.
         if (updated.isRecurring && updated.seriesId == null) {
-          // Use the board's weekStart as the series anchor so
-          // the interval calculation is correct even when the
-          // user is viewing a future/past week.
           final boardData = ref.read(boardProvider(widget.boardId)).valueOrNull;
           await ref
               .read(seriesActionsProvider)
@@ -190,6 +187,9 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         }
         if (updated.recurrenceRule != null) {
           await _syncRecurrenceMarkers(updated);
+        }
+        if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
         }
       },
       onSaveAll: (updated) async {
@@ -219,22 +219,29 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
         if (updated.isRecurring || updated.isEvent) {
           await _syncRecurrenceMarkers(updated);
         }
+        if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
+        }
       },
       onDelete: () async {
         await ref.read(taskActionsProvider).delete(task.id);
+        if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
+        }
       },
       onDeleteAll: () async {
         if (task.seriesId != null) {
           await ref.read(seriesActionsProvider).deleteSeries(task.seriesId!);
         } else {
-          // Fallback: just delete this single task.
           await ref.read(taskActionsProvider).delete(task.id);
+        }
+        if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
         }
       },
       onWontDo: task.state.isTerminal
           ? null
           : () async {
-              // If migrated (> is set), undo the migration first.
               final cols = columns;
               final migCol = cols
                   .where((c) => c.type != ColumnType.date)
@@ -243,7 +250,6 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                 final markerRepo = ref.read(markerRepositoryProvider);
                 final migMarker = await markerRepo.get(task.id, migCol.id);
                 if (migMarker != null) {
-                  // Remove the > marker and undo the migration.
                   await ref
                       .read(markerActionsProvider)
                       .cycleMarker(
@@ -254,11 +260,17 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
                 }
               }
               await ref.read(taskActionsProvider).wontDo(task.id);
+              if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
+        }
             },
       onReopen:
           (task.state == TaskState.wontDo || task.state == TaskState.cancelled)
           ? () async {
               await ref.read(taskActionsProvider).reopen(task.id);
+              if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
+        }
             }
           : null,
     );
@@ -359,6 +371,9 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
             createdAt: DateTime.now().toUtc(),
           ),
         );
+    if (ref.read(authProvider).user != null) {
+          ref.read(syncProvider.notifier).scheduleSyncAfterWrite();
+        }
   }
 
   // ----------------------------------------------------------
