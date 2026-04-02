@@ -134,14 +134,23 @@ class Sync extends _$Sync {
     }
   }
 
+  // Columns that exist in Postgres but not in local SQLite.
+  static const _serverOnlyColumns = {
+    'deleted_at', 'user_id',
+  };
+
   Future<void> _upsertLocal(
     dynamic db,
     String table,
     Map<String, dynamic> data,
   ) async {
+    // Strip columns that exist on the server but not locally.
+    final filtered = Map.of(data)
+      ..removeWhere((k, _) => _serverOnlyColumns.contains(k));
+
     // Build column list and values from the data map.
-    final columns = data.keys.toList();
-    final values = data.values.toList();
+    final columns = filtered.keys.toList();
+    final values = filtered.values.toList();
     final placeholders = List.filled(columns.length, '?').join(', ');
     final colStr = columns.join(', ');
 
