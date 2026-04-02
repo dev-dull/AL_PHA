@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
@@ -129,6 +130,15 @@ class Sync extends _$Sync {
       if (deleted) {
         await _deleteLocal(db, table, data);
       } else {
+        // Skip boards that would create a week_start duplicate.
+        if (table == 'boards' && data['week_start'] != null) {
+          final ws = _toEpochSeconds('week_start', data['week_start']);
+          final existing = await db.customSelect(
+            'SELECT id FROM boards WHERE week_start = ?',
+            variables: [Variable(ws)],
+          ).get();
+          if (existing.isNotEmpty) continue;
+        }
         await _upsertLocal(db, table, data);
       }
     }
