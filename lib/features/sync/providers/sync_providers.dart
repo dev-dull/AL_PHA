@@ -178,8 +178,9 @@ class Sync extends _$Sync {
     final placeholders = List.filled(columns.length, '?').join(', ');
     final colStr = columns.join(', ');
 
-    // SQLite UPSERT: INSERT OR REPLACE.
-    final sql = 'INSERT OR REPLACE INTO $table ($colStr) '
+    // Use INSERT OR IGNORE — don't overwrite existing local data.
+    // Local is source of truth; pull only adds rows we don't have.
+    final sql = 'INSERT OR IGNORE INTO $table ($colStr) '
         'VALUES ($placeholders)';
 
     await (db as dynamic).customStatement(sql, values);
