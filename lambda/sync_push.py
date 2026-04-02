@@ -4,6 +4,8 @@ import json
 import logging
 from datetime import datetime, timezone
 
+from psycopg2 import sql
+
 from shared.auth import ensure_user
 from shared.db import commit, execute, execute_one, rollback
 from shared.response import error, server_time, success
@@ -64,6 +66,24 @@ TABLE_COLUMNS = {
         "is_event", "scheduled_time", "created_at", "ended_at",
     ],
 }
+
+# Pre-validated set of allowed table and column identifiers.
+# Any identifier used in SQL must be in this set.
+_VALID_IDENTIFIERS = set()
+for _tbl, _cols in TABLE_COLUMNS.items():
+    _VALID_IDENTIFIERS.add(_tbl)
+    _VALID_IDENTIFIERS.update(_cols)
+_VALID_IDENTIFIERS.update({
+    "user_id", "deleted_at", "ts", "slot",
+    "task_id", "tag_id", "series_id",
+})
+
+
+def _ident(name):
+    """Return a safe SQL identifier, rejecting unknown names."""
+    if name not in _VALID_IDENTIFIERS:
+        raise ValueError(f"Unknown SQL identifier: {name}")
+    return sql.Identifier(name)
 
 
 def lambda_handler(event, context):
@@ -217,21 +237,31 @@ def _upsert_row(table, id_col, row_id, data, updated_at,
 
     if ts_col:
         existing = execute_one(
-            f"SELECT {ts_col} as ts, deleted_at FROM {table} "
-            f"WHERE {id_col} = %s",
+            sql.SQL("SELECT {ts} AS ts, {da} FROM {tbl} WHERE {idc} = %s").format(
+                ts=_ident(ts_col),
+                da=_ident("deleted_at"),
+                tbl=_ident(table),
+                idc=_ident(id_col),
+            ),
             (row_id,),
         )
     else:
-        # No timestamp column — just check existence.
         existing = execute_one(
-            f"SELECT 1 as ts FROM {table} WHERE {id_col} = %s",
+            sql.SQL("SELECT 1 AS ts FROM {tbl} WHERE {idc} = %s").format(
+                tbl=_ident(table),
+                idc=_ident(id_col),
+            ),
             (row_id,),
         )
 
     if deleted:
         if existing:
             execute(
-                f"UPDATE {table} SET deleted_at = %s WHERE {id_col} = %s",
+                sql.SQL("UPDATE {tbl} SET {da} = %s WHERE {idc} = %s").format(
+                    tbl=_ident(table),
+                    da=_ident("deleted_at"),
+                    idc=_ident(id_col),
+                ),
                 (updated_at, row_id),
             )
         return True
@@ -263,29 +293,33 @@ def _coerce_value(col, value):
 def _insert_row(table, id_col, row_id, data, user_id, client_table):
     """Insert a new row."""
     columns = TABLE_COLUMNS.get(client_table, [])
-    col_names = []
+    col_idents = []
     values = []
 
     for col in columns:
         if col in data:
-            col_names.append(col)
+            col_idents.append(_ident(col))
             values.append(_coerce_value(col, data[col]))
         elif col == "id":
-            col_names.append(col)
+            col_idents.append(_ident(col))
             values.append(row_id)
 
     if user_id:
-        col_names.append("user_id")
+        col_idents.append(_ident("user_id"))
         values.append(user_id)
 
-    if not col_names:
+    if not col_idents:
         return False
 
-    placeholders = ", ".join(["%s"] * len(values))
-    col_str = ", ".join(col_names)
+    placeholders = sql.SQL(", ").join([sql.Placeholder()] * len(values))
+    col_list = sql.SQL(", ").join(col_idents)
 
     execute(
-        f"INSERT INTO {table} ({col_str}) VALUES ({placeholders})",
+        sql.SQL("INSERT INTO {tbl} ({cols}) VALUES ({phs})").format(
+            tbl=_ident(table),
+            cols=col_list,
+            phs=placeholders,
+        ),
         values,
     )
     return True
@@ -294,27 +328,35 @@ def _insert_row(table, id_col, row_id, data, user_id, client_table):
 def _update_row(table, id_col, row_id, data, user_id, client_table):
     """Update an existing row (last-write-wins)."""
     columns = TABLE_COLUMNS.get(client_table, [])
-    sets = []
+    set_parts = []
     values = []
 
     for col in columns:
         if col == "id":
             continue
         if col in data:
-            sets.append(f"{col} = %s")
+            set_parts.append(
+                sql.SQL("{} = %s").format(_ident(col))
+            )
             values.append(_coerce_value(col, data[col]))
 
-    if not sets:
+    if not set_parts:
         return False
 
     # Clear deleted_at on update (un-delete if previously soft-deleted).
-    sets.append("deleted_at = NULL")
+    set_parts.append(
+        sql.SQL("{} = NULL").format(_ident("deleted_at"))
+    )
 
     values.append(row_id)
-    set_str = ", ".join(sets)
+    set_clause = sql.SQL(", ").join(set_parts)
 
     execute(
-        f"UPDATE {table} SET {set_str} WHERE {id_col} = %s",
+        sql.SQL("UPDATE {tbl} SET {sets} WHERE {idc} = %s").format(
+            tbl=_ident(table),
+            sets=set_clause,
+            idc=_ident(id_col),
+        ),
         values,
     )
     return True
@@ -328,15 +370,26 @@ def _upsert_junction(table, key1, key2, data, updated_at, deleted, user_id):
         return False
 
     existing = execute_one(
-        f"SELECT deleted_at FROM {table} WHERE {key1} = %s AND {key2} = %s",
+        sql.SQL("SELECT {da} FROM {tbl} WHERE {k1} = %s AND {k2} = %s").format(
+            da=_ident("deleted_at"),
+            tbl=_ident(table),
+            k1=_ident(key1),
+            k2=_ident(key2),
+        ),
         (k1, k2),
     )
 
     if deleted:
         if existing:
             execute(
-                f"UPDATE {table} SET deleted_at = %s "
-                f"WHERE {key1} = %s AND {key2} = %s",
+                sql.SQL(
+                    "UPDATE {tbl} SET {da} = %s WHERE {k1} = %s AND {k2} = %s"
+                ).format(
+                    tbl=_ident(table),
+                    da=_ident("deleted_at"),
+                    k1=_ident(key1),
+                    k2=_ident(key2),
+                ),
                 (updated_at, k1, k2),
             )
         return True
@@ -345,13 +398,28 @@ def _upsert_junction(table, key1, key2, data, updated_at, deleted, user_id):
 
     if existing:
         execute(
-            f"UPDATE {table} SET slot = %s, deleted_at = NULL "
-            f"WHERE {key1} = %s AND {key2} = %s",
+            sql.SQL(
+                "UPDATE {tbl} SET {s} = %s, {da} = NULL "
+                "WHERE {k1} = %s AND {k2} = %s"
+            ).format(
+                tbl=_ident(table),
+                s=_ident("slot"),
+                da=_ident("deleted_at"),
+                k1=_ident(key1),
+                k2=_ident(key2),
+            ),
             (slot, k1, k2),
         )
     else:
         execute(
-            f"INSERT INTO {table} ({key1}, {key2}, slot) VALUES (%s, %s, %s)",
+            sql.SQL(
+                "INSERT INTO {tbl} ({k1}, {k2}, {s}) VALUES (%s, %s, %s)"
+            ).format(
+                tbl=_ident(table),
+                k1=_ident(key1),
+                k2=_ident(key2),
+                s=_ident("slot"),
+            ),
             (k1, k2, slot),
         )
     return True
