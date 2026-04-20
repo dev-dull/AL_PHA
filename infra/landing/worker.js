@@ -1,3 +1,5 @@
+const OG_IMAGE_B64 = "__OG_IMAGE_B64__";
+
 const HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,6 +7,24 @@ const HTML = `<!DOCTYPE html>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>planyr — coming soon</title>
   <meta name="description" content="A bullet-journal-inspired weekly planner. Coming soon." />
+
+  <!-- Open Graph / LinkedIn / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://planyr.day" />
+  <meta property="og:title" content="planyr — a weekly planner, the bullet-journal way" />
+  <meta property="og:description" content="A matrix-based weekly planner inspired by bullet journals. Coming soon to iOS and Android." />
+  <meta property="og:image" content="https://planyr.day/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="627" />
+  <meta property="og:image:alt" content="planyr — a weekly planner, the bullet-journal way. Coming soon." />
+  <meta property="og:site_name" content="planyr" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="planyr — a weekly planner, the bullet-journal way" />
+  <meta name="twitter:description" content="A matrix-based weekly planner inspired by bullet journals. Coming soon to iOS and Android." />
+  <meta name="twitter:image" content="https://planyr.day/og-image.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet" />
@@ -115,16 +135,35 @@ const HTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
+const SECURITY_HEADERS = {
+  "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin",
+};
+
 export default {
   async fetch(request) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/og-image.png") {
+      const binary = atob(OG_IMAGE_B64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return new Response(bytes, {
+        headers: {
+          "content-type": "image/png",
+          "cache-control": "public, max-age=86400, immutable",
+          ...SECURITY_HEADERS,
+        },
+      });
+    }
+
     return new Response(HTML, {
       headers: {
         "content-type": "text/html; charset=UTF-8",
         "cache-control": "public, max-age=300",
-        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
-        "x-content-type-options": "nosniff",
-        "x-frame-options": "DENY",
-        "referrer-policy": "strict-origin-when-cross-origin",
+        ...SECURITY_HEADERS,
       },
     });
   },
