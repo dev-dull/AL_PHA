@@ -44,7 +44,7 @@ AlPHA uses Claude Code agents for parallel development. Each agent operates in i
 **Owns:** `lambda/`, `infra/`, `infra/migrations/`
 
 **Before starting:**
-- Read `docs/plan-cloud-sync.md` for the full architecture
+- Read `docs/infra/aws-backend.md` for the full architecture
 - Backend uses Python 3.12, Postgres, Flyway, Terraform
 
 **Coordination with SE:**
@@ -74,7 +74,7 @@ AlPHA uses Claude Code agents for parallel development. Each agent operates in i
 - Use tall viewport (`Size(800, 1600)`) for tests that tap buttons below the fold
 
 ### DevOps Agent (DO)
-**Owns:** `.github/workflows/`, `infra/`, `docs/vm-spec.md`
+**Owns:** `.github/workflows/`, `infra/`, `docs/infra/`
 
 **Current CI:** `.github/workflows/ci.yml` — lint, analyze, test, build APK/IPA
 

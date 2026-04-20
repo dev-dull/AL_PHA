@@ -8,7 +8,7 @@ The fastest way to get the app on Android devices. Not visible on the Play Store
 
 ### Prerequisites
 - Google Play Developer account ($25 one-time fee) — [sign up](https://play.google.com/console/signup)
-- Android SDK installed (see `docs/android-device-testing.md`)
+- Android SDK installed (see `./android-device-testing.md`)
 - A signing key for release builds
 
 ### 1. Create a Signing Key
@@ -174,4 +174,4 @@ adb install build/app/outputs/flutter-apk/app-release.apk
 
 Or share the `.apk` file directly (email, cloud storage, etc.). The recipient must enable "Install from unknown sources" on their device.
 
-See `docs/android-device-testing.md` for full USB setup instructions.
+See `./android-device-testing.md` for full USB setup instructions.

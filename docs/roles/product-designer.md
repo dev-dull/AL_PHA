@@ -984,7 +984,7 @@ This maps directly to the Dart constants in `lib/design_system/theme/`.
 ### Critical Files for Implementation
 
 - `/Users/alastairdrong/wip/AlPHA/docs/the-alastair-method.md` - Product specification defining the core data model, marker system, and UX requirements that all design decisions derive from
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-flutter-app.md` - Frontend architecture defining the widget tree structure (Section 3.2), responsive breakpoints (Section 4.1), design token structure (Section 8), and phased delivery timeline that the design sprint schedule must stay ahead of
+- `/Users/alastairdrong/wip/AlPHA/docs/app/plan-flutter-app.md` - Frontend architecture defining the widget tree structure (Section 3.2), responsive breakpoints (Section 4.1), design token structure (Section 8), and phased delivery timeline that the design sprint schedule must stay ahead of
 - `lib/design_system/theme/` (to be created) - Target directory where design tokens will be implemented as Dart constants (`AppColors`, `AppTypography`, spacing values), directly informed by the token specification in Section 4
 - `lib/design_system/components/` (to be created) - Target directory for the reusable component library (`MarkerIcon`, `GridCell`, `TaskRow`, `AlphaCard`), implementing the component specs from Section 4d
 - `lib/features/board/presentation/widgets/` (to be created) - Target directory for the Board Matrix widget tree (`BoardMatrixView`, `MarkerCell`, `TaskRowLabel`, `ColumnHeaderCell`), the most design-critical implementation area

@@ -835,8 +835,8 @@ For `CONFLICT` errors, include the current server state:
 
 ### Critical Files for Implementation
 
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-aws-backend.md` - Authoritative architecture reference: DynamoDB key patterns, GraphQL schema, phased delivery plan, all access patterns
+- `/Users/alastairdrong/wip/AlPHA/docs/infra/aws-backend.md` - Authoritative architecture reference: DynamoDB key patterns, GraphQL schema, phased delivery plan, all access patterns
 - `/Users/alastairdrong/wip/AlPHA/docs/the-alastair-method.md` - Product domain specification: task state machine, marker cycling rules, migration semantics, context shifting logic
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-testing-strategy.md` - Testing contracts: coverage thresholds, CI pipeline structure, test environment matrix, load test SLAs
+- `/Users/alastairdrong/wip/AlPHA/docs/app/plan-testing-strategy.md` - Testing contracts: coverage thresholds, CI pipeline structure, test environment matrix, load test SLAs
 - `infra/lambda/resolvers/marker.ts` (to be created) - Highest-frequency resolver: setMarker, cycleMarker, shiftContext with conditional writes and optimistic locking
 - `infra/lambda/resolvers/migration.ts` (to be created) - Most complex resolver: TransactWriteItems batching, partial failure handling, cross-board atomicity, audit trail

@@ -4,11 +4,18 @@
 
 AlPHA (Alastair Planner & Habit App) is a cross-platform productivity app implementing "The Alastair Method" — a matrix-based task management system. Built with Flutter (Android, iOS, Web) with Drift/SQLite for local persistence and AWS cloud sync (Cognito auth, RDS Postgres, Lambda, API Gateway).
 
+> **Rename in flight:** the project will be renamed from **AlPHA** to **planyr**
+> to match the acquired marketing domain `planyr.day`. The rename is planned
+> but not yet executed — code, repo, AWS resources (state bucket, Cognito
+> pool, etc.) still use `alpha-*` naming. Docs and this guide will switch to
+> "planyr" once the rename lands.
+
 ## Repository
 
 - **Remote:** git@github.com:dev-dull/AL_PHA.git
 - **Owner:** dev-dull (Alastair)
 - **Visibility:** Public
+- **Domain:** `planyr.day` (landing page live; Cloudflare-hosted)
 
 ## Current Phase: Cloud Sync Complete
 
@@ -66,7 +73,7 @@ The app includes:
 - Basic CI pipeline (lint, test, build verification)
 - 145 tests (unit + widget), zero analyzer issues
 
-**Planned (not yet implemented):** one-time device migration (#35), subscriptions (#33), calendar integrations (#25), virtual recurring instances (#40). See `docs/plan-cloud-sync.md`.
+**Planned (not yet implemented):** one-time device migration (#35), subscriptions (#33), calendar integrations (#25), virtual recurring instances (#40). See `docs/infra/aws-backend.md`.
 
 ## Architecture
 
@@ -193,6 +200,14 @@ lambda/
     └── response.py      # JSON serialization, epoch-second timestamps
 ```
 
+### Landing page (planyr.day)
+
+Separate Cloudflare-hosted landing site for the product domain. Lives in
+`infra/landing/`, deployed via `op run --env-file=.op.env -- terraform apply`
+(secrets in 1Password). Serves a static "coming soon" page from an inline
+Cloudflare Worker — no S3, no CloudFront, no ACM. See
+`docs/infra/landing.md`.
+
 ## Conventions
 
 ### Code Style
@@ -224,17 +239,24 @@ lambda/
 - **Profile:** default
 
 ## Key Documentation
+
+### Top-level
 - `docs/the-alastair-method.md` — Core method research
-- `docs/plan-flutter-app.md` — Frontend architecture plan
-- `docs/plan-aws-backend.md` — Original backend architecture plan (superseded by plan-cloud-sync.md)
-- `docs/plan-cloud-sync.md` — Cloud sync & multi-device architecture (RDS Postgres, Lambda, Cognito, Terraform)
-- `docs/plan-testing-strategy.md` — Testing strategy
-- `docs/plan-cicd-release.md` — CI/CD and release plan
 - `docs/agent-coordination.md` — Multi-agent development guide (roles, file ownership, coordination)
-- `docs/android-device-testing.md` — Pixel 8 Pro USB/wireless testing
-- `docs/app-store-testing.md` — Play Store / TestFlight distribution
 - `docs/roles/` — Role-based implementation guides
-- `docs/vm-spec.md` — Agent runner VM specification
+
+### App (Flutter frontend)
+- `docs/app/plan-flutter-app.md` — Frontend architecture plan
+- `docs/app/plan-testing-strategy.md` — Testing strategy
+- `docs/app/plan-cicd-release.md` — CI/CD and release plan
+- `docs/app/android-device-testing.md` — Pixel 8 Pro USB/wireless testing
+- `docs/app/app-store-testing.md` — Play Store / TestFlight distribution
+
+### Infrastructure
+- `docs/infra/README.md` — Infra overview, state backends, naming note
+- `docs/infra/aws-backend.md` — Cloud sync & multi-device (RDS Postgres, Lambda, Cognito, Terraform)
+- `docs/infra/landing.md` — planyr.day landing page (Cloudflare Worker, 1Password-based secrets)
+- `docs/infra/agent-vm.md` — Agent runner VM specification
 
 ## Multi-Agent Development
 
@@ -259,4 +281,4 @@ Known fragile areas (read these files carefully before editing):
 
 ## Agent Runner VM
 A homelab VM is being provisioned for dedicated Claude Code agent sessions.
-See `docs/vm-spec.md` for specifications.
+See `docs/infra/agent-vm.md` for specifications.

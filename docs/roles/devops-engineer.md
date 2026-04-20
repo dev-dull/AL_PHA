@@ -1326,8 +1326,8 @@ Mobile rollback is inherently limited because users control their update timing.
 
 ### Critical Files for Implementation
 
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-cicd-release.md` - Primary reference for pipeline structure, environment matrix, branching strategy, and Fastlane configuration that DevOps must implement.
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-aws-backend.md` - Defines all CDK stacks, DynamoDB schema, AppSync configuration, Lambda functions, and multi-environment setup that DevOps must provision.
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-testing-strategy.md` - Specifies which tests run in which CI stage, coverage thresholds, and quality gates that DevOps must enforce in pipeline jobs.
-- `/Users/alastairdrong/wip/AlPHA/docs/plan-flutter-app.md` - Contains the Flutter project structure, dependencies, and platform-specific build requirements that DevOps must accommodate in CI runners and caching.
+- `/Users/alastairdrong/wip/AlPHA/docs/app/plan-cicd-release.md` - Primary reference for pipeline structure, environment matrix, branching strategy, and Fastlane configuration that DevOps must implement.
+- `/Users/alastairdrong/wip/AlPHA/docs/infra/aws-backend.md` - Defines all CDK stacks, DynamoDB schema, AppSync configuration, Lambda functions, and multi-environment setup that DevOps must provision.
+- `/Users/alastairdrong/wip/AlPHA/docs/app/plan-testing-strategy.md` - Specifies which tests run in which CI stage, coverage thresholds, and quality gates that DevOps must enforce in pipeline jobs.
+- `/Users/alastairdrong/wip/AlPHA/docs/app/plan-flutter-app.md` - Contains the Flutter project structure, dependencies, and platform-specific build requirements that DevOps must accommodate in CI runners and caching.
 - `/Users/alastairdrong/wip/AlPHA/docs/the-alastair-method.md` - Product context necessary to understand data model complexity and inform infrastructure capacity planning decisions.
