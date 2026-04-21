@@ -75,12 +75,14 @@ def draw_background(size: int, bg_color, dot_color):
 
 
 def draw_mark(img: Image.Image, size: int, ink_color,
-              accent_color=ACCENT, show_dot: bool = True):
+              accent_color=ACCENT, show_dot: bool = True,
+              scale: float = 0.78):
     """Draw lowercase 'p' centered, with an accent-color dot marker
     to its right at the x-height — echoing the product's marker
-    vocabulary ('p •')."""
+    vocabulary ('p •'). [scale] controls how much of the canvas the
+    mark occupies (lower for adaptive-icon safe zones)."""
     draw = ImageDraw.Draw(img)
-    font_size = int(size * 0.78)
+    font_size = int(size * scale)
     font = get_font(font_size)
 
     glyph = "p"
@@ -112,13 +114,14 @@ def draw_mark(img: Image.Image, size: int, ink_color,
 
 
 def render_variant(size: int, *, bg, ink, dot,
-                   transparent_bg: bool = False) -> Image.Image:
+                   transparent_bg: bool = False,
+                   scale: float = 0.78) -> Image.Image:
     """Compose bg (optional) + mark into a single RGBA image."""
     if transparent_bg:
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     else:
         img, _ = draw_background(size, bg, dot)
-    draw_mark(img, size, ink)
+    draw_mark(img, size, ink, scale=scale)
     return img
 
 
@@ -151,6 +154,17 @@ def main():
     for s in FG_SIZES:
         fg = light_fg_master.resize((s, s), Image.Resampling.LANCZOS)
         fg.save(OUT_DIR / f"planyr-icon-foreground-{s}.png",
+                optimize=True)
+
+    # Adaptive-icon foreground: same mark at smaller scale (~52%) so
+    # it stays inside Android's 66% safe zone after the circular or
+    # squircle mask is applied.
+    adaptive_fg = render_variant(1024, bg=PAPER, ink=INK,
+                                 dot=DOT_GRID_LIGHT,
+                                 transparent_bg=True, scale=0.52)
+    for s in [1024, 432, 192, 108]:
+        fg = adaptive_fg.resize((s, s), Image.Resampling.LANCZOS)
+        fg.save(OUT_DIR / f"planyr-icon-adaptive-foreground-{s}.png",
                 optimize=True)
 
     # Background-only for Android adaptive icons
