@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import 'package:alpha/features/auth/data/auth_repository.dart';
-import 'package:alpha/features/auth/domain/auth_state.dart';
+import 'package:planyr/features/auth/data/auth_repository.dart';
+import 'package:planyr/features/auth/domain/auth_state.dart';
 
 part 'auth_providers.g.dart';
 

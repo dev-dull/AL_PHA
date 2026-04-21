@@ -2,14 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:alpha/app/theme.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/marker/domain/marker.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/series/providers/series_providers.dart';
-import 'package:alpha/features/task/domain/recurrence.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/app/theme.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/marker/domain/marker.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/series/providers/series_providers.dart';
+import 'package:planyr/features/task/domain/recurrence.dart';
+import 'package:planyr/shared/providers.dart';
 
 /// A single cell in the board grid matrix.
 ///
@@ -66,7 +66,7 @@ class MarkerCell extends ConsumerWidget {
             ? (brightness == Brightness.dark
                 ? const Color(0xFFA09A94)
                 : const Color(0xFF6B6560))
-            : AlphaTheme.markerColor(symbol, brightness))
+            : PlanyrTheme.markerColor(symbol, brightness))
         : null;
 
     Widget child;
@@ -386,7 +386,7 @@ class _RadialMenuOverlay extends StatelessWidget {
       items.add(_RadialItem(
         symbol: MarkerSymbol.migratedForward,
         label: '>',
-        color: AlphaTheme.markerColor(
+        color: PlanyrTheme.markerColor(
           MarkerSymbol.migratedForward,
           brightness,
         ),
@@ -406,7 +406,7 @@ class _RadialMenuOverlay extends StatelessWidget {
         items.add(_RadialItem(
           symbol: sym,
           label: sym.displayChar,
-          color: AlphaTheme.markerColor(sym, brightness),
+          color: PlanyrTheme.markerColor(sym, brightness),
         ));
       }
     }
@@ -535,8 +535,8 @@ class _RadialMenuOverlay extends StatelessWidget {
             color: isSelected
                 ? theme.colorScheme.primaryContainer
                 : (brightness == Brightness.dark
-                    ? AlphaTheme.paperDarkVariant
-                    : AlphaTheme.paperLightVariant),
+                    ? PlanyrTheme.paperDarkVariant
+                    : PlanyrTheme.paperLightVariant),
             border: Border.all(
               color: isSelected
                   ? theme.colorScheme.primary

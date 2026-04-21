@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
 
 // ── App theme identifiers ─────────────────────────────────────────
 /// Available visual themes. More can be added later
 /// (grid paper, lined paper, etc.).
 enum AppThemeStyle { bulletJournal }
 
-class AlphaTheme {
+class PlanyrTheme {
   // ── Design token constants ──────────────────────────────────────────
 
   /// Standard spacing scale (logical pixels).

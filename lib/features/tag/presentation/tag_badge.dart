@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/tag/domain/tag_palette.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/tag/domain/tag_palette.dart';
 
 /// A 2x2 grid of colored quadrants showing up to 4 tag colors.
 /// Empty slots are transparent. Renders nothing if no tags.

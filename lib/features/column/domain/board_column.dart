@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
 
 part 'board_column.freezed.dart';
 part 'board_column.g.dart';

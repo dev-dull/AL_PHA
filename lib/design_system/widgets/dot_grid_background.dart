@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/app/theme.dart';
+import 'package:planyr/app/theme.dart';
 
 /// Paints a subtle dot grid behind the board, evoking a bullet
-/// journal page. The dots are spaced at [AlphaTheme.cellSize] intervals.
+/// journal page. The dots are spaced at [PlanyrTheme.cellSize] intervals.
 class DotGridBackground extends StatelessWidget {
   final Widget child;
 
@@ -12,8 +12,8 @@ class DotGridBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     final brightness = Theme.of(context).brightness;
     final dotColor = brightness == Brightness.dark
-        ? AlphaTheme.dotGridDark
-        : AlphaTheme.dotGridLight;
+        ? PlanyrTheme.dotGridDark
+        : PlanyrTheme.dotGridLight;
 
     return CustomPaint(
       painter: _DotGridPainter(dotColor: dotColor),
@@ -24,7 +24,7 @@ class DotGridBackground extends StatelessWidget {
 
 class _DotGridPainter extends CustomPainter {
   final Color dotColor;
-  static const double _spacing = AlphaTheme.cellSize;
+  static const double _spacing = PlanyrTheme.cellSize;
   static const double _dotRadius = 1.2;
 
   _DotGridPainter({required this.dotColor});

@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
 
 part 'board_template.freezed.dart';
 part 'board_template.g.dart';

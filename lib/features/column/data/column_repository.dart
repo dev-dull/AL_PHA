@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/column/domain/board_column.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
 
 class ColumnRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   ColumnRepository(this._db);
 

@@ -1,4 +1,4 @@
-package com.alpha.alpha
+package day.planyr.app
 
 import io.flutter.embedding.android.FlutterActivity
 

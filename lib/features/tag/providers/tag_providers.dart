@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/shared/providers.dart';
 
 part 'tag_providers.g.dart';
 

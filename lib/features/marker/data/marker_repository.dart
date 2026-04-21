@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/marker/domain/marker.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/marker/domain/marker.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
 
 class MarkerRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   MarkerRepository(this._db);
 

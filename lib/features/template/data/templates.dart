@@ -1,6 +1,6 @@
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/template/domain/board_template.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/template/domain/board_template.dart';
 
 final defaultTemplates = [
   BoardTemplate(

@@ -6,24 +6,24 @@ part of 'providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$alphaDatabaseHash() => r'eedd0a306880d6fa793d78e76a103fa72a72e5c8';
+String _$planyrDatabaseHash() => r'd6ac6dbac04af26b16b6746c167222c6bba8bbc2';
 
-/// See also [alphaDatabase].
-@ProviderFor(alphaDatabase)
-final alphaDatabaseProvider = Provider<AlphaDatabase>.internal(
-  alphaDatabase,
-  name: r'alphaDatabaseProvider',
+/// See also [planyrDatabase].
+@ProviderFor(planyrDatabase)
+final planyrDatabaseProvider = Provider<PlanyrDatabase>.internal(
+  planyrDatabase,
+  name: r'planyrDatabaseProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$alphaDatabaseHash,
+      : _$planyrDatabaseHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef AlphaDatabaseRef = ProviderRef<AlphaDatabase>;
-String _$boardRepositoryHash() => r'16aa60a74c452a92168e9ba1e8c7270b3b09bc4f';
+typedef PlanyrDatabaseRef = ProviderRef<PlanyrDatabase>;
+String _$boardRepositoryHash() => r'9c4fce8db6c2254042fca0eeba155c7c4bd15a86';
 
 /// See also [boardRepository].
 @ProviderFor(boardRepository)
@@ -40,7 +40,7 @@ final boardRepositoryProvider = Provider<BoardRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef BoardRepositoryRef = ProviderRef<BoardRepository>;
-String _$taskRepositoryHash() => r'cf13b7c66b9bb88025ff9bc5690604a0580b6b3a';
+String _$taskRepositoryHash() => r'0a57515d079fddeffe0353f50a5a11172e8812ca';
 
 /// See also [taskRepository].
 @ProviderFor(taskRepository)
@@ -57,7 +57,7 @@ final taskRepositoryProvider = Provider<TaskRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TaskRepositoryRef = ProviderRef<TaskRepository>;
-String _$columnRepositoryHash() => r'f1273389a4cf392081105062e2616f28c7d641d5';
+String _$columnRepositoryHash() => r'ba08d68a6f6182deea67b71c3936429fe550a56a';
 
 /// See also [columnRepository].
 @ProviderFor(columnRepository)
@@ -74,7 +74,7 @@ final columnRepositoryProvider = Provider<ColumnRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ColumnRepositoryRef = ProviderRef<ColumnRepository>;
-String _$markerRepositoryHash() => r'a65fb5064008ca6754d1dcb9d860e6aa33771667';
+String _$markerRepositoryHash() => r'8bf4ee690f8c9d1b93004d16ebb6262dceb2f494';
 
 /// See also [markerRepository].
 @ProviderFor(markerRepository)
@@ -92,7 +92,7 @@ final markerRepositoryProvider = Provider<MarkerRepository>.internal(
 // ignore: unused_element
 typedef MarkerRepositoryRef = ProviderRef<MarkerRepository>;
 String _$taskNoteRepositoryHash() =>
-    r'e7b9a523812318eb2eec1f8b9f87b2d584714ab6';
+    r'b42ddda09c9ac0cb7533b72e5c9e5747b583241d';
 
 /// See also [taskNoteRepository].
 @ProviderFor(taskNoteRepository)
@@ -109,7 +109,7 @@ final taskNoteRepositoryProvider = Provider<TaskNoteRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TaskNoteRepositoryRef = ProviderRef<TaskNoteRepository>;
-String _$seriesRepositoryHash() => r'828f3a7d021e92074f45c3208a335f5db773049b';
+String _$seriesRepositoryHash() => r'57a4817f4a31180392301654cad0e989c73d51a2';
 
 /// See also [seriesRepository].
 @ProviderFor(seriesRepository)
@@ -127,7 +127,7 @@ final seriesRepositoryProvider = Provider<SeriesRepository>.internal(
 // ignore: unused_element
 typedef SeriesRepositoryRef = ProviderRef<SeriesRepository>;
 String _$seriesTagRepositoryHash() =>
-    r'6b544661272551ff8d31d433080b36e00649ff52';
+    r'9e75bc77ed00683ba561a4c7f72a8b9f2d2b0c2e';
 
 /// See also [seriesTagRepository].
 @ProviderFor(seriesTagRepository)
@@ -144,7 +144,7 @@ final seriesTagRepositoryProvider = Provider<SeriesTagRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SeriesTagRepositoryRef = ProviderRef<SeriesTagRepository>;
-String _$tagRepositoryHash() => r'fd18a45347006fadd060177f2705f37ac7065cfd';
+String _$tagRepositoryHash() => r'c12ef91f6f80a4444ca30ada1fca4fa62b3a62ac';
 
 /// See also [tagRepository].
 @ProviderFor(tagRepository)
@@ -161,7 +161,7 @@ final tagRepositoryProvider = Provider<TagRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TagRepositoryRef = ProviderRef<TagRepository>;
-String _$taskTagRepositoryHash() => r'e43ea996a51f6b5648a3d4e42851d43290111a3f';
+String _$taskTagRepositoryHash() => r'301803172131939758eefbc32b947d6e8a579ac6';
 
 /// See also [taskTagRepository].
 @ProviderFor(taskTagRepository)
@@ -179,7 +179,7 @@ final taskTagRepositoryProvider = Provider<TaskTagRepository>.internal(
 // ignore: unused_element
 typedef TaskTagRepositoryRef = ProviderRef<TaskTagRepository>;
 String _$syncMetaRepositoryHash() =>
-    r'030c436419a2678c20a065e2e1fb033d25ca4ac2';
+    r'a6c5e9896c53d2b441b430c25655ddb3d8f6f6ef';
 
 /// See also [syncMetaRepository].
 @ProviderFor(syncMetaRepository)
@@ -196,7 +196,7 @@ final syncMetaRepositoryProvider = Provider<SyncMetaRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SyncMetaRepositoryRef = ProviderRef<SyncMetaRepository>;
-String _$changeTrackerHash() => r'a09b6a49d5231d7b363be3cd33819f0c3891c589';
+String _$changeTrackerHash() => r'11419d66e7d5e2cc81575821d9f7c84d47fd7458';
 
 /// See also [changeTracker].
 @ProviderFor(changeTracker)

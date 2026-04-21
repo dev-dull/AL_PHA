@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:alpha/features/board/providers/day_summary_provider.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/shared/period_utils.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/board/providers/day_summary_provider.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/shared/period_utils.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 /// Yearly overview showing 12 mini-month calendars.
 /// Each day is a small colored square based on task activity.

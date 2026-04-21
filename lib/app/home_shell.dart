@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/features/board/presentation/weekly_view_screen.dart';
-import 'package:alpha/features/board/presentation/monthly_view_screen.dart';
-import 'package:alpha/features/board/presentation/yearly_view_screen.dart';
+import 'package:planyr/features/board/presentation/weekly_view_screen.dart';
+import 'package:planyr/features/board/presentation/monthly_view_screen.dart';
+import 'package:planyr/features/board/presentation/yearly_view_screen.dart';
 
 
 /// Root shell with bottom navigation for weekly, monthly,

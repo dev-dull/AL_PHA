@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:alpha/features/board/presentation/board_grid_body.dart';
-import 'package:alpha/features/board/providers/board_providers.dart';
-import 'package:alpha/features/migration/presentation/migration_wizard.dart';
+import 'package:planyr/features/board/presentation/board_grid_body.dart';
+import 'package:planyr/features/board/providers/board_providers.dart';
+import 'package:planyr/features/migration/presentation/migration_wizard.dart';
 
 /// Standalone screen for viewing a board by ID (used for deep
 /// links and the router's /board/:id route).

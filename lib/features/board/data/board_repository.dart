@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
 
 class BoardRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   BoardRepository(this._db);
 

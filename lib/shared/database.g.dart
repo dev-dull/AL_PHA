@@ -4258,9 +4258,9 @@ class SyncMetaCompanion extends UpdateCompanion<SyncMetaRow> {
   }
 }
 
-abstract class _$AlphaDatabase extends GeneratedDatabase {
-  _$AlphaDatabase(QueryExecutor e) : super(e);
-  $AlphaDatabaseManager get managers => $AlphaDatabaseManager(this);
+abstract class _$PlanyrDatabase extends GeneratedDatabase {
+  _$PlanyrDatabase(QueryExecutor e) : super(e);
+  $PlanyrDatabaseManager get managers => $PlanyrDatabaseManager(this);
   late final $BoardsTable boards = $BoardsTable(this);
   late final $BoardColumnsTable boardColumns = $BoardColumnsTable(this);
   late final $TasksTable tasks = $TasksTable(this);
@@ -4314,11 +4314,11 @@ typedef $$BoardsTableUpdateCompanionBuilder =
     });
 
 final class $$BoardsTableReferences
-    extends BaseReferences<_$AlphaDatabase, $BoardsTable, BoardRow> {
+    extends BaseReferences<_$PlanyrDatabase, $BoardsTable, BoardRow> {
   $$BoardsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static MultiTypedResultKey<$BoardColumnsTable, List<BoardColumnRow>>
-  _boardColumnsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+  _boardColumnsRefsTable(_$PlanyrDatabase db) => MultiTypedResultKey.fromTable(
     db.boardColumns,
     aliasName: $_aliasNameGenerator(db.boards.id, db.boardColumns.boardId),
   );
@@ -4336,7 +4336,7 @@ final class $$BoardsTableReferences
   }
 
   static MultiTypedResultKey<$TasksTable, List<TaskRow>> _tasksRefsTable(
-    _$AlphaDatabase db,
+    _$PlanyrDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.tasks,
     aliasName: $_aliasNameGenerator(db.boards.id, db.tasks.boardId),
@@ -4355,7 +4355,7 @@ final class $$BoardsTableReferences
   }
 
   static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(
-    _$AlphaDatabase db,
+    _$PlanyrDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.markers,
     aliasName: $_aliasNameGenerator(db.boards.id, db.markers.boardId),
@@ -4375,7 +4375,7 @@ final class $$BoardsTableReferences
 }
 
 class $$BoardsTableFilterComposer
-    extends Composer<_$AlphaDatabase, $BoardsTable> {
+    extends Composer<_$PlanyrDatabase, $BoardsTable> {
   $$BoardsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -4495,7 +4495,7 @@ class $$BoardsTableFilterComposer
 }
 
 class $$BoardsTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $BoardsTable> {
+    extends Composer<_$PlanyrDatabase, $BoardsTable> {
   $$BoardsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -4540,7 +4540,7 @@ class $$BoardsTableOrderingComposer
 }
 
 class $$BoardsTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $BoardsTable> {
+    extends Composer<_$PlanyrDatabase, $BoardsTable> {
   $$BoardsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -4648,7 +4648,7 @@ class $$BoardsTableAnnotationComposer
 class $$BoardsTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $BoardsTable,
           BoardRow,
           $$BoardsTableFilterComposer,
@@ -4664,7 +4664,7 @@ class $$BoardsTableTableManager
             bool markersRefs,
           })
         > {
-  $$BoardsTableTableManager(_$AlphaDatabase db, $BoardsTable table)
+  $$BoardsTableTableManager(_$PlanyrDatabase db, $BoardsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -4806,7 +4806,7 @@ class $$BoardsTableTableManager
 
 typedef $$BoardsTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $BoardsTable,
       BoardRow,
       $$BoardsTableFilterComposer,
@@ -4843,10 +4843,10 @@ typedef $$BoardColumnsTableUpdateCompanionBuilder =
 
 final class $$BoardColumnsTableReferences
     extends
-        BaseReferences<_$AlphaDatabase, $BoardColumnsTable, BoardColumnRow> {
+        BaseReferences<_$PlanyrDatabase, $BoardColumnsTable, BoardColumnRow> {
   $$BoardColumnsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $BoardsTable _boardIdTable(_$AlphaDatabase db) => db.boards
+  static $BoardsTable _boardIdTable(_$PlanyrDatabase db) => db.boards
       .createAlias($_aliasNameGenerator(db.boardColumns.boardId, db.boards.id));
 
   $$BoardsTableProcessedTableManager get boardId {
@@ -4864,7 +4864,7 @@ final class $$BoardColumnsTableReferences
   }
 
   static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(
-    _$AlphaDatabase db,
+    _$PlanyrDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.markers,
     aliasName: $_aliasNameGenerator(db.boardColumns.id, db.markers.columnId),
@@ -4884,7 +4884,7 @@ final class $$BoardColumnsTableReferences
 }
 
 class $$BoardColumnsTableFilterComposer
-    extends Composer<_$AlphaDatabase, $BoardColumnsTable> {
+    extends Composer<_$PlanyrDatabase, $BoardColumnsTable> {
   $$BoardColumnsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -4962,7 +4962,7 @@ class $$BoardColumnsTableFilterComposer
 }
 
 class $$BoardColumnsTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $BoardColumnsTable> {
+    extends Composer<_$PlanyrDatabase, $BoardColumnsTable> {
   $$BoardColumnsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -5015,7 +5015,7 @@ class $$BoardColumnsTableOrderingComposer
 }
 
 class $$BoardColumnsTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $BoardColumnsTable> {
+    extends Composer<_$PlanyrDatabase, $BoardColumnsTable> {
   $$BoardColumnsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -5087,7 +5087,7 @@ class $$BoardColumnsTableAnnotationComposer
 class $$BoardColumnsTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $BoardColumnsTable,
           BoardColumnRow,
           $$BoardColumnsTableFilterComposer,
@@ -5099,7 +5099,7 @@ class $$BoardColumnsTableTableManager
           BoardColumnRow,
           PrefetchHooks Function({bool boardId, bool markersRefs})
         > {
-  $$BoardColumnsTableTableManager(_$AlphaDatabase db, $BoardColumnsTable table)
+  $$BoardColumnsTableTableManager(_$PlanyrDatabase db, $BoardColumnsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -5217,7 +5217,7 @@ class $$BoardColumnsTableTableManager
 
 typedef $$BoardColumnsTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $BoardColumnsTable,
       BoardColumnRow,
       $$BoardColumnsTableFilterComposer,
@@ -5273,10 +5273,10 @@ typedef $$TasksTableUpdateCompanionBuilder =
     });
 
 final class $$TasksTableReferences
-    extends BaseReferences<_$AlphaDatabase, $TasksTable, TaskRow> {
+    extends BaseReferences<_$PlanyrDatabase, $TasksTable, TaskRow> {
   $$TasksTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $BoardsTable _boardIdTable(_$AlphaDatabase db) => db.boards
+  static $BoardsTable _boardIdTable(_$PlanyrDatabase db) => db.boards
       .createAlias($_aliasNameGenerator(db.tasks.boardId, db.boards.id));
 
   $$BoardsTableProcessedTableManager get boardId {
@@ -5294,7 +5294,7 @@ final class $$TasksTableReferences
   }
 
   static MultiTypedResultKey<$MarkersTable, List<MarkerRow>> _markersRefsTable(
-    _$AlphaDatabase db,
+    _$PlanyrDatabase db,
   ) => MultiTypedResultKey.fromTable(
     db.markers,
     aliasName: $_aliasNameGenerator(db.tasks.id, db.markers.taskId),
@@ -5313,7 +5313,7 @@ final class $$TasksTableReferences
   }
 
   static MultiTypedResultKey<$TaskNotesTable, List<TaskNoteRow>>
-  _taskNotesRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+  _taskNotesRefsTable(_$PlanyrDatabase db) => MultiTypedResultKey.fromTable(
     db.taskNotes,
     aliasName: $_aliasNameGenerator(db.tasks.id, db.taskNotes.taskId),
   );
@@ -5331,7 +5331,7 @@ final class $$TasksTableReferences
   }
 
   static MultiTypedResultKey<$TaskTagsTable, List<TaskTagRow>>
-  _taskTagsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+  _taskTagsRefsTable(_$PlanyrDatabase db) => MultiTypedResultKey.fromTable(
     db.taskTags,
     aliasName: $_aliasNameGenerator(db.tasks.id, db.taskTags.taskId),
   );
@@ -5350,7 +5350,7 @@ final class $$TasksTableReferences
 }
 
 class $$TasksTableFilterComposer
-    extends Composer<_$AlphaDatabase, $TasksTable> {
+    extends Composer<_$PlanyrDatabase, $TasksTable> {
   $$TasksTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -5538,7 +5538,7 @@ class $$TasksTableFilterComposer
 }
 
 class $$TasksTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $TasksTable> {
+    extends Composer<_$PlanyrDatabase, $TasksTable> {
   $$TasksTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -5651,7 +5651,7 @@ class $$TasksTableOrderingComposer
 }
 
 class $$TasksTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $TasksTable> {
+    extends Composer<_$PlanyrDatabase, $TasksTable> {
   $$TasksTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -5821,7 +5821,7 @@ class $$TasksTableAnnotationComposer
 class $$TasksTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $TasksTable,
           TaskRow,
           $$TasksTableFilterComposer,
@@ -5838,7 +5838,7 @@ class $$TasksTableTableManager
             bool taskTagsRefs,
           })
         > {
-  $$TasksTableTableManager(_$AlphaDatabase db, $TasksTable table)
+  $$TasksTableTableManager(_$PlanyrDatabase db, $TasksTable table)
     : super(
         TableManagerState(
           db: db,
@@ -6052,7 +6052,7 @@ class $$TasksTableTableManager
 
 typedef $$TasksTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $TasksTable,
       TaskRow,
       $$TasksTableFilterComposer,
@@ -6091,10 +6091,10 @@ typedef $$MarkersTableUpdateCompanionBuilder =
     });
 
 final class $$MarkersTableReferences
-    extends BaseReferences<_$AlphaDatabase, $MarkersTable, MarkerRow> {
+    extends BaseReferences<_$PlanyrDatabase, $MarkersTable, MarkerRow> {
   $$MarkersTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TasksTable _taskIdTable(_$AlphaDatabase db) => db.tasks.createAlias(
+  static $TasksTable _taskIdTable(_$PlanyrDatabase db) => db.tasks.createAlias(
     $_aliasNameGenerator(db.markers.taskId, db.tasks.id),
   );
 
@@ -6112,7 +6112,7 @@ final class $$MarkersTableReferences
     );
   }
 
-  static $BoardColumnsTable _columnIdTable(_$AlphaDatabase db) =>
+  static $BoardColumnsTable _columnIdTable(_$PlanyrDatabase db) =>
       db.boardColumns.createAlias(
         $_aliasNameGenerator(db.markers.columnId, db.boardColumns.id),
       );
@@ -6131,7 +6131,7 @@ final class $$MarkersTableReferences
     );
   }
 
-  static $BoardsTable _boardIdTable(_$AlphaDatabase db) => db.boards
+  static $BoardsTable _boardIdTable(_$PlanyrDatabase db) => db.boards
       .createAlias($_aliasNameGenerator(db.markers.boardId, db.boards.id));
 
   $$BoardsTableProcessedTableManager get boardId {
@@ -6150,7 +6150,7 @@ final class $$MarkersTableReferences
 }
 
 class $$MarkersTableFilterComposer
-    extends Composer<_$AlphaDatabase, $MarkersTable> {
+    extends Composer<_$PlanyrDatabase, $MarkersTable> {
   $$MarkersTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -6244,7 +6244,7 @@ class $$MarkersTableFilterComposer
 }
 
 class $$MarkersTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $MarkersTable> {
+    extends Composer<_$PlanyrDatabase, $MarkersTable> {
   $$MarkersTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -6338,7 +6338,7 @@ class $$MarkersTableOrderingComposer
 }
 
 class $$MarkersTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $MarkersTable> {
+    extends Composer<_$PlanyrDatabase, $MarkersTable> {
   $$MarkersTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -6428,7 +6428,7 @@ class $$MarkersTableAnnotationComposer
 class $$MarkersTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $MarkersTable,
           MarkerRow,
           $$MarkersTableFilterComposer,
@@ -6440,7 +6440,7 @@ class $$MarkersTableTableManager
           MarkerRow,
           PrefetchHooks Function({bool taskId, bool columnId, bool boardId})
         > {
-  $$MarkersTableTableManager(_$AlphaDatabase db, $MarkersTable table)
+  $$MarkersTableTableManager(_$PlanyrDatabase db, $MarkersTable table)
     : super(
         TableManagerState(
           db: db,
@@ -6569,7 +6569,7 @@ class $$MarkersTableTableManager
 
 typedef $$MarkersTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $MarkersTable,
       MarkerRow,
       $$MarkersTableFilterComposer,
@@ -6601,10 +6601,10 @@ typedef $$TaskNotesTableUpdateCompanionBuilder =
     });
 
 final class $$TaskNotesTableReferences
-    extends BaseReferences<_$AlphaDatabase, $TaskNotesTable, TaskNoteRow> {
+    extends BaseReferences<_$PlanyrDatabase, $TaskNotesTable, TaskNoteRow> {
   $$TaskNotesTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TasksTable _taskIdTable(_$AlphaDatabase db) => db.tasks.createAlias(
+  static $TasksTable _taskIdTable(_$PlanyrDatabase db) => db.tasks.createAlias(
     $_aliasNameGenerator(db.taskNotes.taskId, db.tasks.id),
   );
 
@@ -6624,7 +6624,7 @@ final class $$TaskNotesTableReferences
 }
 
 class $$TaskNotesTableFilterComposer
-    extends Composer<_$AlphaDatabase, $TaskNotesTable> {
+    extends Composer<_$PlanyrDatabase, $TaskNotesTable> {
   $$TaskNotesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -6677,7 +6677,7 @@ class $$TaskNotesTableFilterComposer
 }
 
 class $$TaskNotesTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $TaskNotesTable> {
+    extends Composer<_$PlanyrDatabase, $TaskNotesTable> {
   $$TaskNotesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -6730,7 +6730,7 @@ class $$TaskNotesTableOrderingComposer
 }
 
 class $$TaskNotesTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $TaskNotesTable> {
+    extends Composer<_$PlanyrDatabase, $TaskNotesTable> {
   $$TaskNotesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -6777,7 +6777,7 @@ class $$TaskNotesTableAnnotationComposer
 class $$TaskNotesTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $TaskNotesTable,
           TaskNoteRow,
           $$TaskNotesTableFilterComposer,
@@ -6789,7 +6789,7 @@ class $$TaskNotesTableTableManager
           TaskNoteRow,
           PrefetchHooks Function({bool taskId})
         > {
-  $$TaskNotesTableTableManager(_$AlphaDatabase db, $TaskNotesTable table)
+  $$TaskNotesTableTableManager(_$PlanyrDatabase db, $TaskNotesTable table)
     : super(
         TableManagerState(
           db: db,
@@ -6887,7 +6887,7 @@ class $$TaskNotesTableTableManager
 
 typedef $$TaskNotesTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $TaskNotesTable,
       TaskNoteRow,
       $$TaskNotesTableFilterComposer,
@@ -6919,11 +6919,11 @@ typedef $$TagsTableUpdateCompanionBuilder =
     });
 
 final class $$TagsTableReferences
-    extends BaseReferences<_$AlphaDatabase, $TagsTable, TagRow> {
+    extends BaseReferences<_$PlanyrDatabase, $TagsTable, TagRow> {
   $$TagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
   static MultiTypedResultKey<$TaskTagsTable, List<TaskTagRow>>
-  _taskTagsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+  _taskTagsRefsTable(_$PlanyrDatabase db) => MultiTypedResultKey.fromTable(
     db.taskTags,
     aliasName: $_aliasNameGenerator(db.tags.id, db.taskTags.tagId),
   );
@@ -6941,7 +6941,7 @@ final class $$TagsTableReferences
   }
 
   static MultiTypedResultKey<$SeriesTagsTable, List<SeriesTagRow>>
-  _seriesTagsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+  _seriesTagsRefsTable(_$PlanyrDatabase db) => MultiTypedResultKey.fromTable(
     db.seriesTags,
     aliasName: $_aliasNameGenerator(db.tags.id, db.seriesTags.tagId),
   );
@@ -6959,7 +6959,7 @@ final class $$TagsTableReferences
   }
 }
 
-class $$TagsTableFilterComposer extends Composer<_$AlphaDatabase, $TagsTable> {
+class $$TagsTableFilterComposer extends Composer<_$PlanyrDatabase, $TagsTable> {
   $$TagsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -7044,7 +7044,7 @@ class $$TagsTableFilterComposer extends Composer<_$AlphaDatabase, $TagsTable> {
 }
 
 class $$TagsTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $TagsTable> {
+    extends Composer<_$PlanyrDatabase, $TagsTable> {
   $$TagsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -7079,7 +7079,7 @@ class $$TagsTableOrderingComposer
 }
 
 class $$TagsTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $TagsTable> {
+    extends Composer<_$PlanyrDatabase, $TagsTable> {
   $$TagsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -7156,7 +7156,7 @@ class $$TagsTableAnnotationComposer
 class $$TagsTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $TagsTable,
           TagRow,
           $$TagsTableFilterComposer,
@@ -7168,7 +7168,7 @@ class $$TagsTableTableManager
           TagRow,
           PrefetchHooks Function({bool taskTagsRefs, bool seriesTagsRefs})
         > {
-  $$TagsTableTableManager(_$AlphaDatabase db, $TagsTable table)
+  $$TagsTableTableManager(_$PlanyrDatabase db, $TagsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -7275,7 +7275,7 @@ class $$TagsTableTableManager
 
 typedef $$TagsTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $TagsTable,
       TagRow,
       $$TagsTableFilterComposer,
@@ -7303,10 +7303,10 @@ typedef $$TaskTagsTableUpdateCompanionBuilder =
     });
 
 final class $$TaskTagsTableReferences
-    extends BaseReferences<_$AlphaDatabase, $TaskTagsTable, TaskTagRow> {
+    extends BaseReferences<_$PlanyrDatabase, $TaskTagsTable, TaskTagRow> {
   $$TaskTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $TasksTable _taskIdTable(_$AlphaDatabase db) => db.tasks.createAlias(
+  static $TasksTable _taskIdTable(_$PlanyrDatabase db) => db.tasks.createAlias(
     $_aliasNameGenerator(db.taskTags.taskId, db.tasks.id),
   );
 
@@ -7324,7 +7324,7 @@ final class $$TaskTagsTableReferences
     );
   }
 
-  static $TagsTable _tagIdTable(_$AlphaDatabase db) =>
+  static $TagsTable _tagIdTable(_$PlanyrDatabase db) =>
       db.tags.createAlias($_aliasNameGenerator(db.taskTags.tagId, db.tags.id));
 
   $$TagsTableProcessedTableManager get tagId {
@@ -7343,7 +7343,7 @@ final class $$TaskTagsTableReferences
 }
 
 class $$TaskTagsTableFilterComposer
-    extends Composer<_$AlphaDatabase, $TaskTagsTable> {
+    extends Composer<_$PlanyrDatabase, $TaskTagsTable> {
   $$TaskTagsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -7404,7 +7404,7 @@ class $$TaskTagsTableFilterComposer
 }
 
 class $$TaskTagsTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $TaskTagsTable> {
+    extends Composer<_$PlanyrDatabase, $TaskTagsTable> {
   $$TaskTagsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -7465,7 +7465,7 @@ class $$TaskTagsTableOrderingComposer
 }
 
 class $$TaskTagsTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $TaskTagsTable> {
+    extends Composer<_$PlanyrDatabase, $TaskTagsTable> {
   $$TaskTagsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -7526,7 +7526,7 @@ class $$TaskTagsTableAnnotationComposer
 class $$TaskTagsTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $TaskTagsTable,
           TaskTagRow,
           $$TaskTagsTableFilterComposer,
@@ -7538,7 +7538,7 @@ class $$TaskTagsTableTableManager
           TaskTagRow,
           PrefetchHooks Function({bool taskId, bool tagId})
         > {
-  $$TaskTagsTableTableManager(_$AlphaDatabase db, $TaskTagsTable table)
+  $$TaskTagsTableTableManager(_$PlanyrDatabase db, $TaskTagsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -7641,7 +7641,7 @@ class $$TaskTagsTableTableManager
 
 typedef $$TaskTagsTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $TaskTagsTable,
       TaskTagRow,
       $$TaskTagsTableFilterComposer,
@@ -7683,7 +7683,7 @@ typedef $$RecurringSeriesTableTableUpdateCompanionBuilder =
 final class $$RecurringSeriesTableTableReferences
     extends
         BaseReferences<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $RecurringSeriesTableTable,
           RecurringSeriesRow
         > {
@@ -7694,7 +7694,7 @@ final class $$RecurringSeriesTableTableReferences
   );
 
   static MultiTypedResultKey<$SeriesTagsTable, List<SeriesTagRow>>
-  _seriesTagsRefsTable(_$AlphaDatabase db) => MultiTypedResultKey.fromTable(
+  _seriesTagsRefsTable(_$PlanyrDatabase db) => MultiTypedResultKey.fromTable(
     db.seriesTags,
     aliasName: $_aliasNameGenerator(
       db.recurringSeriesTable.id,
@@ -7716,7 +7716,7 @@ final class $$RecurringSeriesTableTableReferences
 }
 
 class $$RecurringSeriesTableTableFilterComposer
-    extends Composer<_$AlphaDatabase, $RecurringSeriesTableTable> {
+    extends Composer<_$PlanyrDatabase, $RecurringSeriesTableTable> {
   $$RecurringSeriesTableTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -7796,7 +7796,7 @@ class $$RecurringSeriesTableTableFilterComposer
 }
 
 class $$RecurringSeriesTableTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $RecurringSeriesTableTable> {
+    extends Composer<_$PlanyrDatabase, $RecurringSeriesTableTable> {
   $$RecurringSeriesTableTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -7851,7 +7851,7 @@ class $$RecurringSeriesTableTableOrderingComposer
 }
 
 class $$RecurringSeriesTableTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $RecurringSeriesTableTable> {
+    extends Composer<_$PlanyrDatabase, $RecurringSeriesTableTable> {
   $$RecurringSeriesTableTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -7921,7 +7921,7 @@ class $$RecurringSeriesTableTableAnnotationComposer
 class $$RecurringSeriesTableTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $RecurringSeriesTableTable,
           RecurringSeriesRow,
           $$RecurringSeriesTableTableFilterComposer,
@@ -7934,7 +7934,7 @@ class $$RecurringSeriesTableTableTableManager
           PrefetchHooks Function({bool seriesTagsRefs})
         > {
   $$RecurringSeriesTableTableTableManager(
-    _$AlphaDatabase db,
+    _$PlanyrDatabase db,
     $RecurringSeriesTableTable table,
   ) : super(
         TableManagerState(
@@ -8044,7 +8044,7 @@ class $$RecurringSeriesTableTableTableManager
 
 typedef $$RecurringSeriesTableTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $RecurringSeriesTableTable,
       RecurringSeriesRow,
       $$RecurringSeriesTableTableFilterComposer,
@@ -8072,10 +8072,10 @@ typedef $$SeriesTagsTableUpdateCompanionBuilder =
     });
 
 final class $$SeriesTagsTableReferences
-    extends BaseReferences<_$AlphaDatabase, $SeriesTagsTable, SeriesTagRow> {
+    extends BaseReferences<_$PlanyrDatabase, $SeriesTagsTable, SeriesTagRow> {
   $$SeriesTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
 
-  static $RecurringSeriesTableTable _seriesIdTable(_$AlphaDatabase db) =>
+  static $RecurringSeriesTableTable _seriesIdTable(_$PlanyrDatabase db) =>
       db.recurringSeriesTable.createAlias(
         $_aliasNameGenerator(
           db.seriesTags.seriesId,
@@ -8097,7 +8097,7 @@ final class $$SeriesTagsTableReferences
     );
   }
 
-  static $TagsTable _tagIdTable(_$AlphaDatabase db) => db.tags.createAlias(
+  static $TagsTable _tagIdTable(_$PlanyrDatabase db) => db.tags.createAlias(
     $_aliasNameGenerator(db.seriesTags.tagId, db.tags.id),
   );
 
@@ -8117,7 +8117,7 @@ final class $$SeriesTagsTableReferences
 }
 
 class $$SeriesTagsTableFilterComposer
-    extends Composer<_$AlphaDatabase, $SeriesTagsTable> {
+    extends Composer<_$PlanyrDatabase, $SeriesTagsTable> {
   $$SeriesTagsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -8178,7 +8178,7 @@ class $$SeriesTagsTableFilterComposer
 }
 
 class $$SeriesTagsTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $SeriesTagsTable> {
+    extends Composer<_$PlanyrDatabase, $SeriesTagsTable> {
   $$SeriesTagsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -8240,7 +8240,7 @@ class $$SeriesTagsTableOrderingComposer
 }
 
 class $$SeriesTagsTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $SeriesTagsTable> {
+    extends Composer<_$PlanyrDatabase, $SeriesTagsTable> {
   $$SeriesTagsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -8302,7 +8302,7 @@ class $$SeriesTagsTableAnnotationComposer
 class $$SeriesTagsTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $SeriesTagsTable,
           SeriesTagRow,
           $$SeriesTagsTableFilterComposer,
@@ -8314,7 +8314,7 @@ class $$SeriesTagsTableTableManager
           SeriesTagRow,
           PrefetchHooks Function({bool seriesId, bool tagId})
         > {
-  $$SeriesTagsTableTableManager(_$AlphaDatabase db, $SeriesTagsTable table)
+  $$SeriesTagsTableTableManager(_$PlanyrDatabase db, $SeriesTagsTable table)
     : super(
         TableManagerState(
           db: db,
@@ -8417,7 +8417,7 @@ class $$SeriesTagsTableTableManager
 
 typedef $$SeriesTagsTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $SeriesTagsTable,
       SeriesTagRow,
       $$SeriesTagsTableFilterComposer,
@@ -8443,7 +8443,7 @@ typedef $$SyncMetaTableUpdateCompanionBuilder =
     });
 
 class $$SyncMetaTableFilterComposer
-    extends Composer<_$AlphaDatabase, $SyncMetaTable> {
+    extends Composer<_$PlanyrDatabase, $SyncMetaTable> {
   $$SyncMetaTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -8463,7 +8463,7 @@ class $$SyncMetaTableFilterComposer
 }
 
 class $$SyncMetaTableOrderingComposer
-    extends Composer<_$AlphaDatabase, $SyncMetaTable> {
+    extends Composer<_$PlanyrDatabase, $SyncMetaTable> {
   $$SyncMetaTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -8483,7 +8483,7 @@ class $$SyncMetaTableOrderingComposer
 }
 
 class $$SyncMetaTableAnnotationComposer
-    extends Composer<_$AlphaDatabase, $SyncMetaTable> {
+    extends Composer<_$PlanyrDatabase, $SyncMetaTable> {
   $$SyncMetaTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -8501,7 +8501,7 @@ class $$SyncMetaTableAnnotationComposer
 class $$SyncMetaTableTableManager
     extends
         RootTableManager<
-          _$AlphaDatabase,
+          _$PlanyrDatabase,
           $SyncMetaTable,
           SyncMetaRow,
           $$SyncMetaTableFilterComposer,
@@ -8511,12 +8511,12 @@ class $$SyncMetaTableTableManager
           $$SyncMetaTableUpdateCompanionBuilder,
           (
             SyncMetaRow,
-            BaseReferences<_$AlphaDatabase, $SyncMetaTable, SyncMetaRow>,
+            BaseReferences<_$PlanyrDatabase, $SyncMetaTable, SyncMetaRow>,
           ),
           SyncMetaRow,
           PrefetchHooks Function()
         > {
-  $$SyncMetaTableTableManager(_$AlphaDatabase db, $SyncMetaTable table)
+  $$SyncMetaTableTableManager(_$PlanyrDatabase db, $SyncMetaTable table)
     : super(
         TableManagerState(
           db: db,
@@ -8553,7 +8553,7 @@ class $$SyncMetaTableTableManager
 
 typedef $$SyncMetaTableProcessedTableManager =
     ProcessedTableManager<
-      _$AlphaDatabase,
+      _$PlanyrDatabase,
       $SyncMetaTable,
       SyncMetaRow,
       $$SyncMetaTableFilterComposer,
@@ -8563,15 +8563,15 @@ typedef $$SyncMetaTableProcessedTableManager =
       $$SyncMetaTableUpdateCompanionBuilder,
       (
         SyncMetaRow,
-        BaseReferences<_$AlphaDatabase, $SyncMetaTable, SyncMetaRow>,
+        BaseReferences<_$PlanyrDatabase, $SyncMetaTable, SyncMetaRow>,
       ),
       SyncMetaRow,
       PrefetchHooks Function()
     >;
 
-class $AlphaDatabaseManager {
-  final _$AlphaDatabase _db;
-  $AlphaDatabaseManager(this._db);
+class $PlanyrDatabaseManager {
+  final _$PlanyrDatabase _db;
+  $PlanyrDatabaseManager(this._db);
   $$BoardsTableTableManager get boards =>
       $$BoardsTableTableManager(_db, _db.boards);
   $$BoardColumnsTableTableManager get boardColumns =>

@@ -1,17 +1,17 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:alpha/features/board/data/board_repository.dart';
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/shared/database.dart';
+import 'package:planyr/features/board/data/board_repository.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/shared/database.dart';
 
 void main() {
-  late AlphaDatabase db;
+  late PlanyrDatabase db;
   late BoardRepository repo;
 
   setUp(() {
-    db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     repo = BoardRepository(db);
   });
 

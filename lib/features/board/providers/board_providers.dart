@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/shared/providers.dart';
 
 part 'board_providers.g.dart';
 

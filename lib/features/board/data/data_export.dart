@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:alpha/shared/database.dart';
+import 'package:planyr/shared/database.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// Exports all app data as a JSON file and returns the file path.
-Future<String> exportDataAsJson(AlphaDatabase db) async {
+Future<String> exportDataAsJson(PlanyrDatabase db) async {
   final boards = await db.select(db.boards).get();
   final columns = await db.select(db.boardColumns).get();
   final tasks = await db.select(db.tasks).get();
@@ -101,7 +101,7 @@ Future<String> exportDataAsJson(AlphaDatabase db) async {
       .replaceAll(':', '-')
       .split('.')
       .first;
-  final file = File('${dir.path}/alpha_export_$timestamp.json');
+  final file = File('${dir.path}/planyr_export_$timestamp.json');
   await file.writeAsString(
     const JsonEncoder.withIndent('  ').convert(data),
   );

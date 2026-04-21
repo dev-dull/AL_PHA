@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/app/theme.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/presentation/marker_cell.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/tag/domain/tag_palette.dart';
-import 'package:alpha/features/tag/presentation/tag_badge.dart';
+import 'package:planyr/app/theme.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/presentation/marker_cell.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/tag/domain/tag_palette.dart';
+import 'package:planyr/features/tag/presentation/tag_badge.dart';
 
 /// Shows a dialog explaining the app's features and workflow.
 Future<void> showMarkerLegend(BuildContext context) {
@@ -220,7 +220,7 @@ class _MarkerRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = AlphaTheme.markerColor(symbol, brightness);
+    final color = PlanyrTheme.markerColor(symbol, brightness);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

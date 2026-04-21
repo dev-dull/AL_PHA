@@ -163,10 +163,10 @@ class SyncMeta extends Table {
   SeriesTags,
   SyncMeta,
 ])
-class AlphaDatabase extends _$AlphaDatabase {
-  AlphaDatabase() : super(_openConnection());
+class PlanyrDatabase extends _$PlanyrDatabase {
+  PlanyrDatabase() : super(_openConnection());
 
-  AlphaDatabase.forTesting(super.e);
+  PlanyrDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 9;
@@ -316,7 +316,7 @@ class AlphaDatabase extends _$AlphaDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dbFolder.path, 'alpha.db'));
+    final file = File(p.join(dbFolder.path, 'planyr.db'));
     return NativeDatabase.createInBackground(file);
   });
 }

@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/board/providers/board_providers.dart';
-import 'package:alpha/features/board/providers/weekly_board_provider.dart';
-import 'package:alpha/features/column/providers/column_providers.dart';
-import 'package:alpha/features/marker/domain/marker.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/domain/task_state.dart';
-import 'package:alpha/features/task/providers/task_providers.dart';
-import 'package:alpha/shared/providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/board/providers/board_providers.dart';
+import 'package:planyr/features/board/providers/weekly_board_provider.dart';
+import 'package:planyr/features/column/providers/column_providers.dart';
+import 'package:planyr/features/marker/domain/marker.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/task_state.dart';
+import 'package:planyr/features/task/providers/task_providers.dart';
+import 'package:planyr/shared/providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 /// Returns true if the board's time period has ended and
 /// migration should be suggested.

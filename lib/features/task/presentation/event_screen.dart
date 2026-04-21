@@ -5,15 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/column/providers/column_providers.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/task/data/ical_export.dart';
-import 'package:alpha/features/task/data/ical_import.dart';
-import 'package:alpha/features/task/domain/recurrence.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/providers/task_providers.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/column/providers/column_providers.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/task/data/ical_export.dart';
+import 'package:planyr/features/task/data/ical_import.dart';
+import 'package:planyr/features/task/domain/recurrence.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/providers/task_providers.dart';
 
 /// Full-page screen for creating events, importing, and exporting
 /// iCal files. Navigated to from the board grid.

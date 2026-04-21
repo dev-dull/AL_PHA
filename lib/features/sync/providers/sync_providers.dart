@@ -4,10 +4,10 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:alpha/features/auth/providers/auth_providers.dart';
-import 'package:alpha/features/sync/data/sync_api_client.dart';
-import 'package:alpha/features/sync/domain/sync_status.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/features/auth/providers/auth_providers.dart';
+import 'package:planyr/features/sync/data/sync_api_client.dart';
+import 'package:planyr/features/sync/domain/sync_status.dart';
+import 'package:planyr/shared/providers.dart';
 
 part 'sync_providers.g.dart';
 
@@ -107,7 +107,7 @@ class Sync extends _$Sync {
   Future<void> _applyRemoteChanges(
     List<Map<String, dynamic>> changes,
   ) async {
-    final db = ref.read(alphaDatabaseProvider);
+    final db = ref.read(planyrDatabaseProvider);
 
     for (final change in changes) {
       final table = change['table'] as String?;

@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/board/providers/board_providers.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/weekly_columns.dart';
-import 'package:alpha/features/column/providers/column_providers.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/board/providers/board_providers.dart';
+import 'package:planyr/features/column/domain/board_column.dart';
+import 'package:planyr/features/column/domain/weekly_columns.dart';
+import 'package:planyr/features/column/providers/column_providers.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 class BoardCreateScreen extends ConsumerStatefulWidget {
   const BoardCreateScreen({super.key});

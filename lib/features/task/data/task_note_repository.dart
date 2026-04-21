@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/task/domain/task_note.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/task/domain/task_note.dart';
 
 class TaskNoteRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   TaskNoteRepository(this._db);
 

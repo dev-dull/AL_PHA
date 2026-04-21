@@ -3,30 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/column/domain/weekly_columns.dart';
-import 'package:alpha/features/marker/domain/marker.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/preferences/domain/app_preferences.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/features/series/domain/recurring_series.dart';
-import 'package:alpha/features/series/providers/series_providers.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/board/providers/weekly_board_provider.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/shared/providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/column/domain/board_column.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/column/domain/weekly_columns.dart';
+import 'package:planyr/features/marker/domain/marker.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/preferences/domain/app_preferences.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/features/series/domain/recurring_series.dart';
+import 'package:planyr/features/series/providers/series_providers.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/board/providers/weekly_board_provider.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/shared/providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 void main() {
   test('switching first-day-of-week finds existing board and tasks',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
 
     addTearDown(() {
@@ -95,9 +95,9 @@ void main() {
   });
 
   test('provider with preference change finds existing board', () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
 
     addTearDown(() {
@@ -141,9 +141,9 @@ void main() {
 
   test('prefers board with tasks and cleans up empty duplicate',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();
@@ -202,9 +202,9 @@ void main() {
 
   test('new board created with Sunday columns when no board exists',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
 
     addTearDown(() {
@@ -234,9 +234,9 @@ void main() {
 
   test('markers on Monday-board are accessible after switching to Sunday',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();
@@ -323,9 +323,9 @@ void main() {
 
   test('auto-fill missed days works on Monday-board with Sunday preference',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();
@@ -418,9 +418,9 @@ void main() {
 
   test('recurring series materializes on board found via fallback',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();
@@ -505,9 +505,9 @@ void main() {
 
   test('materialize creates task on next week board found via fallback',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();
@@ -607,9 +607,9 @@ void main() {
 
   test('event markers on Monday-board are NOT migrated after switch',
       () async {
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();
@@ -700,9 +700,9 @@ void main() {
     // This tests that the column reorder logic (used in the UI)
     // correctly remaps positions. A Monday-board viewed with
     // Sunday preference should show Sunday first.
-    final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
     addTearDown(() {
       container.dispose();

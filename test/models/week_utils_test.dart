@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 void main() {
   group('startOfWeek (Monday start)', () {

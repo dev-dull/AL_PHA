@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
 
 part 'marker.freezed.dart';
 part 'marker.g.dart';

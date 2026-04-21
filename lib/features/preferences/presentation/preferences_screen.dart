@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:alpha/features/auth/providers/auth_providers.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/features/sync/domain/sync_status.dart';
-import 'package:alpha/features/sync/providers/sync_providers.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/tag/domain/tag_palette.dart';
-import 'package:alpha/features/tag/providers/tag_providers.dart';
+import 'package:planyr/features/auth/providers/auth_providers.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/features/sync/domain/sync_status.dart';
+import 'package:planyr/features/sync/providers/sync_providers.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/tag/domain/tag_palette.dart';
+import 'package:planyr/features/tag/providers/tag_providers.dart';
 
 class PreferencesScreen extends ConsumerWidget {
   const PreferencesScreen({super.key});

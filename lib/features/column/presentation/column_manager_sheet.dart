@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/providers/column_providers.dart';
+import 'package:planyr/features/column/domain/board_column.dart';
+import 'package:planyr/features/column/providers/column_providers.dart';
 
 /// Bottom sheet for managing board columns: add, rename, reorder,
 /// and delete.

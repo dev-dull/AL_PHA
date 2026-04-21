@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:alpha/features/task/domain/task_note.dart';
-import 'package:alpha/features/task/providers/task_note_providers.dart';
+import 'package:planyr/features/task/domain/task_note.dart';
+import 'package:planyr/features/task/providers/task_note_providers.dart';
 import 'package:intl/intl.dart';
 
 /// Displays a list of timestamped notes for a task, with an

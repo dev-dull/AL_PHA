@@ -1,6 +1,6 @@
-import 'package:alpha/features/series/domain/recurring_series.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/task/domain/task.dart';
+import 'package:planyr/features/series/domain/recurring_series.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/task/domain/task.dart';
 
 /// A row displayed on the board grid — either a real task from
 /// the DB or a virtual instance of a recurring series.

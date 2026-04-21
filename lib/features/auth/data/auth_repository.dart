@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:amazon_cognito_identity_dart_2/cognito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:alpha/features/auth/domain/auth_config.dart';
-import 'package:alpha/features/auth/domain/auth_state.dart';
+import 'package:planyr/features/auth/domain/auth_config.dart';
+import 'package:planyr/features/auth/domain/auth_state.dart';
 
 /// Handles Cognito auth via the native Dart SDK.
 /// No browser, deep links, or PKCE needed.

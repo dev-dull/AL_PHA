@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
 
 void main() {
   group('MarkerSymbol', () {

@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
+import 'package:planyr/shared/database.dart';
 
 /// A single change to push to the server.
 class SyncChange {
@@ -29,7 +29,7 @@ class SyncChange {
 /// Scans local tables for rows modified since the last sync.
 /// Data is small (<10MB) so a full scan takes milliseconds.
 class ChangeTracker {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   ChangeTracker(this._db);
 

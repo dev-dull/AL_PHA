@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/series/domain/recurring_series.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/series/domain/recurring_series.dart';
 
 class SeriesRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   SeriesRepository(this._db);
 

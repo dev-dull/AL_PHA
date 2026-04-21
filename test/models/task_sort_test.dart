@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/domain/task_sort.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/task_sort.dart';
 
 List<Task> _sort(List<Task> tasks, TaskSortMode mode) {
   return sortTasks(

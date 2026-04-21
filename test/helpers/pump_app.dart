@@ -3,19 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:alpha/app/theme.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/app/theme.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/shared/providers.dart';
 
 /// Creates a [ProviderContainer] backed by an in-memory Drift database.
 ///
 /// Use this when you need to seed data before pumping a widget.
 /// The database and container are cleaned up via [addTearDown].
 ProviderContainer createTestContainer() {
-  final db = AlphaDatabase.forTesting(NativeDatabase.memory());
+  final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
 
   final container = ProviderContainer(
-    overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+    overrides: [planyrDatabaseProvider.overrideWithValue(db)],
   );
 
   addTearDown(() {
@@ -50,7 +50,7 @@ extension PumpApp on WidgetTester {
       UncontrolledProviderScope(
         container: container,
         child: MaterialApp(
-          theme: AlphaTheme.light(),
+          theme: PlanyrTheme.light(),
           home: Scaffold(body: widget),
         ),
       ),

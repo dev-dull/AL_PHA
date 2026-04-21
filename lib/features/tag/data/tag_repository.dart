@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
 
 class TagRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   TagRepository(this._db);
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/domain/recurrence.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/tag/domain/tag_palette.dart';
-import 'package:alpha/features/task/presentation/task_notes_section.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/recurrence.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/tag/domain/tag_palette.dart';
+import 'package:planyr/features/task/presentation/task_notes_section.dart';
 
 enum _SeriesChoice { thisOne, all }
 

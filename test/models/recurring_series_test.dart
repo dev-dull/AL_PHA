@@ -3,30 +3,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:alpha/features/board/domain/board.dart';
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/weekly_columns.dart';
-import 'package:alpha/features/marker/domain/marker.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/series/providers/series_providers.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/task/domain/recurrence.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/shared/providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/board/domain/board.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/column/domain/board_column.dart';
+import 'package:planyr/features/column/domain/weekly_columns.dart';
+import 'package:planyr/features/marker/domain/marker.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/series/providers/series_providers.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/task/domain/recurrence.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/shared/providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 void main() {
-  late AlphaDatabase db;
+  late PlanyrDatabase db;
   late ProviderContainer container;
   const uuid = Uuid();
 
   setUp(() {
-    db = AlphaDatabase.forTesting(NativeDatabase.memory());
+    db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     container = ProviderContainer(
-      overrides: [alphaDatabaseProvider.overrideWithValue(db)],
+      overrides: [planyrDatabaseProvider.overrideWithValue(db)],
     );
   });
 

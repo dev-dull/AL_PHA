@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/domain/task_state.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/task_state.dart';
+import 'package:planyr/shared/providers.dart';
 
 part 'task_providers.g.dart';
 

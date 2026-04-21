@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:alpha/features/task/domain/task_state.dart';
+import 'package:planyr/features/task/domain/task_state.dart';
 
 part 'task.freezed.dart';
 part 'task.g.dart';

@@ -1,11 +1,11 @@
-import 'package:alpha/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/task.dart';
 
 /// Builds an iCal (.ics) string from a list of event [Task]s.
 String exportTasksToICal(List<Task> tasks) {
   final buf = StringBuffer()
     ..writeln('BEGIN:VCALENDAR')
     ..writeln('VERSION:2.0')
-    ..writeln('PRODID:-//AlPHA//Alastair Method//EN')
+    ..writeln('PRODID:-//planyr//planyr.day//EN')
     ..writeln('CALSCALE:GREGORIAN');
 
   for (final task in tasks) {

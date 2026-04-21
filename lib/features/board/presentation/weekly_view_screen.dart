@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:alpha/features/board/data/data_export.dart';
-import 'package:alpha/features/board/presentation/board_grid_body.dart';
-import 'package:alpha/features/board/presentation/marker_legend_dialog.dart';
-import 'package:alpha/features/board/providers/weekly_board_provider.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/preferences/domain/app_preferences.dart';
-import 'package:alpha/features/auth/providers/auth_providers.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/features/sync/domain/sync_status.dart';
-import 'package:alpha/features/sync/providers/sync_providers.dart';
-import 'package:alpha/shared/providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/board/data/data_export.dart';
+import 'package:planyr/features/board/presentation/board_grid_body.dart';
+import 'package:planyr/features/board/presentation/marker_legend_dialog.dart';
+import 'package:planyr/features/board/providers/weekly_board_provider.dart';
+import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/preferences/domain/app_preferences.dart';
+import 'package:planyr/features/auth/providers/auth_providers.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/features/sync/domain/sync_status.dart';
+import 'package:planyr/features/sync/providers/sync_providers.dart';
+import 'package:planyr/shared/providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 /// The primary weekly view: auto-creates boards per week and
 /// navigates between weeks via chevron buttons.
@@ -29,7 +29,7 @@ class WeeklyViewScreen extends ConsumerStatefulWidget {
 class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   late DateTime _currentWeekStart;
 
-  static const _seenLegendKey = 'alpha_seen_legend';
+  static const _seenLegendKey = 'planyr_seen_legend';
 
   @override
   void initState() {
@@ -97,7 +97,7 @@ class _WeeklyViewScreenState extends ConsumerState<WeeklyViewScreen> {
   }
 
   Future<void> _exportData() async {
-    final db = ref.read(alphaDatabaseProvider);
+    final db = ref.read(planyrDatabaseProvider);
     final path = await exportDataAsJson(db);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

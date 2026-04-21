@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:alpha/app/app.dart';
-import 'package:alpha/features/auth/providers/auth_providers.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/features/sync/providers/sync_providers.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/app/app.dart';
+import 'package:planyr/features/auth/providers/auth_providers.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/features/sync/providers/sync_providers.dart';
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/shared/providers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final database = AlphaDatabase();
+  final database = PlanyrDatabase();
 
   final container = ProviderContainer(
-    overrides: [alphaDatabaseProvider.overrideWithValue(database)],
+    overrides: [planyrDatabaseProvider.overrideWithValue(database)],
   );
 
   // Load saved preferences and auth state before the first frame.
@@ -23,7 +23,7 @@ void main() async {
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: const AlphaApp(),
+      child: const PlanyrApp(),
     ),
   );
 

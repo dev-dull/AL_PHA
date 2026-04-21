@@ -1,5 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:alpha/features/preferences/domain/app_preferences.dart';
+import 'package:planyr/features/preferences/domain/app_preferences.dart';
 
 class PreferencesRepository {
   static const _fontKey = 'pref_font_family';

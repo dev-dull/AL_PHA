@@ -2,35 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
-import 'package:alpha/app/theme.dart';
-import 'package:alpha/design_system/widgets/dot_grid_background.dart';
-import 'package:alpha/features/column/domain/board_column.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/column/domain/weekly_columns.dart';
-import 'package:alpha/features/column/providers/column_providers.dart';
-import 'package:alpha/features/marker/domain/marker.dart';
-import 'package:alpha/features/series/domain/board_item.dart';
-import 'package:alpha/features/series/domain/recurring_series.dart';
-import 'package:alpha/features/series/providers/series_providers.dart';
-import 'package:alpha/features/tag/domain/tag.dart';
-import 'package:alpha/features/tag/domain/tag_palette.dart';
-import 'package:alpha/features/tag/presentation/tag_badge.dart';
-import 'package:alpha/features/tag/providers/tag_providers.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/presentation/marker_cell.dart';
-import 'package:alpha/features/marker/providers/marker_providers.dart';
-import 'package:alpha/features/task/domain/recurrence.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/shared/providers.dart';
-import 'package:alpha/features/board/providers/board_providers.dart';
-import 'package:alpha/features/auth/providers/auth_providers.dart';
-import 'package:alpha/features/sync/providers/sync_providers.dart';
-import 'package:alpha/features/task/domain/task_sort.dart';
-import 'package:alpha/features/task/domain/task_state.dart';
-import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/features/task/providers/task_providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/app/theme.dart';
+import 'package:planyr/design_system/widgets/dot_grid_background.dart';
+import 'package:planyr/features/column/domain/board_column.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/column/domain/weekly_columns.dart';
+import 'package:planyr/features/column/providers/column_providers.dart';
+import 'package:planyr/features/marker/domain/marker.dart';
+import 'package:planyr/features/series/domain/board_item.dart';
+import 'package:planyr/features/series/domain/recurring_series.dart';
+import 'package:planyr/features/series/providers/series_providers.dart';
+import 'package:planyr/features/tag/domain/tag.dart';
+import 'package:planyr/features/tag/domain/tag_palette.dart';
+import 'package:planyr/features/tag/presentation/tag_badge.dart';
+import 'package:planyr/features/tag/providers/tag_providers.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/presentation/marker_cell.dart';
+import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/task/domain/recurrence.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/shared/providers.dart';
+import 'package:planyr/features/board/providers/board_providers.dart';
+import 'package:planyr/features/auth/providers/auth_providers.dart';
+import 'package:planyr/features/sync/providers/sync_providers.dart';
+import 'package:planyr/features/task/domain/task_sort.dart';
+import 'package:planyr/features/task/domain/task_state.dart';
+import 'package:planyr/features/task/presentation/task_detail_sheet.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/features/task/providers/task_providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 /// Convert a stored UTC "HH:mm" string to local time for display.
 String _utcTimeToLocal(String utcTime) {
@@ -1294,7 +1294,7 @@ class VirtualBoardRow extends ConsumerWidget {
               // Day column — show marker if scheduled.
               final hasMarker = days.contains(col.position);
               final color = hasMarker
-                  ? AlphaTheme.markerColor(sym, brightness)
+                  ? PlanyrTheme.markerColor(sym, brightness)
                   : null;
               return SizedBox(
                 width: MarkerCell.cellSize,

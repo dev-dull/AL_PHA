@@ -1,4 +1,4 @@
-import 'package:alpha/features/column/domain/column_type.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
 
 /// Day labels starting from Monday.
 const _mondayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];

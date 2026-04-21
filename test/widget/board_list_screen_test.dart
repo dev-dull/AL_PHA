@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:alpha/features/board/domain/board_type.dart';
-import 'package:alpha/features/board/presentation/board_list_screen.dart';
+import 'package:planyr/features/board/domain/board_type.dart';
+import 'package:planyr/features/board/presentation/board_list_screen.dart';
 
 import '../helpers/helpers.dart';
 

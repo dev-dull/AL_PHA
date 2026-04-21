@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/data/task_note_repository.dart';
-import 'package:alpha/features/task/domain/task_note.dart';
-import 'package:alpha/features/task/presentation/task_detail_sheet.dart';
-import 'package:alpha/shared/providers.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/data/task_note_repository.dart';
+import 'package:planyr/features/task/domain/task_note.dart';
+import 'package:planyr/features/task/presentation/task_detail_sheet.dart';
+import 'package:planyr/shared/providers.dart';
 
 import '../helpers/test_data.dart';
 

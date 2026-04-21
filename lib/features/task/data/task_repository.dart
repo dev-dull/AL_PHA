@@ -1,10 +1,10 @@
 import 'package:drift/drift.dart';
-import 'package:alpha/shared/database.dart';
-import 'package:alpha/features/task/domain/task.dart';
-import 'package:alpha/features/task/domain/task_state.dart' as domain;
+import 'package:planyr/shared/database.dart';
+import 'package:planyr/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/task_state.dart' as domain;
 
 class TaskRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   TaskRepository(this._db);
 

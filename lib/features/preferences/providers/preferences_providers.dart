@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:alpha/features/preferences/data/preferences_repository.dart';
-import 'package:alpha/features/preferences/domain/app_preferences.dart';
+import 'package:planyr/features/preferences/data/preferences_repository.dart';
+import 'package:planyr/features/preferences/domain/app_preferences.dart';
 
 part 'preferences_providers.g.dart';
 

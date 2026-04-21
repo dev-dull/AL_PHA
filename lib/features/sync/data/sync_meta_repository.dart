@@ -1,9 +1,9 @@
-import 'package:alpha/shared/database.dart';
+import 'package:planyr/shared/database.dart';
 
 /// Stores sync metadata (device_id, last_sync_time) in a local
 /// key-value table that survives app restarts.
 class SyncMetaRepository {
-  final AlphaDatabase _db;
+  final PlanyrDatabase _db;
 
   SyncMetaRepository(this._db);
 

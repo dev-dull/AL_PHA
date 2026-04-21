@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'package:alpha/features/sync/data/change_tracker.dart';
+import 'package:planyr/features/sync/data/change_tracker.dart';
 
 /// HTTP client for the sync Lambda endpoints.
 class SyncApiClient {

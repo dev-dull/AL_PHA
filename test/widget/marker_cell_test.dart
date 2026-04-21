@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/marker/presentation/marker_cell.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/marker/presentation/marker_cell.dart';
 
 import '../helpers/helpers.dart';
 

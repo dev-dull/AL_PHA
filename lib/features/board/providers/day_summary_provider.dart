@@ -1,9 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:alpha/features/column/domain/column_type.dart';
-import 'package:alpha/features/marker/domain/marker_symbol.dart';
-import 'package:alpha/features/preferences/providers/preferences_providers.dart';
-import 'package:alpha/shared/providers.dart';
-import 'package:alpha/shared/week_utils.dart';
+import 'package:planyr/features/column/domain/column_type.dart';
+import 'package:planyr/features/marker/domain/marker_symbol.dart';
+import 'package:planyr/features/preferences/providers/preferences_providers.dart';
+import 'package:planyr/shared/providers.dart';
+import 'package:planyr/shared/week_utils.dart';
 
 part 'day_summary_provider.g.dart';
 

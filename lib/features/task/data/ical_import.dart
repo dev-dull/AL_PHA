@@ -1,5 +1,5 @@
 import 'package:enough_icalendar/enough_icalendar.dart';
-import 'package:alpha/features/task/domain/task.dart';
+import 'package:planyr/features/task/domain/task.dart';
 import 'package:uuid/uuid.dart';
 
 /// Represents a parsed event from an iCal file.
