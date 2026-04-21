@@ -252,6 +252,11 @@ Cloudflare Worker — no S3, no CloudFront, no ACM. See
 - `docs/app/android-device-testing.md` — Pixel 8 Pro USB/wireless testing
 - `docs/app/app-store-testing.md` — Play Store / TestFlight distribution
 
+### Design
+- `docs/design/README.md` — Design language, principles, anti-patterns
+- `docs/design/tokens.md` — Colors, typography, spacing, dimensions
+- `docs/design/markers.md` — The six-symbol marker vocabulary
+
 ### Infrastructure
 - `docs/infra/README.md` — Infra overview, state backends, naming note
 - `docs/infra/aws-backend.md` — Cloud sync & multi-device (RDS Postgres, Lambda, Cognito, Terraform)
