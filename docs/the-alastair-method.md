@@ -309,3 +309,7 @@ Per Alastair Johnston's guidance:
 - [The Alastair Method Template — 101 Planners](https://www.101planners.com/the-alastair-method/)
 - [Weekly Tasks with the Alastair Method — Rach Smith](https://rachsmith.com/weekly-tasks/)
 - [How to Use the Alastair Method — Productive Pixie](https://www.theproductivepixie.com/2021/08/alastair-bullet-journal-method.html)
+
+### Addendum
+
+- [Video transcript — Boho Berry walkthrough](./the-alastair-method-transcript.md) — raw auto-generated transcript kept as research context

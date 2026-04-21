@@ -1,3 +1,15 @@
+# The Alastair Method — Video Transcript
+
+> Addendum to [the-alastair-method.md](./the-alastair-method.md).
+>
+> Unedited auto-generated transcript of Kara's (Boho Berry) YouTube
+> walkthrough of The Alastair Method as a weekly bullet-journal layout.
+> Preserved verbatim as historical research context — transcription
+> artifacts (misspellings, run-on lines) left as-is. Read the main
+> method doc first; come here for the source narration.
+
+---
+
 [Music] 
  hey everyone its Kara here from boho 
  berry and today I want to talk to you a 
