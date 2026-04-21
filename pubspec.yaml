@@ -74,4 +74,4 @@ flutter_launcher_icons:
     theme_color: "#5B8A72"
   macos:
     generate: true
-    image_path: "assets/branding/planyr-icon-1024.png"
+    image_path: "assets/branding/planyr-icon-macos-1024.png"

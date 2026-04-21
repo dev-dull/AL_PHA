@@ -125,6 +125,35 @@ def render_variant(size: int, *, bg, ink, dot,
     return img
 
 
+def render_macos_variant(size: int, *, bg, ink, dot) -> Image.Image:
+    """macOS-style icon: rounded-rect body inset from the canvas with
+    transparent margin, per Apple's app icon template.
+
+    For a 1024 canvas: 100px inset, 824×824 body, 185px corner radius.
+    The mark is drawn smaller (scale 0.55) so it has the generous
+    padding conventional for macOS icons.
+    """
+    # Inset and corner radius scale linearly with canvas size so the
+    # proportions match Apple's template at any output size.
+    inset = int(size * 100 / 1024)
+    body = size - 2 * inset
+    corner_r = int(body * 185 / 824)
+
+    # Render a full-canvas background + mark, then mask with the
+    # rounded-rect body so everything outside becomes transparent.
+    full = render_variant(size, bg=bg, ink=ink, dot=dot, scale=0.55)
+
+    mask = Image.new("L", (size, size), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [inset, inset, size - inset, size - inset],
+        radius=corner_r, fill=255,
+    )
+
+    out = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    out.paste(full, (0, 0), mask)
+    return out
+
+
 def main():
     # Master renders at 1024 for best quality; downsample for the rest
     # so antialiasing is consistent.
@@ -166,6 +195,13 @@ def main():
         fg = adaptive_fg.resize((s, s), Image.Resampling.LANCZOS)
         fg.save(OUT_DIR / f"planyr-icon-adaptive-foreground-{s}.png",
                 optimize=True)
+
+    # macOS variant: rounded-rect body with transparent margin.
+    macos_master = render_macos_variant(1024, bg=PAPER, ink=INK,
+                                        dot=DOT_GRID_LIGHT)
+    for s in [1024, 512, 256, 128, 64, 32, 16]:
+        mac = macos_master.resize((s, s), Image.Resampling.LANCZOS)
+        mac.save(OUT_DIR / f"planyr-icon-macos-{s}.png", optimize=True)
 
     # Background-only for Android adaptive icons
     for s in [1024, 432, 108]:
