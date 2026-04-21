@@ -5,24 +5,24 @@ const HTML = `<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>planyr — coming soon</title>
-  <meta name="description" content="A bullet-journal-inspired weekly planner. Coming soon." />
+  <title>planyr — a weekly planner</title>
+  <meta name="description" content="A simple weekly planner. Coming soon." />
 
   <!-- Open Graph / LinkedIn / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://planyr.day" />
-  <meta property="og:title" content="planyr — a weekly planner, the bullet-journal way" />
-  <meta property="og:description" content="A matrix-based weekly planner inspired by bullet journals. Coming soon to iOS and Android." />
+  <meta property="og:title" content="planyr — a weekly planner" />
+  <meta property="og:description" content="A simple weekly planner for your phone. Coming soon to iOS and Android." />
   <meta property="og:image" content="https://planyr.day/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="627" />
-  <meta property="og:image:alt" content="planyr — a weekly planner, the bullet-journal way. Coming soon." />
+  <meta property="og:image:alt" content="planyr — a weekly planner. Coming soon." />
   <meta property="og:site_name" content="planyr" />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="planyr — a weekly planner, the bullet-journal way" />
-  <meta name="twitter:description" content="A matrix-based weekly planner inspired by bullet journals. Coming soon to iOS and Android." />
+  <meta name="twitter:title" content="planyr — a weekly planner" />
+  <meta name="twitter:description" content="A simple weekly planner for your phone. Coming soon to iOS and Android." />
   <meta name="twitter:image" content="https://planyr.day/og-image.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -121,7 +121,7 @@ const HTML = `<!DOCTYPE html>
 <body>
   <main class="card">
     <h1>planyr</h1>
-    <p class="tagline">a weekly planner, the bullet-journal way</p>
+    <p class="tagline">a weekly planner</p>
 
     <div class="grid" aria-hidden="true">
       <div class="day">M</div><div class="day">T</div><div class="day">W</div><div class="day">T</div><div class="day">F</div><div class="day">S</div><div class="day">S</div>

@@ -1,13 +1,13 @@
 # AlPHA — Alastair Planner & Habit App
 
-A cross-platform productivity app implementing **The Alastair Method** — a matrix-based task management system inspired by the bullet journal technique.
+A cross-platform weekly planner app. See your whole week at a glance, mark each day, migrate what you don't finish.
 
 Built with Flutter (macOS, iOS, Android, Web). Currently offline-first with local Drift/SQLite storage.
 
 ## Features
 
 - **Weekly board grid** — day columns (M T W T F S S) on the left, task names on the right, migration column (>) on the far left
-- **Hand-drawn markers** — dot (filled circle), slash (/), checkmark (painted stroke), event (open circle) — all rendered with custom painters for a journal aesthetic
+- **Hand-drawn markers** — dot (filled circle), slash (/), checkmark (painted stroke), event (open circle) — all rendered with custom painters for a handwritten aesthetic
 - **Radial marker menu** — tap to cycle or pick from a radial popup (dot, slash, done, clear)
 - **Auto-fill logic** — done early (<) fills remaining scheduled days; missed days auto-migrate (>)
 - **Migration** — toggle > to push a task to next week, carrying its day-of-week schedule as dots
@@ -23,7 +23,7 @@ Built with Flutter (macOS, iOS, Android, Web). Currently offline-first with loca
 - **Yearly overview** — 12 mini-month heatmap grids with day numbers and red→green completion gradient
 - **Preferences** — font (handwritten/system), appearance (light/dark/system), first day of week (Monday/Sunday), tag management
 - **Data export** — JSON export of all boards, tasks, markers, notes, and tags
-- **Bullet journal theme** — Patrick Hand font, cream paper palette, ink-on-paper aesthetics
+- **Handwritten aesthetic** — Patrick Hand font, cream paper palette, ink-on-paper look
 - **Dark mode** — theme-aware marker colors and design tokens
 
 ## Quick Start
