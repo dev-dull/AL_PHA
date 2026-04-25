@@ -350,6 +350,85 @@ void main() {
       expect(wed!.symbol, MarkerSymbol.slash);
       expect(fri!.symbol, MarkerSymbol.doneEarly);
     });
+
+    test('marking X backfills earlier > markers to <', () async {
+      // Regression: when a task is auto-migrated (> on past days)
+      // and the user later marks it done, monthly view used to
+      // count the past days as missed. Backfill > → < so the day
+      // summary reflects that the task was completed.
+      const boardId = 'board-1';
+      const taskId = 'task-1';
+      final colIds = await seedWeeklyBoard(boardId: boardId);
+
+      // Task was scheduled Mon-Wed but auto-migrated those past
+      // days to >. User comes back Wed and marks done.
+      await seedMarker(
+        taskId: taskId, boardId: boardId,
+        columnId: colIds[0], symbol: MarkerSymbol.migratedForward,
+      );
+      await seedMarker(
+        taskId: taskId, boardId: boardId,
+        columnId: colIds[1], symbol: MarkerSymbol.migratedForward,
+      );
+      await seedMarker(
+        taskId: taskId, boardId: boardId,
+        columnId: colIds[2], symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      await actions.setMarker(
+        boardId: boardId, taskId: taskId,
+        columnId: colIds[2], symbol: MarkerSymbol.x,
+      );
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      // Past > markers should now be < (done late).
+      expect(
+        (await markerRepo.get(taskId, colIds[0]))!.symbol,
+        MarkerSymbol.doneEarly,
+      );
+      expect(
+        (await markerRepo.get(taskId, colIds[1]))!.symbol,
+        MarkerSymbol.doneEarly,
+      );
+    });
+
+    test('reverting X restores earlier < back to >', () async {
+      const boardId = 'board-1';
+      const taskId = 'task-1';
+      final colIds = await seedWeeklyBoard(boardId: boardId);
+
+      await seedMarker(
+        taskId: taskId, boardId: boardId,
+        columnId: colIds[0], symbol: MarkerSymbol.migratedForward,
+      );
+      await seedMarker(
+        taskId: taskId, boardId: boardId,
+        columnId: colIds[2], symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      // Mark Wed done — Mon's > becomes <
+      await actions.setMarker(
+        boardId: boardId, taskId: taskId,
+        columnId: colIds[2], symbol: MarkerSymbol.x,
+      );
+      final markerRepo = container.read(markerRepositoryProvider);
+      expect(
+        (await markerRepo.get(taskId, colIds[0]))!.symbol,
+        MarkerSymbol.doneEarly,
+      );
+
+      // Clear Wed — Mon's < should restore to >
+      await actions.setMarker(
+        boardId: boardId, taskId: taskId,
+        columnId: colIds[2], symbol: null,
+      );
+      expect(
+        (await markerRepo.get(taskId, colIds[0]))!.symbol,
+        MarkerSymbol.migratedForward,
+      );
+    });
   });
 
   group('auto-fill missed days (>)', () {

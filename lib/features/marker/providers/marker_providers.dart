@@ -206,14 +206,31 @@ class MarkerActions {
     final columns = await columnRepo.getByBoard(boardId);
     final completedCol = columns.firstWhere((c) => c.id == completedColumnId);
 
-    final laterDayColumns = columns.where(
-      (c) => c.position > completedCol.position && c.type == ColumnType.date,
-    );
-
+    final dateColumns = columns.where((c) => c.type == ColumnType.date);
     final now = DateTime.now();
-    for (final col in laterDayColumns) {
+
+    // Forward: later scheduled days get < (done before scheduled day).
+    for (final col in dateColumns.where(
+      (c) => c.position > completedCol.position,
+    )) {
       final marker = await markerRepo.get(taskId, col.id);
       if (marker != null && marker.symbol == MarkerSymbol.dot) {
+        await markerRepo.set(
+          marker.copyWith(symbol: MarkerSymbol.doneEarly, updatedAt: now),
+        );
+      }
+    }
+
+    // Backfill: earlier days that were auto-migrated (>) become <
+    // ("done late"). Without this, completing a task later in the
+    // week leaves stale > markers that the monthly view counts as
+    // missed even though the task is now done.
+    for (final col in dateColumns.where(
+      (c) => c.position < completedCol.position,
+    )) {
+      final marker = await markerRepo.get(taskId, col.id);
+      if (marker != null &&
+          marker.symbol == MarkerSymbol.migratedForward) {
         await markerRepo.set(
           marker.copyWith(symbol: MarkerSymbol.doneEarly, updatedAt: now),
         );
@@ -231,17 +248,31 @@ class MarkerActions {
 
     final columns = await columnRepo.getByBoard(boardId);
     final changedCol = columns.firstWhere((c) => c.id == changedColumnId);
-
-    final laterDayColumns = columns.where(
-      (c) => c.position > changedCol.position && c.type == ColumnType.date,
-    );
-
+    final dateColumns = columns.where((c) => c.type == ColumnType.date);
     final now = DateTime.now();
-    for (final col in laterDayColumns) {
+
+    // Forward: < was originally a •, restore it.
+    for (final col in dateColumns.where(
+      (c) => c.position > changedCol.position,
+    )) {
       final marker = await markerRepo.get(taskId, col.id);
       if (marker != null && marker.symbol == MarkerSymbol.doneEarly) {
         await markerRepo.set(
           marker.copyWith(symbol: MarkerSymbol.dot, updatedAt: now),
+        );
+      }
+    }
+
+    // Backward: < was originally a > (auto-migrated), restore it.
+    for (final col in dateColumns.where(
+      (c) => c.position < changedCol.position,
+    )) {
+      final marker = await markerRepo.get(taskId, col.id);
+      if (marker != null && marker.symbol == MarkerSymbol.doneEarly) {
+        await markerRepo.set(
+          marker.copyWith(
+            symbol: MarkerSymbol.migratedForward, updatedAt: now,
+          ),
         );
       }
     }
