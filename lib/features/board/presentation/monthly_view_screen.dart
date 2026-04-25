@@ -211,31 +211,21 @@ class _DayCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final s = summary;
-    // Days with only scheduled dots (no completed, missed, or
-    // inProgress) are "planned" — treat as no data for color.
-    // This covers future dots and recurring task dots on past days.
+    // A day has actionable data if anything happened or is happening
+    // on it. Deferred (>) is excluded — those tasks are being carried
+    // forward, not abandoned, so they don't count as activity for
+    // this specific day.
     final hasData = s != null &&
         !s.isEmpty &&
-        (s.completed > 0 || s.missed > 0 || s.inProgress > 0);
+        (s.completed > 0 || s.inProgress > 0 || s.scheduled > 0);
 
-    // Determine indicator color based on activity.
     Color? indicatorColor;
     if (hasData) {
-      if (s.completed > 0 && s.missed == 0) {
-        // All good — green.
+      if (s.completed > 0) {
+        // Any completion → green.
         indicatorColor = brightness == Brightness.dark
             ? const Color(0xFF8FC4A0)
             : const Color(0xFF3D7A55);
-      } else if (s.missed > 0 && s.completed == 0) {
-        // All missed — red.
-        indicatorColor = brightness == Brightness.dark
-            ? const Color(0xFFE57373)
-            : const Color(0xFFC0392B);
-      } else if (s.missed > 0 && s.completed > 0) {
-        // Mixed — orange/amber.
-        indicatorColor = brightness == Brightness.dark
-            ? const Color(0xFFFFB74D)
-            : const Color(0xFFE65100);
       } else if (s.inProgress > 0 || s.scheduled > 0) {
         // Scheduled or in progress — blue.
         indicatorColor = brightness == Brightness.dark
@@ -308,18 +298,6 @@ class _Legend extends StatelessWidget {
         brightness == Brightness.dark
             ? const Color(0xFF8FC4A0)
             : const Color(0xFF3D7A55),
-      ),
-      (
-        'Missed',
-        brightness == Brightness.dark
-            ? const Color(0xFFE57373)
-            : const Color(0xFFC0392B),
-      ),
-      (
-        'Mixed',
-        brightness == Brightness.dark
-            ? const Color(0xFFFFB74D)
-            : const Color(0xFFE65100),
       ),
       (
         'Scheduled',

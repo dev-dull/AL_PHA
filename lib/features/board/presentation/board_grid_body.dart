@@ -78,6 +78,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       final actions = ref.read(markerActionsProvider);
       // Auto-fill missed days and migrate incomplete tasks.
       await actions.autoFillMissedDays(boardId: widget.boardId);
+      // Sweep stale > markers left behind by pre-fix auto-migration:
+      // for any task that's now done in this week, convert past >
+      // to <. Idempotent.
+      await actions.backfillCompletedMigrations(
+        boardId: widget.boardId,
+      );
       // Auto-materialize virtual series instances so all rows
       // are real tasks with full interactivity (drag, markers).
       await _materializeVirtualInstances();

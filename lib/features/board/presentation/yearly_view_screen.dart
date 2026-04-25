@@ -229,11 +229,11 @@ class _MiniDayCell extends StatelessWidget {
     final theme = Theme.of(context);
     final s = summary;
     // Only show color coding for days with actionable data.
-    // Days with only scheduled dots (no completed, missed, or
-    // inProgress) are "planned" — treat as no data.
+    // Days with only scheduled dots or only deferred (>) markers
+    // are not yet "actionable" data — treat as no color.
     final hasActionableData = s != null &&
         !s.isEmpty &&
-        (s.completed > 0 || s.missed > 0 || s.inProgress > 0);
+        (s.completed > 0 || s.inProgress > 0);
 
     Color bgColor;
     if (hasActionableData) {

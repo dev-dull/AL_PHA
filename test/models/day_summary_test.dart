@@ -176,6 +176,48 @@ void main() {
         reason: 'March 22 should NOT have the completed marker');
   });
 
+  test('deferred (>) markers count separately from completed/missed',
+      () async {
+    // Regression: > used to count as "missed" and turn the day red
+    // even though the task was carried forward (likely completed on
+    // a later board). It should now count as `deferred` and not
+    // contribute to the day's actionable activity.
+    final monday = DateTime(2026, 3, 23);
+    final boardId = await createWeeklyBoard(monday);
+
+    final taskRepo = container.read(taskRepositoryProvider);
+    final markerRepo = container.read(markerRepositoryProvider);
+    final colRepo = container.read(columnRepositoryProvider);
+
+    final task = Task(
+      id: uuid.v4(), boardId: boardId,
+      title: 'Test', position: 0, createdAt: DateTime.now(),
+    );
+    await taskRepo.create(task);
+    final columns = await colRepo.getByBoard(boardId);
+
+    // Put > on Tuesday (auto-migrated, task done on next week).
+    final tueCol = columns.firstWhere((c) => c.position == 1);
+    await markerRepo.set(Marker(
+      id: uuid.v4(), taskId: task.id, columnId: tueCol.id,
+      boardId: boardId, symbol: MarkerSymbol.migratedForward,
+      updatedAt: DateTime.now(),
+    ));
+
+    final result = await container.read(
+      daySummariesProvider(monday, DateTime(2026, 3, 30)).future,
+    );
+
+    final tue = result[DateTime(2026, 3, 24)];
+    expect(tue, isNotNull);
+    expect(tue!.deferred, 1, reason: 'should record the > marker');
+    expect(tue.completed, 0);
+    expect(tue.scheduled, 0);
+    expect(tue.inProgress, 0);
+    // Completion rate excludes deferred — no actionable basis.
+    expect(tue.completionRate, 0);
+  });
+
   test('day summaries correct when board found via ±1 day fallback',
       () async {
     // Board stored with Monday weekStart, but query uses Sunday.

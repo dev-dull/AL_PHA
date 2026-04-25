@@ -10,29 +10,32 @@ part 'day_summary_provider.g.dart';
 /// Summary of task activity for a single day.
 class DaySummary {
   final int completed; // x or doneEarly
-  final int missed; // migratedForward
+  final int deferred; // migratedForward — task pushed to later, not abandoned
   final int inProgress; // slash
   final int scheduled; // dot
   final int events; // event
 
   const DaySummary({
     this.completed = 0,
-    this.missed = 0,
+    this.deferred = 0,
     this.inProgress = 0,
     this.scheduled = 0,
     this.events = 0,
   });
 
-  int get total => completed + missed + inProgress + scheduled;
+  int get total =>
+      completed + deferred + inProgress + scheduled;
   bool get isEmpty => total == 0;
 
-  /// Completion rate from 0.0 (all missed) to 1.0 (all done).
-  /// Slash (in-progress) counts as partial credit (0.5 weight)
-  /// since work was started but not finished.
+  /// Completion rate from 0.0 to 1.0. Counts completed fully and
+  /// in-progress at half credit. Deferred (>) markers are excluded
+  /// because the task is being carried forward, not abandoned —
+  /// counting them would unfairly tank the rate.
   double get completionRate {
-    if (total == 0) return 0;
+    final actionable = completed + inProgress + scheduled;
+    if (actionable == 0) return 0;
     final score = completed + (inProgress * 0.5);
-    return (score / total).clamp(0.0, 1.0);
+    return (score / actionable).clamp(0.0, 1.0);
   }
 }
 
@@ -69,20 +72,19 @@ Future<Map<DateTime, DaySummary>> daySummaries(
 
         final dayKey = DateTime(date.year, date.month, date.day);
         var completed = 0;
-        var missed = 0;
+        var deferred = 0;
         var inProgress = 0;
         var scheduled = 0;
         var events = 0;
 
         for (final m in markers) {
           if (m.columnId != col.id) continue;
-          // Count all task markers (including migrated tasks).
           switch (m.symbol) {
             case MarkerSymbol.x:
             case MarkerSymbol.doneEarly:
               completed++;
             case MarkerSymbol.migratedForward:
-              missed++;
+              deferred++;
             case MarkerSymbol.slash:
               inProgress++;
             case MarkerSymbol.dot:
@@ -94,7 +96,7 @@ Future<Map<DateTime, DaySummary>> daySummaries(
 
         result[dayKey] = DaySummary(
           completed: completed,
-          missed: missed,
+          deferred: deferred,
           inProgress: inProgress,
           scheduled: scheduled,
           events: events,

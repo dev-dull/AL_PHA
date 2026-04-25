@@ -484,6 +484,31 @@ class MarkerActions {
     }
   }
 
+  /// Retroactively cleans up stale `>` markers on day cells for
+  /// tasks that were eventually completed in the same week.
+  ///
+  /// Pre-fix, marking a task done after auto-migration left those
+  /// past `>` markers behind, so the monthly view counted those
+  /// days as "missed." This sweep runs `_autoFillDoneEarly` for
+  /// every existing `x` marker on the board, which now also
+  /// backfills past `>` to `<`. Idempotent — safe to call on every
+  /// board open.
+  Future<void> backfillCompletedMigrations({
+    required String boardId,
+  }) async {
+    final markerRepo = _ref.read(markerRepositoryProvider);
+    final markers = await markerRepo.getByBoard(boardId);
+    final completedMarkers =
+        markers.where((m) => m.symbol == MarkerSymbol.x).toList();
+    for (final m in completedMarkers) {
+      await _autoFillDoneEarly(
+        boardId: boardId,
+        taskId: m.taskId,
+        completedColumnId: m.columnId,
+      );
+    }
+  }
+
   /// Auto-fills `>` (migrated) on past day columns where a task
   /// still has a dot (scheduled but not acted on).
   /// Also marks the migration column and creates the task on
