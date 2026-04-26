@@ -6,16 +6,19 @@ import 'package:planyr/features/tag/domain/tag.dart';
 import 'package:planyr/features/tag/domain/tag_palette.dart';
 import 'package:planyr/features/tag/presentation/tag_badge.dart';
 
-/// Shows a dialog explaining the app's features and workflow.
+/// Shows the "How It Works" guide as a full-screen modal so all
+/// content is visible and scrollable on phone-sized screens.
 Future<void> showMarkerLegend(BuildContext context) {
-  return showDialog(
-    context: context,
-    builder: (ctx) => const _MarkerLegendDialog(),
+  return Navigator.of(context).push(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => const _MarkerLegendScreen(),
+    ),
   );
 }
 
-class _MarkerLegendDialog extends StatelessWidget {
-  const _MarkerLegendDialog();
+class _MarkerLegendScreen extends StatelessWidget {
+  const _MarkerLegendScreen();
 
   @override
   Widget build(BuildContext context) {
@@ -25,13 +28,24 @@ class _MarkerLegendDialog extends StatelessWidget {
         ? const Color(0xFFA09A94)
         : const Color(0xFF6B6560);
 
-    return AlertDialog(
-      title: const Text('How It Works'),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('How It Works'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'Close',
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // ── Markers ──────────────────────────────
             Text(
               'Plan your week by placing dots on the days you '
@@ -189,15 +203,17 @@ class _MarkerLegendDialog extends StatelessWidget {
               '\u2022 Export data as JSON from the \u22EE menu',
               style: theme.textTheme.bodySmall,
             ),
-          ],
+            const SizedBox(height: 24),
+            Center(
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Got it'),
+              ),
+            ),
+            ],
+          ),
         ),
       ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Got it'),
-        ),
-      ],
     );
   }
 }
