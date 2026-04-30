@@ -44,6 +44,7 @@ void main() {
       WidgetTester tester, {
       Future<void> Function(Task)? onSave,
       VoidCallback? onDelete,
+      VoidCallback? onDeleteAll,
     }) {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
@@ -60,6 +61,7 @@ void main() {
               task: task,
               onSave: onSave ?? (_) async {},
               onDelete: onDelete ?? () {},
+              onDeleteAll: onDeleteAll,
             ),
           ),
         ),
@@ -167,5 +169,32 @@ void main() {
 
       expect(find.text('No deadline'), findsOneWidget);
     });
+
+    testWidgets(
+      'non-recurring task carried forward via > does not trigger '
+      'the series prompt on delete',
+      (tester) async {
+        // Regression: a one-off task migrated forward via the `>`
+        // column has migratedFromTaskId set, but it is NOT part of
+        // a recurring series. Tapping Delete should go straight to
+        // the standard confirmation, not the "Delete Series"
+        // prompt.
+        task = makeTask(
+          title: 'Test task',
+          migratedFromTaskId: 'prev-week-task-id',
+          migratedFromBoardId: 'prev-week-board-id',
+        );
+        await tester.pumpWidget(
+          buildSubject(tester, onDeleteAll: () {}),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Delete'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Delete Series'), findsNothing);
+        expect(find.text('Delete Task'), findsOneWidget);
+      },
+    );
   });
 }
