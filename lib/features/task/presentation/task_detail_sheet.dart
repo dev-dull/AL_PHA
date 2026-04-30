@@ -29,6 +29,13 @@ class TaskDetailSheet extends StatefulWidget {
   /// no recurrence rule exists yet.
   final Set<int> markerPositions;
 
+  /// The board's week-start, when known. Used to translate
+  /// [markerPositions] into actual dates so a monthly/yearly
+  /// recurrence rule can anchor on the day-of-month the user
+  /// dotted (e.g. dot on May 15 → `BYMONTHDAY=15`). Falls back
+  /// to [task.createdAt] if absent.
+  final DateTime? boardWeekStart;
+
   /// Called when "All" is chosen for a series edit.
   final Future<void> Function(Task)? onSaveAll;
 
@@ -52,6 +59,7 @@ class TaskDetailSheet extends StatefulWidget {
     this.onWontDo,
     this.onReopen,
     this.markerPositions = const {},
+    this.boardWeekStart,
     this.onSaveAll,
     this.onDeleteAll,
     this.currentTags = const [],
@@ -68,6 +76,7 @@ class TaskDetailSheet extends StatefulWidget {
     VoidCallback? onWontDo,
     VoidCallback? onReopen,
     Set<int> markerPositions = const {},
+    DateTime? boardWeekStart,
     Future<void> Function(Task)? onSaveAll,
     VoidCallback? onDeleteAll,
     List<Tag> currentTags = const [],
@@ -85,6 +94,7 @@ class TaskDetailSheet extends StatefulWidget {
         onWontDo: onWontDo,
         onReopen: onReopen,
         markerPositions: markerPositions,
+        boardWeekStart: boardWeekStart,
         onSaveAll: onSaveAll,
         onDeleteAll: onDeleteAll,
         currentTags: currentTags,
@@ -168,6 +178,33 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     super.dispose();
   }
 
+  /// Translate every ticked day in the picker (`_scheduledDays`)
+  /// through [widget.boardWeekStart] into an actual `DateTime`.
+  /// Each one becomes a `BYMONTHDAY` entry, so a user ticking
+  /// Wed + Fri on the week-of-May-11 board produces
+  /// `BYMONTHDAY=13,15` — the rule fires twice a month from then on.
+  ///
+  /// Falls back to [resolveRecurrenceAnchor] (a single date) when
+  /// the picker is empty or we don't have a board reference, so the
+  /// behaviour is never worse than the single-anchor path.
+  List<DateTime> _resolveMonthlyAnchors() {
+    final ws = widget.boardWeekStart;
+    if (ws != null && _scheduledDays.isNotEmpty) {
+      return _scheduledDays
+          .map((pos) => ws.add(Duration(days: pos)))
+          .toList()
+        ..sort((a, b) => a.compareTo(b));
+    }
+    return [
+      resolveRecurrenceAnchor(
+        recurrenceRule: widget.task.recurrenceRule,
+        createdAt: widget.task.createdAt,
+        markerPositions: widget.markerPositions,
+        boardWeekStart: ws,
+      ),
+    ];
+  }
+
   /// Saves the task. Called explicitly via the series prompt or
   /// automatically when the sheet is dismissed.
   /// Does NOT pop — the caller handles navigation.
@@ -188,7 +225,30 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       scheduledTime: _isEvent ? _formatTime(_scheduledTime) : null,
       recurrenceRule:
           (_isEvent || _recurrence != RecurrenceFrequency.none)
-              ? buildRRule(_recurrence, _scheduledDays)
+              ? buildRRule(
+                  _recurrence,
+                  _scheduledDays,
+                  // Monthly: every ticked day translates through
+                  // boardWeekStart into a date — that becomes a
+                  // BYMONTHDAY entry. So ticking Wed+Fri on the
+                  // May 11 board produces BYMONTHDAY=13,15.
+                  // Yearly + others fall back to the single-anchor
+                  // resolution.
+                  anchorDates:
+                      _recurrence == RecurrenceFrequency.monthly
+                          ? _resolveMonthlyAnchors()
+                          : null,
+                  anchorDate:
+                      _recurrence == RecurrenceFrequency.monthly
+                          ? null
+                          : resolveRecurrenceAnchor(
+                              recurrenceRule:
+                                  widget.task.recurrenceRule,
+                              createdAt: widget.task.createdAt,
+                              markerPositions: widget.markerPositions,
+                              boardWeekStart: widget.boardWeekStart,
+                            ),
+                )
               : _scheduledDays.isNotEmpty
                   ? buildByDayOnly(_scheduledDays)
                   : null,
@@ -351,16 +411,22 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Widget _buildDayPicker(ThemeData theme) {
+    // Daily is auto-locked to all 7 days. Monthly / yearly anchor
+    // on a day-of-month; their picker selections don't change the
+    // saved BYMONTHDAY/BYMONTH but the picker stays interactive
+    // because users still expect to tap days to modify a recurring
+    // task — same UX as weekly. (Monthly's anchor moves implicitly
+    // when the user dots a different day on the board grid.)
+    final pickerLocked = _recurrence == RecurrenceFrequency.daily;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Scheduled Days', style: theme.textTheme.labelMedium),
         const SizedBox(height: 8),
         IgnorePointer(
-          ignoring: _recurrence == RecurrenceFrequency.daily,
+          ignoring: pickerLocked,
           child: Opacity(
-            opacity:
-                _recurrence == RecurrenceFrequency.daily ? 0.5 : 1.0,
+            opacity: pickerLocked ? 0.5 : 1.0,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: List.generate(7, (i) {
@@ -438,15 +504,10 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
   }
 
   Widget _buildFrequencyDropdown() {
-    // For non-event tasks, only show frequencies that make sense
-    // on a weekly board: none, weekly, biweekly. Events get all.
-    final frequencies = _isEvent
-        ? RecurrenceFrequency.values
-        : [
-            RecurrenceFrequency.none,
-            RecurrenceFrequency.weekly,
-            RecurrenceFrequency.biweekly,
-          ];
+    // Tasks (and events) can pick any frequency. Monthly / yearly
+    // anchor on the task's own [createdAt] date — the materializer
+    // computes per-week scheduled days from that anchor.
+    const frequencies = RecurrenceFrequency.values;
 
     return InputDecorator(
       decoration: const InputDecoration(
