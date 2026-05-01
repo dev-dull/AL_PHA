@@ -436,11 +436,8 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody>
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('New Task'),
-        content: TextField(
+        content: _NewTaskField(
           controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(hintText: 'Task title'),
           onSubmitted: (v) => Navigator.of(ctx).pop(v),
         ),
         actions: [
@@ -1486,6 +1483,75 @@ class VirtualBoardRow extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Wrapper around `TextField` for the "New Task" dialog. Two
+/// reasons it isn't a bare `TextField`:
+///
+/// 1. **Deferred focus.** `autofocus: true` requests focus during
+///    the same frame the dialog mounts, which on Flutter desktop
+///    can race with the click that opened it: the click event
+///    arrives at a focused field that was unfocused a moment ago,
+///    Flutter's gesture arena interprets the pair as a double-tap,
+///    and double-tap selects the word. Requesting focus from a
+///    post-frame callback separates the two events.
+/// 2. **Selection guard.** Some platforms emit a "select all" on
+///    initial focus (the desktop URL-bar pattern). When the user
+///    types and then taps to reposition the cursor, residual
+///    selection state can extend instead of collapsing. Whenever
+///    focus arrives, we explicitly collapse the selection at the
+///    end of whatever's been typed.
+class _NewTaskField extends StatefulWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onSubmitted;
+
+  const _NewTaskField({
+    required this.controller,
+    required this.onSubmitted,
+  });
+
+  @override
+  State<_NewTaskField> createState() => _NewTaskFieldState();
+}
+
+class _NewTaskFieldState extends State<_NewTaskField> {
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) return;
+    final text = widget.controller.text;
+    widget.controller.selection = TextSelection.collapsed(
+      offset: text.length,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: widget.controller,
+      focusNode: _focusNode,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: const InputDecoration(hintText: 'Task title'),
+      onSubmitted: widget.onSubmitted,
     );
   }
 }
