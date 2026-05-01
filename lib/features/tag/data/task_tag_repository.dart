@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
+import 'package:planyr/features/sync/data/tombstone_repository.dart';
 import 'package:planyr/shared/database.dart';
 import 'package:planyr/features/tag/domain/tag.dart';
 
 class TaskTagRepository {
   final PlanyrDatabase _db;
+  final TombstoneRepository? _tombstones;
 
-  TaskTagRepository(this._db);
+  TaskTagRepository(this._db, [this._tombstones]);
 
   Tag _rowToTag(dynamic row) {
     return Tag(
@@ -66,9 +68,31 @@ class TaskTagRepository {
   }
 
   /// Sets the tags for a task (max 4). Replaces existing assignments.
+  ///
+  /// Also bumps the parent `tasks.updated_at`. The sync change-tracker
+  /// scans `task_tags` via `JOIN tasks WHERE t.updated_at > ?` because
+  /// the junction has no per-row timestamp of its own; without bumping
+  /// the parent here, tag changes never reach the cloud and other
+  /// devices keep showing stale tag state.
   Future<void> setTagsForTask(String taskId, List<String> tagIds) async {
     assert(tagIds.length <= 4, 'Max 4 tags per task');
     await _db.transaction(() async {
+      // Tombstone the old set so removed tags propagate.
+      final tombs = _tombstones;
+      if (tombs != null) {
+        final newSet = tagIds.toSet();
+        for (final old in await (_db.select(_db.taskTags)
+              ..where((tt) => tt.taskId.equals(taskId)))
+            .get()) {
+          if (!newSet.contains(old.tagId)) {
+            await tombs.recordComposite(
+              'task_tags',
+              old.taskId,
+              old.tagId,
+            );
+          }
+        }
+      }
       await (_db.delete(_db.taskTags)
             ..where((tt) => tt.taskId.equals(taskId)))
           .go();
@@ -81,11 +105,27 @@ class TaskTagRepository {
           ),
         );
       }
+      await _touchTask(taskId);
     });
+  }
+
+  /// Bumps `tasks.updated_at` so the change-tracker's timestamp scan
+  /// picks up the related junction-row changes.
+  Future<void> _touchTask(String taskId) async {
+    await (_db.update(_db.tasks)..where((t) => t.id.equals(taskId)))
+        .write(TasksCompanion(updatedAt: Value(DateTime.now().toUtc())));
   }
 
   /// Removes all tag assignments for a task.
   Future<void> deleteByTask(String taskId) async {
+    final tombs = _tombstones;
+    if (tombs != null) {
+      for (final tt in await (_db.select(_db.taskTags)
+            ..where((tt) => tt.taskId.equals(taskId)))
+          .get()) {
+        await tombs.recordComposite('task_tags', tt.taskId, tt.tagId);
+      }
+    }
     await (_db.delete(_db.taskTags)
           ..where((tt) => tt.taskId.equals(taskId)))
         .go();
