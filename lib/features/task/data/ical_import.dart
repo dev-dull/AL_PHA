@@ -1,5 +1,6 @@
 import 'package:enough_icalendar/enough_icalendar.dart';
 import 'package:planyr/features/task/domain/task.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:uuid/uuid.dart';
 
 /// Represents a parsed event from an iCal file.
@@ -93,6 +94,40 @@ String _htmlToPlainText(String html) {
   return text.trim();
 }
 
+/// Converts an iCal-parsed [DateTime] to UTC, honoring [tzId] when
+/// present.
+///
+/// `enough_icalendar` returns DTSTART as a naive `DateTime` whose
+/// wall-clock fields (year/month/day/hour/minute) match the source
+/// — but with `isUtc=false`. The TZID parameter (`America/New_York`
+/// etc.) is exposed separately on the property. Three cases:
+///
+/// 1. Parsed value is already UTC (DTSTART had a `Z` suffix) → use
+///    as-is.
+/// 2. [tzId] is provided → look it up in IANA tzdata and convert
+///    the wall-clock to that location, then to UTC. Falls through
+///    to the host-local interpretation if the zone is unknown.
+/// 3. No TZID and no `Z` → treat as floating local; `.toUtc()`
+///    matches existing behavior for naive DateTimes.
+DateTime _resolveToUtc(DateTime parsed, String? tzId) {
+  if (parsed.isUtc) return parsed;
+  if (tzId != null) {
+    try {
+      final loc = tz.getLocation(tzId);
+      final tzDt = tz.TZDateTime(
+        loc,
+        parsed.year, parsed.month, parsed.day,
+        parsed.hour, parsed.minute, parsed.second,
+        parsed.millisecond, parsed.microsecond,
+      );
+      return tzDt.toUtc();
+    } catch (_) {
+      // Unknown zone — fall through to host-local interpretation.
+    }
+  }
+  return parsed.toUtc();
+}
+
 /// Parses an iCal (.ics) string and returns a list of events.
 List<ParsedEvent> parseICalString(String icsContent) {
   final calendar = VComponent.parse(icsContent);
@@ -112,14 +147,21 @@ List<ParsedEvent> parseICalString(String icsContent) {
     // See: https://github.com/dev-dull/AL_PHA/issues/34
     final description = _htmlToPlainText(rawDescription);
 
-    // Extract time from DTSTART.
+    // Extract time from DTSTART, honoring the property's TZID if
+    // present. enough_icalendar parses DTSTART as a naive DateTime
+    // (e.g. "2026-05-01 12:15" with isUtc=false); the TZID lives on
+    // the property's parameters. Without applying the TZID, calling
+    // .toUtc() interprets the wall-clock as host-local — wrong.
     String? scheduledTime;
     DateTime? startDate;
+    final dtStartProp = component.getProperty('DTSTART');
     final dtStart = component.start;
     if (dtStart != null) {
-      startDate = dtStart;
-      // Convert to UTC for storage.
-      final utc = dtStart.toUtc();
+      final tzId = (dtStartProp is DateTimeProperty)
+          ? dtStartProp.timezoneId
+          : null;
+      final utc = _resolveToUtc(dtStart, tzId);
+      startDate = utc;
       final hour = utc.hour.toString().padLeft(2, '0');
       final minute = utc.minute.toString().padLeft(2, '0');
       // Only set time if it's not midnight (all-day events).
