@@ -223,35 +223,27 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
       deadline: _deadline,
       isEvent: _isEvent,
       scheduledTime: _isEvent ? _formatTime(_scheduledTime) : null,
-      recurrenceRule:
-          (_isEvent || _recurrence != RecurrenceFrequency.none)
-              ? buildRRule(
-                  _recurrence,
-                  _scheduledDays,
-                  // Monthly: every ticked day translates through
-                  // boardWeekStart into a date — that becomes a
-                  // BYMONTHDAY entry. So ticking Wed+Fri on the
-                  // May 11 board produces BYMONTHDAY=13,15.
-                  // Yearly + others fall back to the single-anchor
-                  // resolution.
-                  anchorDates:
-                      _recurrence == RecurrenceFrequency.monthly
-                          ? _resolveMonthlyAnchors()
-                          : null,
-                  anchorDate:
-                      _recurrence == RecurrenceFrequency.monthly
-                          ? null
-                          : resolveRecurrenceAnchor(
-                              recurrenceRule:
-                                  widget.task.recurrenceRule,
-                              createdAt: widget.task.createdAt,
-                              markerPositions: widget.markerPositions,
-                              boardWeekStart: widget.boardWeekStart,
-                            ),
-                )
-              : _scheduledDays.isNotEmpty
-                  ? buildByDayOnly(_scheduledDays)
-                  : null,
+      // Monthly: every ticked day translates through boardWeekStart
+      // into a date — that becomes a BYMONTHDAY entry. So ticking
+      // Wed+Fri on the May 11 board produces BYMONTHDAY=13,15.
+      // Yearly + others fall back to the single-anchor resolution.
+      recurrenceRule: resolveRecurrenceRuleForSave(
+        isEvent: _isEvent,
+        recurrence: _recurrence,
+        scheduledDays: _scheduledDays,
+        existingRule: widget.task.recurrenceRule,
+        anchorDates: _recurrence == RecurrenceFrequency.monthly
+            ? _resolveMonthlyAnchors()
+            : null,
+        anchorDate: _recurrence == RecurrenceFrequency.monthly
+            ? null
+            : resolveRecurrenceAnchor(
+                recurrenceRule: widget.task.recurrenceRule,
+                createdAt: widget.task.createdAt,
+                markerPositions: widget.markerPositions,
+                boardWeekStart: widget.boardWeekStart,
+              ),
+      ),
     );
 
     // If the recurrence rule changed on a recurring task,

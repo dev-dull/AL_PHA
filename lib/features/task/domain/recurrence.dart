@@ -348,6 +348,45 @@ DateTime _startOfWeek(DateTime date, int firstDay) {
   return start;
 }
 
+/// Resolves the recurrence rule a task should be saved with, given
+/// the picker state. Centralizes the three save-path branches:
+///
+/// 1. **Recurring or event** — emit a full `FREQ=…` rule via
+///    [buildRRule]. The caller passes the anchor info in via
+///    [anchorDates] / [anchorDate] (monthly uses the multi-anchor
+///    list; yearly + biweekly use the single-anchor form).
+/// 2. **BYDAY-only carried forward** — when the task *already* had
+///    a BYDAY-only rule (the remnant left by "End Series" stripping
+///    `FREQ=`) and the picker still has scheduled days, preserve it
+///    so the user doesn't silently undo End Series by editing the
+///    task.
+/// 3. **Plain non-recurring task** — always `null`. The picker's
+///    `scheduledDays` is pre-filled from marker positions so the
+///    user can convert to recurring; if they don't, the dots
+///    themselves are the source of truth and writing a BYDAY rule
+///    derived from them is destructive (the marker-sync layer then
+///    interprets the new rule and erases the dots).
+String? resolveRecurrenceRuleForSave({
+  required bool isEvent,
+  required RecurrenceFrequency recurrence,
+  required Set<int> scheduledDays,
+  required String? existingRule,
+  List<DateTime>? anchorDates,
+  DateTime? anchorDate,
+}) {
+  if (isEvent || recurrence != RecurrenceFrequency.none) {
+    return buildRRule(
+      recurrence, scheduledDays,
+      anchorDates: anchorDates,
+      anchorDate: anchorDate,
+    );
+  }
+  if (existingRule != null && scheduledDays.isNotEmpty) {
+    return buildByDayOnly(scheduledDays);
+  }
+  return null;
+}
+
 /// Resolves the anchor date used to build a monthly / yearly RRULE.
 ///
 /// Priority:

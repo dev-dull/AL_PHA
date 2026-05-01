@@ -181,6 +181,61 @@ void main() {
     });
   });
 
+  group('resolveRecurrenceRuleForSave', () {
+    test('plain non-recurring task with dots saves null, '
+        'NOT a BYDAY-only rule (the user-reported tag-clears-dot '
+        'regression)', () {
+      // _scheduledDays is pre-filled from the task's markers so
+      // the picker has the right initial state; saving must NOT
+      // turn that into a BYDAY rule, otherwise the marker-sync
+      // step sees a rule with no FREQ, computes "no scheduled
+      // days," and erases every dot.
+      final r = resolveRecurrenceRuleForSave(
+        isEvent: false,
+        recurrence: RecurrenceFrequency.none,
+        scheduledDays: {2}, // dot on Wednesday
+        existingRule: null,
+      );
+      expect(r, isNull);
+    });
+
+    test('post-End-Series task preserves BYDAY-only rule across '
+        'unrelated edits', () {
+      // End Series strips FREQ but keeps BYDAY for display.
+      // Editing the task afterwards must not silently undo that.
+      final r = resolveRecurrenceRuleForSave(
+        isEvent: false,
+        recurrence: RecurrenceFrequency.none,
+        scheduledDays: {0, 2, 4}, // Mon/Wed/Fri
+        existingRule: 'BYDAY=MO,WE,FR',
+      );
+      expect(r, 'BYDAY=MO,WE,FR');
+    });
+
+    test('weekly with FREQ uses buildRRule (full rule)', () {
+      final r = resolveRecurrenceRuleForSave(
+        isEvent: false,
+        recurrence: RecurrenceFrequency.weekly,
+        scheduledDays: {0, 4},
+        existingRule: null,
+      );
+      expect(r, 'FREQ=WEEKLY;BYDAY=MO,FR');
+    });
+
+    test('event with no recurrence still emits null (one-time '
+        'event)', () {
+      final r = resolveRecurrenceRuleForSave(
+        isEvent: true,
+        recurrence: RecurrenceFrequency.none,
+        scheduledDays: {3},
+        existingRule: null,
+      );
+      // buildRRule returns null for freq=none regardless of
+      // isEvent — a one-time event has no rrule by definition.
+      expect(r, isNull);
+    });
+  });
+
   group('resolveRecurrenceAnchor', () {
     test('preserves existing BYMONTHDAY/BYMONTH when editing a '
         'recurring task', () {

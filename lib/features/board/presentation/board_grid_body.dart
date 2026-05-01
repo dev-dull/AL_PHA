@@ -60,7 +60,8 @@ class BoardGridBody extends ConsumerStatefulWidget {
   ConsumerState<BoardGridBody> createState() => _BoardGridBodyState();
 }
 
-class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
+class _BoardGridBodyState extends ConsumerState<BoardGridBody>
+    with WidgetsBindingObserver {
   static const _uuid = Uuid();
   static const double _headerHeight = 44;
 
@@ -74,20 +75,44 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
-      final actions = ref.read(markerActionsProvider);
-      // Auto-fill missed days and migrate incomplete tasks.
-      await actions.autoFillMissedDays(boardId: widget.boardId);
-      // Sweep stale > markers left behind by pre-fix auto-migration:
-      // for any task that's now done in this week, convert past >
-      // to <. Idempotent.
-      await actions.backfillCompletedMigrations(
-        boardId: widget.boardId,
-      );
-      // Auto-materialize virtual series instances so all rows
-      // are real tasks with full interactivity (drag, markers).
-      await _materializeVirtualInstances();
-    });
+    WidgetsBinding.instance.addObserver(this);
+    Future.microtask(_runDailyMaintenance);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When the app is left running across midnight, the BoardGridBody
+    // widget never re-mounts, so the original [_runDailyMaintenance]
+    // call in initState never re-fires and missed-day rollovers stay
+    // visually frozen until the user navigates. Re-run on resume so
+    // the date catches up.
+    if (state == AppLifecycleState.resumed) {
+      Future.microtask(_runDailyMaintenance);
+    }
+  }
+
+  /// Idempotent: safe to call repeatedly. Runs once at mount and
+  /// again on every lifecycle resume.
+  Future<void> _runDailyMaintenance() async {
+    if (!mounted) return;
+    final actions = ref.read(markerActionsProvider);
+    // Auto-fill missed days and migrate incomplete tasks.
+    await actions.autoFillMissedDays(boardId: widget.boardId);
+    // Sweep stale > markers left behind by pre-fix auto-migration:
+    // for any task that's now done in this week, convert past >
+    // to <. Idempotent.
+    await actions.backfillCompletedMigrations(
+      boardId: widget.boardId,
+    );
+    // Auto-materialize virtual series instances so all rows
+    // are real tasks with full interactivity (drag, markers).
+    await _materializeVirtualInstances();
   }
 
   /// Creates real task rows for any active series that should
@@ -125,8 +150,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       final sourceWeekStart = startOfWeek(series.createdAt, firstDay: firstDay);
       if (weekStart.isBefore(sourceWeekStart)) continue;
 
-      final interval = rruleInterval(series.recurrenceRule);
-      if (!shouldRecurOnWeek(sourceWeekStart, weekStart, interval)) {
+      if (!shouldRecurOnWeek(
+        series.createdAt,
+        weekStart,
+        series.recurrenceRule,
+        firstDay: firstDay,
+      )) {
         continue;
       }
 
@@ -164,6 +193,10 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       context: context,
       task: task,
       markerPositions: markerPositions,
+      // Lets the sheet anchor monthly/yearly RRULEs on the date the
+      // user actually dotted (e.g. dot on May 15 → BYMONTHDAY=15)
+      // instead of falling back to task.createdAt.
+      boardWeekStart: _boardWeekStart(),
       availableTags: allTags,
       currentTags: taskTags,
       onTagsChanged: (tagIds) async {
@@ -191,7 +224,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
               .read(seriesActionsProvider)
               .createFromTask(updated, boardWeekStart: boardData?.weekStart);
         }
-        if (updated.recurrenceRule != null) {
+        // Only sync markers for genuinely recurring tasks (FREQ
+        // present). A BYDAY-only remnant from "End Series" has no
+        // FREQ — `scheduledDaysForWeek` returns {} for it, and
+        // running sync would erase every manual dot the user
+        // placed on the task.
+        if (updated.isRecurring) {
           await _syncRecurrenceMarkers(updated);
         }
         if (ref.read(authProvider).user != null) {
@@ -290,7 +328,20 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
     final columns = columnsAsync.valueOrNull;
     if (columns == null) return;
 
-    final (_, days) = parseRRule(task.recurrenceRule);
+    // Resolve scheduled days for THIS week — monthly / yearly
+    // recurrences depend on whether the anchor date falls inside
+    // the current board's week, so this is per-board, not static.
+    final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
+    final boardData = ref.read(boardProvider(widget.boardId)).valueOrNull;
+    final weekStart = boardData?.weekStart ??
+        startOfWeek(boardData?.createdAt ?? DateTime.now(),
+            firstDay: firstDay);
+    final days = scheduledDaysForWeek(
+      task.recurrenceRule,
+      weekStart,
+      task.createdAt,
+      firstDay: firstDay,
+    );
     final markerActions = ref.read(markerActionsProvider);
     final markerRepo = ref.read(markerRepositoryProvider);
     final sym = MarkerSymbol.defaultFor(isEvent: task.isEvent);
@@ -423,16 +474,27 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
       if (existingTitles.contains(series.title)) continue;
 
       // Check if this series should appear this week.
-      final interval = rruleInterval(series.recurrenceRule);
       final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
       final sourceWeekStart = startOfWeek(series.createdAt, firstDay: firstDay);
       // Don't show on weeks before the series was created.
       if (weekStart.isBefore(sourceWeekStart)) continue;
-      if (!shouldRecurOnWeek(sourceWeekStart, weekStart, interval)) {
+      if (!shouldRecurOnWeek(
+        series.createdAt,
+        weekStart,
+        series.recurrenceRule,
+        firstDay: firstDay,
+      )) {
         continue;
       }
 
-      final (_, days) = parseRRule(series.recurrenceRule);
+      // Per-week scheduled-day positions (handles monthly/yearly
+      // anchor dates, not just the static BYDAY weekday set).
+      final days = scheduledDaysForWeek(
+        series.recurrenceRule,
+        weekStart,
+        series.createdAt,
+        firstDay: firstDay,
+      );
 
       items.add(VirtualTask(series: series, scheduledDays: days));
     }
@@ -668,7 +730,12 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody> {
           }).toList();
 
     // Minimum width: marker columns + divider + task name area.
-    final minWidth = markerColumnsWidth + 1 + 120;
+    // The task-name area gets ~240px so titles like "Take out
+    // compost" fit without ellipsizing when the user scrolls
+    // horizontally to read them on a portrait phone. Wider screens
+    // (tablet, landscape) bypass the scroll and Expanded gives the
+    // task column even more room.
+    final minWidth = markerColumnsWidth + 1 + 240;
 
     return DotGridBackground(
       child: Column(
@@ -1159,6 +1226,12 @@ class BoardRow extends StatelessWidget {
                     task.state == TaskState.cancelled,
                 isRecurring: task.isRecurring,
                 seriesId: task.seriesId,
+                // Events always open the edit sheet on day cells —
+                // they represent appointments, not check-off slots.
+                // Recurring non-event tasks route empty-cell taps
+                // to the sheet too so the user can pick "this one
+                // or all" before the dot lands. (Populated cells
+                // still open the radial menu — see marker_cell._onTap.)
                 onEventTap: (task.isEvent || task.isRecurring) ? onTap : null,
               ),
             ),
