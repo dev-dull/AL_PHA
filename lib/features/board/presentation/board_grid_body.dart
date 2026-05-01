@@ -199,6 +199,14 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody>
       boardWeekStart: _boardWeekStart(),
       availableTags: allTags,
       currentTags: taskTags,
+      onScheduledDaysChanged: (days) async {
+        // For non-recurring tasks (and one-time events) the picker
+        // IS the marker source of truth. Add markers for days the
+        // user newly ticked, remove dot/event markers for days they
+        // unticked. Recurring tasks don't reach this callback —
+        // their markers are driven by the rrule sync in onSave.
+        await _syncMarkersForPicker(task, days);
+      },
       onTagsChanged: (tagIds) async {
         // Always update the task's own tags.
         await ref
@@ -318,6 +326,44 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody>
             }
           : null,
     );
+  }
+
+  /// Adds/removes day-column markers to match a non-recurring
+  /// task's picker state. Mirror of [_syncRecurrenceMarkers] for
+  /// the case where the source of truth is the picker, not an
+  /// rrule. The two functions are kept separate because monthly /
+  /// yearly recurring tasks have picker semantics that don't map
+  /// 1:1 to weekday positions.
+  Future<void> _syncMarkersForPicker(Task task, Set<int> days) async {
+    final columnsAsync = ref.read(columnListProvider(widget.boardId));
+    final columns = columnsAsync.valueOrNull;
+    if (columns == null) return;
+    final markerActions = ref.read(markerActionsProvider);
+    final markerRepo = ref.read(markerRepositoryProvider);
+    final sym = MarkerSymbol.defaultFor(isEvent: task.isEvent);
+    for (final col in columns) {
+      if (col.type != ColumnType.date) continue;
+      final existing = await markerRepo.get(task.id, col.id);
+      final shouldHaveMarker = days.contains(col.position);
+      if (shouldHaveMarker && existing == null) {
+        await markerActions.setMarker(
+          boardId: widget.boardId,
+          taskId: task.id,
+          columnId: col.id,
+          symbol: sym,
+        );
+      } else if (!shouldHaveMarker &&
+          existing != null &&
+          (existing.symbol == MarkerSymbol.event ||
+              existing.symbol == MarkerSymbol.dot)) {
+        await markerActions.setMarker(
+          boardId: widget.boardId,
+          taskId: task.id,
+          columnId: col.id,
+          symbol: null,
+        );
+      }
+    }
   }
 
   /// Syncs markers on day columns to match the task's scheduled

@@ -51,6 +51,12 @@ class TaskDetailSheet extends StatefulWidget {
   /// Called when the user changes tag assignments.
   final Future<void> Function(List<String>)? onTagsChanged;
 
+  /// Called for non-recurring tasks (and one-time events) with the
+  /// final picker state. Recurring tasks have their markers driven
+  /// by the rrule; for everything else, the picker IS the source of
+  /// truth — the host wires this to add/remove markers per day.
+  final Future<void> Function(Set<int>)? onScheduledDaysChanged;
+
   const TaskDetailSheet({
     super.key,
     required this.task,
@@ -65,6 +71,7 @@ class TaskDetailSheet extends StatefulWidget {
     this.currentTags = const [],
     this.availableTags = const [],
     this.onTagsChanged,
+    this.onScheduledDaysChanged,
   });
 
   /// Show the sheet and return the result.
@@ -82,6 +89,7 @@ class TaskDetailSheet extends StatefulWidget {
     List<Tag> currentTags = const [],
     List<Tag> availableTags = const [],
     Future<void> Function(List<String>)? onTagsChanged,
+    Future<void> Function(Set<int>)? onScheduledDaysChanged,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -100,6 +108,7 @@ class TaskDetailSheet extends StatefulWidget {
         currentTags: currentTags,
         availableTags: availableTags,
         onTagsChanged: onTagsChanged,
+        onScheduledDaysChanged: onScheduledDaysChanged,
       ),
     );
   }
@@ -287,6 +296,16 @@ class _TaskDetailSheetState extends State<TaskDetailSheet> {
     }
 
     await widget.onTagsChanged?.call(_selectedTagIds);
+    // Picker → marker reconciliation. Recurring tasks already had
+    // their markers rewritten from the rrule by the host's onSave/
+    // onSaveAll handler; for everything else the picker is the
+    // direct source of truth and the host needs to add/remove
+    // markers per day. Skipping this for recurring tasks avoids
+    // double-writes and possible disagreement between the rrule
+    // computation and the picker (e.g. monthly).
+    if (!updated.isRecurring) {
+      await widget.onScheduledDaysChanged?.call(_scheduledDays);
+    }
   }
 
   /// Called when the sheet is dismissed (swipe, tap outside).
