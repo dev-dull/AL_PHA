@@ -2644,8 +2644,26 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, TagRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, name, color, position, createdAt];
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    color,
+    position,
+    createdAt,
+    updatedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2695,6 +2713,12 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, TagRow> {
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
     return context;
   }
 
@@ -2724,6 +2748,10 @@ class $TagsTable extends Tags with TableInfo<$TagsTable, TagRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
     );
   }
 
@@ -2739,12 +2767,14 @@ class TagRow extends DataClass implements Insertable<TagRow> {
   final int color;
   final int position;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   const TagRow({
     required this.id,
     required this.name,
     required this.color,
     required this.position,
     required this.createdAt,
+    this.updatedAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2754,6 +2784,9 @@ class TagRow extends DataClass implements Insertable<TagRow> {
     map['color'] = Variable<int>(color);
     map['position'] = Variable<int>(position);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     return map;
   }
 
@@ -2764,6 +2797,9 @@ class TagRow extends DataClass implements Insertable<TagRow> {
       color: Value(color),
       position: Value(position),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
     );
   }
 
@@ -2778,6 +2814,7 @@ class TagRow extends DataClass implements Insertable<TagRow> {
       color: serializer.fromJson<int>(json['color']),
       position: serializer.fromJson<int>(json['position']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
     );
   }
   @override
@@ -2789,6 +2826,7 @@ class TagRow extends DataClass implements Insertable<TagRow> {
       'color': serializer.toJson<int>(color),
       'position': serializer.toJson<int>(position),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
     };
   }
 
@@ -2798,12 +2836,14 @@ class TagRow extends DataClass implements Insertable<TagRow> {
     int? color,
     int? position,
     DateTime? createdAt,
+    Value<DateTime?> updatedAt = const Value.absent(),
   }) => TagRow(
     id: id ?? this.id,
     name: name ?? this.name,
     color: color ?? this.color,
     position: position ?? this.position,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
   );
   TagRow copyWithCompanion(TagsCompanion data) {
     return TagRow(
@@ -2812,6 +2852,7 @@ class TagRow extends DataClass implements Insertable<TagRow> {
       color: data.color.present ? data.color.value : this.color,
       position: data.position.present ? data.position.value : this.position,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
 
@@ -2822,13 +2863,15 @@ class TagRow extends DataClass implements Insertable<TagRow> {
           ..write('name: $name, ')
           ..write('color: $color, ')
           ..write('position: $position, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, color, position, createdAt);
+  int get hashCode =>
+      Object.hash(id, name, color, position, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2837,7 +2880,8 @@ class TagRow extends DataClass implements Insertable<TagRow> {
           other.name == this.name &&
           other.color == this.color &&
           other.position == this.position &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
 }
 
 class TagsCompanion extends UpdateCompanion<TagRow> {
@@ -2846,6 +2890,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
   final Value<int> color;
   final Value<int> position;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
   final Value<int> rowid;
   const TagsCompanion({
     this.id = const Value.absent(),
@@ -2853,6 +2898,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
     this.color = const Value.absent(),
     this.position = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TagsCompanion.insert({
@@ -2861,6 +2907,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
     required int color,
     required int position,
     required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -2873,6 +2920,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
     Expression<int>? color,
     Expression<int>? position,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2881,6 +2929,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
       if (color != null) 'color': color,
       if (position != null) 'position': position,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2891,6 +2940,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
     Value<int>? color,
     Value<int>? position,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? updatedAt,
     Value<int>? rowid,
   }) {
     return TagsCompanion(
@@ -2899,6 +2949,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
       color: color ?? this.color,
       position: position ?? this.position,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2921,6 +2972,9 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2935,6 +2989,7 @@ class TagsCompanion extends UpdateCompanion<TagRow> {
           ..write('color: $color, ')
           ..write('position: $position, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4258,6 +4313,310 @@ class SyncMetaCompanion extends UpdateCompanion<SyncMetaRow> {
   }
 }
 
+class $DeletedRecordsTable extends DeletedRecords
+    with TableInfo<$DeletedRecordsTable, DeletedRecordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DeletedRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _targetTableMeta = const VerificationMeta(
+    'targetTable',
+  );
+  @override
+  late final GeneratedColumn<String> targetTable = GeneratedColumn<String>(
+    'target_table',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rowKeyMeta = const VerificationMeta('rowKey');
+  @override
+  late final GeneratedColumn<String> rowKey = GeneratedColumn<String>(
+    'row_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, targetTable, rowKey, deletedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'deleted_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DeletedRecordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('target_table')) {
+      context.handle(
+        _targetTableMeta,
+        targetTable.isAcceptableOrUnknown(
+          data['target_table']!,
+          _targetTableMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetTableMeta);
+    }
+    if (data.containsKey('row_key')) {
+      context.handle(
+        _rowKeyMeta,
+        rowKey.isAcceptableOrUnknown(data['row_key']!, _rowKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rowKeyMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deletedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DeletedRecordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DeletedRecordRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      targetTable: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_table'],
+      )!,
+      rowKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}row_key'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DeletedRecordsTable createAlias(String alias) {
+    return $DeletedRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class DeletedRecordRow extends DataClass
+    implements Insertable<DeletedRecordRow> {
+  final int id;
+  final String targetTable;
+  final String rowKey;
+  final DateTime deletedAt;
+  const DeletedRecordRow({
+    required this.id,
+    required this.targetTable,
+    required this.rowKey,
+    required this.deletedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['target_table'] = Variable<String>(targetTable);
+    map['row_key'] = Variable<String>(rowKey);
+    map['deleted_at'] = Variable<DateTime>(deletedAt);
+    return map;
+  }
+
+  DeletedRecordsCompanion toCompanion(bool nullToAbsent) {
+    return DeletedRecordsCompanion(
+      id: Value(id),
+      targetTable: Value(targetTable),
+      rowKey: Value(rowKey),
+      deletedAt: Value(deletedAt),
+    );
+  }
+
+  factory DeletedRecordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DeletedRecordRow(
+      id: serializer.fromJson<int>(json['id']),
+      targetTable: serializer.fromJson<String>(json['targetTable']),
+      rowKey: serializer.fromJson<String>(json['rowKey']),
+      deletedAt: serializer.fromJson<DateTime>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'targetTable': serializer.toJson<String>(targetTable),
+      'rowKey': serializer.toJson<String>(rowKey),
+      'deletedAt': serializer.toJson<DateTime>(deletedAt),
+    };
+  }
+
+  DeletedRecordRow copyWith({
+    int? id,
+    String? targetTable,
+    String? rowKey,
+    DateTime? deletedAt,
+  }) => DeletedRecordRow(
+    id: id ?? this.id,
+    targetTable: targetTable ?? this.targetTable,
+    rowKey: rowKey ?? this.rowKey,
+    deletedAt: deletedAt ?? this.deletedAt,
+  );
+  DeletedRecordRow copyWithCompanion(DeletedRecordsCompanion data) {
+    return DeletedRecordRow(
+      id: data.id.present ? data.id.value : this.id,
+      targetTable: data.targetTable.present
+          ? data.targetTable.value
+          : this.targetTable,
+      rowKey: data.rowKey.present ? data.rowKey.value : this.rowKey,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeletedRecordRow(')
+          ..write('id: $id, ')
+          ..write('targetTable: $targetTable, ')
+          ..write('rowKey: $rowKey, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, targetTable, rowKey, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DeletedRecordRow &&
+          other.id == this.id &&
+          other.targetTable == this.targetTable &&
+          other.rowKey == this.rowKey &&
+          other.deletedAt == this.deletedAt);
+}
+
+class DeletedRecordsCompanion extends UpdateCompanion<DeletedRecordRow> {
+  final Value<int> id;
+  final Value<String> targetTable;
+  final Value<String> rowKey;
+  final Value<DateTime> deletedAt;
+  const DeletedRecordsCompanion({
+    this.id = const Value.absent(),
+    this.targetTable = const Value.absent(),
+    this.rowKey = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+  });
+  DeletedRecordsCompanion.insert({
+    this.id = const Value.absent(),
+    required String targetTable,
+    required String rowKey,
+    required DateTime deletedAt,
+  }) : targetTable = Value(targetTable),
+       rowKey = Value(rowKey),
+       deletedAt = Value(deletedAt);
+  static Insertable<DeletedRecordRow> custom({
+    Expression<int>? id,
+    Expression<String>? targetTable,
+    Expression<String>? rowKey,
+    Expression<DateTime>? deletedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (targetTable != null) 'target_table': targetTable,
+      if (rowKey != null) 'row_key': rowKey,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+    });
+  }
+
+  DeletedRecordsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? targetTable,
+    Value<String>? rowKey,
+    Value<DateTime>? deletedAt,
+  }) {
+    return DeletedRecordsCompanion(
+      id: id ?? this.id,
+      targetTable: targetTable ?? this.targetTable,
+      rowKey: rowKey ?? this.rowKey,
+      deletedAt: deletedAt ?? this.deletedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (targetTable.present) {
+      map['target_table'] = Variable<String>(targetTable.value);
+    }
+    if (rowKey.present) {
+      map['row_key'] = Variable<String>(rowKey.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DeletedRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('targetTable: $targetTable, ')
+          ..write('rowKey: $rowKey, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$PlanyrDatabase extends GeneratedDatabase {
   _$PlanyrDatabase(QueryExecutor e) : super(e);
   $PlanyrDatabaseManager get managers => $PlanyrDatabaseManager(this);
@@ -4272,6 +4631,7 @@ abstract class _$PlanyrDatabase extends GeneratedDatabase {
       $RecurringSeriesTableTable(this);
   late final $SeriesTagsTable seriesTags = $SeriesTagsTable(this);
   late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
+  late final $DeletedRecordsTable deletedRecords = $DeletedRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4287,6 +4647,7 @@ abstract class _$PlanyrDatabase extends GeneratedDatabase {
     recurringSeriesTable,
     seriesTags,
     syncMeta,
+    deletedRecords,
   ];
 }
 
@@ -6906,6 +7267,7 @@ typedef $$TagsTableCreateCompanionBuilder =
       required int color,
       required int position,
       required DateTime createdAt,
+      Value<DateTime?> updatedAt,
       Value<int> rowid,
     });
 typedef $$TagsTableUpdateCompanionBuilder =
@@ -6915,6 +7277,7 @@ typedef $$TagsTableUpdateCompanionBuilder =
       Value<int> color,
       Value<int> position,
       Value<DateTime> createdAt,
+      Value<DateTime?> updatedAt,
       Value<int> rowid,
     });
 
@@ -6989,6 +7352,11 @@ class $$TagsTableFilterComposer extends Composer<_$PlanyrDatabase, $TagsTable> {
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7076,6 +7444,11 @@ class $$TagsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TagsTableAnnotationComposer
@@ -7101,6 +7474,9 @@ class $$TagsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   Expression<T> taskTagsRefs<T extends Object>(
     Expression<T> Function($$TaskTagsTableAnnotationComposer a) f,
@@ -7186,6 +7562,7 @@ class $$TagsTableTableManager
                 Value<int> color = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TagsCompanion(
                 id: id,
@@ -7193,6 +7570,7 @@ class $$TagsTableTableManager
                 color: color,
                 position: position,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7202,6 +7580,7 @@ class $$TagsTableTableManager
                 required int color,
                 required int position,
                 required DateTime createdAt,
+                Value<DateTime?> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TagsCompanion.insert(
                 id: id,
@@ -7209,6 +7588,7 @@ class $$TagsTableTableManager
                 color: color,
                 position: position,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -8568,6 +8948,193 @@ typedef $$SyncMetaTableProcessedTableManager =
       SyncMetaRow,
       PrefetchHooks Function()
     >;
+typedef $$DeletedRecordsTableCreateCompanionBuilder =
+    DeletedRecordsCompanion Function({
+      Value<int> id,
+      required String targetTable,
+      required String rowKey,
+      required DateTime deletedAt,
+    });
+typedef $$DeletedRecordsTableUpdateCompanionBuilder =
+    DeletedRecordsCompanion Function({
+      Value<int> id,
+      Value<String> targetTable,
+      Value<String> rowKey,
+      Value<DateTime> deletedAt,
+    });
+
+class $$DeletedRecordsTableFilterComposer
+    extends Composer<_$PlanyrDatabase, $DeletedRecordsTable> {
+  $$DeletedRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rowKey => $composableBuilder(
+    column: $table.rowKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DeletedRecordsTableOrderingComposer
+    extends Composer<_$PlanyrDatabase, $DeletedRecordsTable> {
+  $$DeletedRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rowKey => $composableBuilder(
+    column: $table.rowKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DeletedRecordsTableAnnotationComposer
+    extends Composer<_$PlanyrDatabase, $DeletedRecordsTable> {
+  $$DeletedRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get targetTable => $composableBuilder(
+    column: $table.targetTable,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rowKey =>
+      $composableBuilder(column: $table.rowKey, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+}
+
+class $$DeletedRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$PlanyrDatabase,
+          $DeletedRecordsTable,
+          DeletedRecordRow,
+          $$DeletedRecordsTableFilterComposer,
+          $$DeletedRecordsTableOrderingComposer,
+          $$DeletedRecordsTableAnnotationComposer,
+          $$DeletedRecordsTableCreateCompanionBuilder,
+          $$DeletedRecordsTableUpdateCompanionBuilder,
+          (
+            DeletedRecordRow,
+            BaseReferences<
+              _$PlanyrDatabase,
+              $DeletedRecordsTable,
+              DeletedRecordRow
+            >,
+          ),
+          DeletedRecordRow,
+          PrefetchHooks Function()
+        > {
+  $$DeletedRecordsTableTableManager(
+    _$PlanyrDatabase db,
+    $DeletedRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DeletedRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DeletedRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DeletedRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> targetTable = const Value.absent(),
+                Value<String> rowKey = const Value.absent(),
+                Value<DateTime> deletedAt = const Value.absent(),
+              }) => DeletedRecordsCompanion(
+                id: id,
+                targetTable: targetTable,
+                rowKey: rowKey,
+                deletedAt: deletedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String targetTable,
+                required String rowKey,
+                required DateTime deletedAt,
+              }) => DeletedRecordsCompanion.insert(
+                id: id,
+                targetTable: targetTable,
+                rowKey: rowKey,
+                deletedAt: deletedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DeletedRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$PlanyrDatabase,
+      $DeletedRecordsTable,
+      DeletedRecordRow,
+      $$DeletedRecordsTableFilterComposer,
+      $$DeletedRecordsTableOrderingComposer,
+      $$DeletedRecordsTableAnnotationComposer,
+      $$DeletedRecordsTableCreateCompanionBuilder,
+      $$DeletedRecordsTableUpdateCompanionBuilder,
+      (
+        DeletedRecordRow,
+        BaseReferences<
+          _$PlanyrDatabase,
+          $DeletedRecordsTable,
+          DeletedRecordRow
+        >,
+      ),
+      DeletedRecordRow,
+      PrefetchHooks Function()
+    >;
 
 class $PlanyrDatabaseManager {
   final _$PlanyrDatabase _db;
@@ -8591,4 +9158,6 @@ class $PlanyrDatabaseManager {
       $$SeriesTagsTableTableManager(_db, _db.seriesTags);
   $$SyncMetaTableTableManager get syncMeta =>
       $$SyncMetaTableTableManager(_db, _db.syncMeta);
+  $$DeletedRecordsTableTableManager get deletedRecords =>
+      $$DeletedRecordsTableTableManager(_db, _db.deletedRecords);
 }

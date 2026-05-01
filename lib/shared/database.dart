@@ -127,6 +127,10 @@ class Tags extends Table {
   IntColumn get color => integer()();
   IntColumn get position => integer()();
   DateTimeColumn get createdAt => dateTime()();
+  // Bumped on every mutation (rename, color, position). The sync
+  // change-tracker filters by updatedAt; relying on createdAt
+  // means edits to existing tags never push.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -151,6 +155,27 @@ class SyncMeta extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// Records local deletes so the change tracker can emit them on the
+/// next sync push. Without this, hard-deletes leave nothing for the
+/// timestamp-scan tracker to find and the cloud keeps the row, which
+/// pulls back into other devices on next sync.
+///
+/// [rowKey] is the row's primary key serialized as a string. For
+/// junction tables with composite keys it's `key1:key2` (e.g.
+/// `taskId:tagId`).
+@DataClassName('DeletedRecordRow')
+class DeletedRecords extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  // Named `targetTable` (not `tableName`) to avoid colliding with
+  // Drift's Table.tableName getter, which returns the SQL name.
+  TextColumn get targetTable => text()();
+  TextColumn get rowKey => text()();
+  DateTimeColumn get deletedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(tables: [
   Boards,
   BoardColumns,
@@ -162,6 +187,7 @@ class SyncMeta extends Table {
   RecurringSeriesTable,
   SeriesTags,
   SyncMeta,
+  DeletedRecords,
 ])
 class PlanyrDatabase extends _$PlanyrDatabase {
   PlanyrDatabase() : super(_openConnection());
@@ -169,7 +195,7 @@ class PlanyrDatabase extends _$PlanyrDatabase {
   PlanyrDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -242,6 +268,22 @@ class PlanyrDatabase extends _$PlanyrDatabase {
         );
         // SyncMeta table for sync state (device_id, last_sync).
         await migrator.createTable(syncMeta);
+      }
+      if (from < 10) {
+        // Tombstones so local deletes propagate via sync push.
+        await migrator.createTable(deletedRecords);
+      }
+      if (from < 11) {
+        // Tags need updated_at so edits (rename, recolor) push.
+        // Backfill = created_at so the next sync emits each tag
+        // exactly once.
+        await customStatement(
+          'ALTER TABLE tags ADD COLUMN updated_at INTEGER',
+        );
+        await customStatement(
+          'UPDATE tags SET updated_at = created_at '
+          'WHERE updated_at IS NULL',
+        );
       }
     },
   );

@@ -13,15 +13,20 @@ logger.setLevel(logging.INFO)
 
 # Tables returned in dependency order so the client can insert
 # without hitting FK violations.
+#
+# Every query filters on the row's server-stamped `synced_at` (V003).
+# That column is set to NOW() on every insert / update / soft-delete
+# in sync_push, so the cursor-vs-row comparison stays in server time
+# and is immune to client clock skew or push lag. Each query takes
+# exactly two parameters: (user_id, since).
 PULL_TABLES = [
     {
         "name": "tags",
         "query": """
-            SELECT id, name, color, position, created_at, deleted_at
+            SELECT id, name, color, position, created_at, updated_at,
+                   deleted_at
             FROM tags
-            WHERE user_id = %s AND (
-                created_at > %s OR deleted_at > %s
-            )
+            WHERE user_id = %s AND synced_at > %s
         """,
     },
     {
@@ -30,9 +35,7 @@ PULL_TABLES = [
             SELECT id, name, type, created_at, updated_at,
                    archived, week_start, deleted_at
             FROM boards
-            WHERE user_id = %s AND (
-                updated_at > %s OR deleted_at > %s
-            )
+            WHERE user_id = %s AND synced_at > %s
         """,
     },
     {
@@ -42,10 +45,7 @@ PULL_TABLES = [
                    bc.type, bc.deleted_at
             FROM board_columns bc
             JOIN boards b ON bc.board_id = b.id
-            WHERE b.user_id = %s AND (
-                bc.deleted_at > %s
-                OR b.updated_at > %s
-            )
+            WHERE b.user_id = %s AND bc.synced_at > %s
         """,
     },
     {
@@ -55,11 +55,8 @@ PULL_TABLES = [
                    is_event, scheduled_time, created_at, ended_at,
                    deleted_at
             FROM recurring_series
-            WHERE user_id = %s AND (
-                created_at > %s OR ended_at > %s OR deleted_at > %s
-            )
+            WHERE user_id = %s AND synced_at > %s
         """,
-        "params": 4,  # user_id + 3 timestamp comparisons
     },
     {
         "name": "tasks",
@@ -70,9 +67,7 @@ PULL_TABLES = [
                    migrated_from_task_id, is_event, scheduled_time,
                    recurrence_rule, series_id, deleted_at
             FROM tasks
-            WHERE user_id = %s AND (
-                updated_at > %s OR deleted_at > %s
-            )
+            WHERE user_id = %s AND synced_at > %s
         """,
     },
     {
@@ -82,9 +77,7 @@ PULL_TABLES = [
                    m.symbol, m.updated_at, m.deleted_at
             FROM markers m
             JOIN boards b ON m.board_id = b.id
-            WHERE b.user_id = %s AND (
-                m.updated_at > %s OR m.deleted_at > %s
-            )
+            WHERE b.user_id = %s AND m.synced_at > %s
         """,
     },
     {
@@ -94,9 +87,7 @@ PULL_TABLES = [
                    tn.created_at, tn.updated_at, tn.deleted_at
             FROM task_notes tn
             JOIN tasks t ON tn.task_id = t.id
-            WHERE t.user_id = %s AND (
-                tn.updated_at > %s OR tn.deleted_at > %s
-            )
+            WHERE t.user_id = %s AND tn.synced_at > %s
         """,
     },
     {
@@ -105,10 +96,7 @@ PULL_TABLES = [
             SELECT tt.task_id, tt.tag_id, tt.slot, tt.deleted_at
             FROM task_tags tt
             JOIN tasks t ON tt.task_id = t.id
-            WHERE t.user_id = %s AND (
-                tt.deleted_at > %s
-                OR t.updated_at > %s
-            )
+            WHERE t.user_id = %s AND tt.synced_at > %s
         """,
     },
     {
@@ -117,10 +105,7 @@ PULL_TABLES = [
             SELECT st.series_id, st.tag_id, st.slot, st.deleted_at
             FROM series_tags st
             JOIN recurring_series rs ON st.series_id = rs.id
-            WHERE rs.user_id = %s AND (
-                st.deleted_at > %s
-                OR rs.created_at > %s
-            )
+            WHERE rs.user_id = %s AND st.synced_at > %s
         """,
     },
 ]
@@ -157,13 +142,10 @@ def lambda_handler(event, context):
     try:
         changes = []
         for table_def in PULL_TABLES:
-            param_count = table_def.get("params", 3)
-            if param_count == 4:
-                params = (user_id, since, since, since)
-            else:
-                params = (user_id, since, since)
-
-            rows = execute(table_def["query"], params)
+            # Every PULL_TABLES query is now `(user_id, since)` — no
+            # more variable-arity for tables that previously also
+            # filtered on ended_at, since synced_at covers all writes.
+            rows = execute(table_def["query"], (user_id, since))
 
             for row in rows:
                 change = {

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:planyr/features/sync/data/tombstone_repository.dart';
 import 'package:planyr/shared/database.dart';
 
 /// A single change to push to the server.
@@ -28,10 +29,15 @@ class SyncChange {
 
 /// Scans local tables for rows modified since the last sync.
 /// Data is small (<10MB) so a full scan takes milliseconds.
+///
+/// Hard-deletes leave nothing for the timestamp scan to find — those
+/// are recorded in the [DeletedRecords] table by [TombstoneRepository]
+/// at delete time and emitted here as `deleted: true` push changes.
 class ChangeTracker {
   final PlanyrDatabase _db;
+  final TombstoneRepository? _tombstones;
 
-  ChangeTracker(this._db);
+  ChangeTracker(this._db, [this._tombstones]);
 
   /// Collect all changes since the last sync time.
   /// Returns them in dependency order for the server.
@@ -40,12 +46,16 @@ class ChangeTracker {
     // Drift stores DateTime as epoch seconds in SQLite.
     final sinceEpoch = (since?.millisecondsSinceEpoch ?? 0) ~/ 1000;
 
-    // Tags first (no FK dependencies).
+    // Tags first (no FK dependencies). Scan by updated_at — using
+    // created_at means rename/recolor edits never push because the
+    // timestamp doesn't move.
     changes.addAll(await _queryTable(
       tableName: 'tags',
-      timestampColumn: 'created_at',
+      timestampColumn: 'updated_at',
       sinceEpoch: sinceEpoch,
-      columns: ['id', 'name', 'color', 'position', 'created_at'],
+      columns: [
+        'id', 'name', 'color', 'position', 'created_at', 'updated_at',
+      ],
     ));
 
     // Boards.
@@ -158,6 +168,38 @@ class ChangeTracker {
         },
         updatedAt: DateTime.now().toUtc().toIso8601String(),
       ));
+    }
+
+    // ── Tombstones ──
+    // Local hard-deletes recorded since the last sync.
+    final tombs = await _tombstones?.changesSince(since) ?? const [];
+    for (final t in tombs) {
+      final ts = t.deletedAt.toUtc().toIso8601String();
+      // Composite-key junction tables encode the row key as
+      // "<key1>:<key2>"; rebuild the data map the server expects.
+      if (t.targetTable == 'task_tags' || t.targetTable == 'series_tags') {
+        final parts = t.rowKey.split(':');
+        if (parts.length != 2) continue;
+        final isTaskTags = t.targetTable == 'task_tags';
+        changes.add(SyncChange(
+          table: t.targetTable,
+          id: t.rowKey,
+          data: {
+            if (isTaskTags) 'task_id': parts[0] else 'series_id': parts[0],
+            'tag_id': parts[1],
+          },
+          updatedAt: ts,
+          deleted: true,
+        ));
+      } else {
+        changes.add(SyncChange(
+          table: t.targetTable,
+          id: t.rowKey,
+          data: {'id': t.rowKey},
+          updatedAt: ts,
+          deleted: true,
+        ));
+      }
     }
 
     return changes;

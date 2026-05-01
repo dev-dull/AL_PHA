@@ -59,7 +59,7 @@ TABLE_COLUMNS = {
         "id", "task_id", "content", "created_at", "updated_at",
     ],
     "tags": [
-        "id", "name", "color", "position", "created_at",
+        "id", "name", "color", "position", "created_at", "updated_at",
     ],
     "recurring_series": [
         "id", "title", "description", "priority", "recurrence_rule",
@@ -76,6 +76,13 @@ for _tbl, _cols in TABLE_COLUMNS.items():
 _VALID_IDENTIFIERS.update({
     "user_id", "deleted_at", "ts", "slot",
     "task_id", "tag_id", "series_id",
+    # Server-stamped change-detection cursor (V003). Set to NOW() on
+    # every insert / update / soft-delete by the helpers below; pull
+    # filters on this instead of the client-supplied updated_at.
+    "synced_at",
+    # Junction tables — handled by _upsert_junction, so not in
+    # TABLE_COLUMNS, but their names still need to be valid identifiers.
+    "task_tags", "series_tags",
 })
 
 
@@ -224,7 +231,7 @@ _TIMESTAMP_COL = {
     "tasks": "updated_at",
     "markers": "updated_at",
     "task_notes": "updated_at",
-    "tags": "created_at",
+    "tags": "updated_at",
     "recurring_series": "created_at",
     # board_columns has no timestamp — always upsert.
 }
@@ -257,9 +264,13 @@ def _upsert_row(table, id_col, row_id, data, updated_at,
     if deleted:
         if existing:
             execute(
-                sql.SQL("UPDATE {tbl} SET {da} = %s WHERE {idc} = %s").format(
+                sql.SQL(
+                    "UPDATE {tbl} SET {da} = %s, {synced} = NOW() "
+                    "WHERE {idc} = %s"
+                ).format(
                     tbl=_ident(table),
                     da=_ident("deleted_at"),
+                    synced=_ident("synced_at"),
                     idc=_ident(id_col),
                 ),
                 (updated_at, row_id),
@@ -314,10 +325,17 @@ def _insert_row(table, id_col, row_id, data, user_id, client_table):
     placeholders = sql.SQL(", ").join([sql.Placeholder()] * len(values))
     col_list = sql.SQL(", ").join(col_idents)
 
+    # synced_at is server-stamped (V003) — every insert sets NOW()
+    # so the change-detection cursor on the pull side is consistent
+    # across devices regardless of client clock skew.
     execute(
-        sql.SQL("INSERT INTO {tbl} ({cols}) VALUES ({phs})").format(
+        sql.SQL(
+            "INSERT INTO {tbl} ({cols}, {synced}) "
+            "VALUES ({phs}, NOW())"
+        ).format(
             tbl=_ident(table),
             cols=col_list,
+            synced=_ident("synced_at"),
             phs=placeholders,
         ),
         values,
@@ -346,6 +364,11 @@ def _update_row(table, id_col, row_id, data, user_id, client_table):
     # Clear deleted_at on update (un-delete if previously soft-deleted).
     set_parts.append(
         sql.SQL("{} = NULL").format(_ident("deleted_at"))
+    )
+    # Server-stamp synced_at so this update is visible to other
+    # devices' next pull regardless of client clock skew (V003).
+    set_parts.append(
+        sql.SQL("{} = NOW()").format(_ident("synced_at"))
     )
 
     values.append(row_id)
@@ -383,10 +406,12 @@ def _upsert_junction(table, key1, key2, data, updated_at, deleted, user_id):
         if existing:
             execute(
                 sql.SQL(
-                    "UPDATE {tbl} SET {da} = %s WHERE {k1} = %s AND {k2} = %s"
+                    "UPDATE {tbl} SET {da} = %s, {synced} = NOW() "
+                    "WHERE {k1} = %s AND {k2} = %s"
                 ).format(
                     tbl=_ident(table),
                     da=_ident("deleted_at"),
+                    synced=_ident("synced_at"),
                     k1=_ident(key1),
                     k2=_ident(key2),
                 ),
@@ -399,12 +424,14 @@ def _upsert_junction(table, key1, key2, data, updated_at, deleted, user_id):
     if existing:
         execute(
             sql.SQL(
-                "UPDATE {tbl} SET {s} = %s, {da} = NULL "
+                "UPDATE {tbl} SET {s} = %s, {da} = NULL, "
+                "{synced} = NOW() "
                 "WHERE {k1} = %s AND {k2} = %s"
             ).format(
                 tbl=_ident(table),
                 s=_ident("slot"),
                 da=_ident("deleted_at"),
+                synced=_ident("synced_at"),
                 k1=_ident(key1),
                 k2=_ident(key2),
             ),
@@ -413,12 +440,14 @@ def _upsert_junction(table, key1, key2, data, updated_at, deleted, user_id):
     else:
         execute(
             sql.SQL(
-                "INSERT INTO {tbl} ({k1}, {k2}, {s}) VALUES (%s, %s, %s)"
+                "INSERT INTO {tbl} ({k1}, {k2}, {s}, {synced}) "
+                "VALUES (%s, %s, %s, NOW())"
             ).format(
                 tbl=_ident(table),
                 k1=_ident(key1),
                 k2=_ident(key2),
                 s=_ident("slot"),
+                synced=_ident("synced_at"),
             ),
             (k1, k2, slot),
         )
