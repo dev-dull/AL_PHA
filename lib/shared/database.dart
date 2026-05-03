@@ -195,7 +195,7 @@ class PlanyrDatabase extends _$PlanyrDatabase {
   PlanyrDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -295,18 +295,44 @@ class PlanyrDatabase extends _$PlanyrDatabase {
         // like they had disappeared. Storing UTC midnight makes
         // the value TZ-stable.
         //
-        // SQLite arithmetic: divide ms by 1000 for unixepoch,
-        // interpret in 'localtime' to extract the user's perceived
-        // calendar date, then re-encode that date as UTC midnight
-        // (strftime defaults to UTC for plain 'YYYY-MM-DD' input).
+        // Drift stores DateTime as **integer SECONDS** since epoch
+        // — NOT milliseconds. The earlier shipped version of this
+        // migration divided & re-multiplied by 1000, which mangled
+        // every weekStart into a 1970-era value and triggered
+        // catastrophic dedup-cascade deletes. Fixed below; the
+        // damage from the buggy version is repaired in the v13
+        // migration immediately following.
         await customStatement(
           'UPDATE boards SET week_start = '
           "strftime('%s', "
           "  strftime('%Y-%m-%d', "
-          "    datetime(week_start / 1000, 'unixepoch', 'localtime')"
+          "    datetime(week_start, 'unixepoch', 'localtime')"
           '  )'
-          ') * 1000 '
+          ') '
           'WHERE week_start IS NOT NULL',
+        );
+      }
+      if (from < 13) {
+        // Repair damage from the buggy v12 shipped briefly on
+        // 2026-05-03. That version divided/multiplied weekStart by
+        // 1000 (treating Drift's seconds as milliseconds), pushing
+        // every value into a wrong calendar position and triggering
+        // the dedup-cascade in BoardRepository.getByWeekStart,
+        // which hard-deleted boards locally and pushed soft-deletes
+        // to the cloud.
+        //
+        // The corrupted value is plausible-looking (still a valid
+        // year, often), so detection by inspection isn't reliable.
+        // Instead: force the next pull to re-fetch every board from
+        // the cloud (which holds the correct values, restored out
+        // of band) by zeroing every local board's updated_at and
+        // resetting the sync cursor. LWW then unambiguously hands
+        // the win to cloud. Local-only boards (not yet pushed) are
+        // untouched — pull only updates ids the cloud knows about.
+        await customStatement('UPDATE boards SET updated_at = 0');
+        await customStatement(
+          "UPDATE sync_meta SET value = '1970-01-01T00:00:00.000Z' "
+          "WHERE key = 'last_sync_time'",
         );
       }
     },
