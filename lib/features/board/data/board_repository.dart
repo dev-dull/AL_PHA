@@ -56,13 +56,20 @@ class BoardRepository {
   /// Looks up a weekly board that overlaps the week starting at
   /// [weekStart].
   ///
-  /// First tries an exact match. If none is found, scans all
-  /// non-archived weekly boards for one whose stored weekStart
-  /// is within 6 days of the requested date. This handles boards
-  /// created under a different first-day-of-week preference.
-  /// Finds a weekly board that covers the same calendar week as
-  /// [weekStart]. Handles boards created under a different
-  /// first-day-of-week convention by checking ±1 day.
+  /// First tries an exact match. If none is found, checks ±1 day
+  /// to handle boards created under a different first-day-of-week
+  /// convention.
+  ///
+  /// **Non-destructive on duplicate detection (#62).** When both
+  /// the exact-match and a neighbor exist, this returns whichever
+  /// has more live tasks but **never deletes the other**. The
+  /// previous "auto-cascade-delete the empty duplicate" behavior
+  /// was a data-loss footgun: any upstream invariant break (e.g.
+  /// a buggy migration mangling every board's week_start into the
+  /// same epoch) made every board look like a duplicate and the
+  /// cascade then wiped real user data + pushed soft-deletes to
+  /// the cloud. Surface duplicates to the user explicitly; never
+  /// resolve them silently here.
   Future<Board?> getByWeekStart(DateTime weekStart) async {
     // Normalize to UTC midnight before any equality lookup so
     // callers passing a local DateTime still find the canonical row.
@@ -78,58 +85,15 @@ class BoardRepository {
     if (exact == null) return neighbor;
     if (neighbor == null) return exact;
 
-    // Both exist (duplicate from a previous first-day switch).
-    // Prefer whichever has tasks; delete the empty duplicate.
-    final exactQuery = _db.select(_db.tasks)
-      ..where((t) => t.boardId.equals(exact.id));
-    final neighborQuery = _db.select(_db.tasks)
-      ..where((t) => t.boardId.equals(neighbor.id));
-    final exactCount = (await exactQuery.get()).length;
-    final neighborCount = (await neighborQuery.get()).length;
-
-    if (exactCount >= neighborCount) {
-      await _deleteBoardCascade(neighbor.id);
-      return exact;
-    } else {
-      await _deleteBoardCascade(exact.id);
-      return neighbor;
-    }
+    final exactCount = await _liveTaskCount(exact.id);
+    final neighborCount = await _liveTaskCount(neighbor.id);
+    return exactCount >= neighborCount ? exact : neighbor;
   }
 
-  /// Removes a board and all its columns, markers, and tasks.
-  /// Tombstones every row so the cloud propagates the deletes.
-  Future<void> _deleteBoardCascade(String boardId) async {
-    final tombs = _tombstones;
-    if (tombs != null) {
-      for (final m in await (_db.select(_db.markers)
-            ..where((m) => m.boardId.equals(boardId)))
-          .get()) {
-        await tombs.record('markers', m.id);
-      }
-      for (final t in await (_db.select(_db.tasks)
-            ..where((t) => t.boardId.equals(boardId)))
-          .get()) {
-        await tombs.record('tasks', t.id);
-      }
-      for (final c in await (_db.select(_db.boardColumns)
-            ..where((c) => c.boardId.equals(boardId)))
-          .get()) {
-        await tombs.record('board_columns', c.id);
-      }
-    }
-    await (_db.delete(_db.markers)
-          ..where((m) => m.boardId.equals(boardId)))
-        .go();
-    await (_db.delete(_db.tasks)
-          ..where((t) => t.boardId.equals(boardId)))
-        .go();
-    await (_db.delete(_db.boardColumns)
-          ..where((c) => c.boardId.equals(boardId)))
-        .go();
-    await (_db.delete(_db.boards)
-          ..where((b) => b.id.equals(boardId)))
-        .go();
-    await tombs?.record('boards', boardId);
+  Future<int> _liveTaskCount(String boardId) async {
+    final query = _db.select(_db.tasks)
+      ..where((t) => t.boardId.equals(boardId));
+    return (await query.get()).length;
   }
 
   Future<Board?> getByPeriodStart(

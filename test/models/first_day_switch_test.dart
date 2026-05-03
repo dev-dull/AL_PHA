@@ -139,7 +139,8 @@ void main() {
     expect(tasks.first.title, 'My task');
   });
 
-  test('prefers board with tasks and cleans up empty duplicate',
+  test('prefers board with tasks but does NOT delete the empty '
+      'duplicate (#62 — auto-cascade-delete is gone)',
       () async {
     final db = PlanyrDatabase.forTesting(NativeDatabase.memory());
     final container = ProviderContainer(
@@ -189,15 +190,19 @@ void main() {
     ));
 
     // Query for Sunday — should prefer Monday board (has tasks)
-    // and delete the empty Sunday board.
+    // but the Sunday board must survive. Auto-cascade-delete is
+    // exactly what wiped 13 of the user's boards on 2026-05-03
+    // when a buggy migration made every board look like a
+    // duplicate. The lookup picks a winner; the operator (or
+    // future UI) reconciles duplicates explicitly.
     final found = await boardRepo.getByWeekStart(DateTime(2026, 3, 15));
     expect(found, isNotNull);
     expect(found!.id, mondayId);
 
-    // Empty board should be cleaned up.
     final all = await boardRepo.listAll();
-    expect(all.length, 1);
-    expect(all.first.id, mondayId);
+    expect(all.map((b) => b.id).toSet(), {mondayId, sundayId},
+        reason: 'Both boards must survive — getByWeekStart no longer '
+            'deletes the loser');
   });
 
   test('new board created with Sunday columns when no board exists',
