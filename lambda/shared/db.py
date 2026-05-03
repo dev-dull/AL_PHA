@@ -3,15 +3,21 @@
 import json
 import logging
 import os
+from contextlib import contextmanager
 
 import boto3
 import psycopg2
 import psycopg2.extensions
+from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger()
 
 _conn = None
+# Set to True while inside a `savepoint()` block so the auto-rollback
+# in get_connection() doesn't fire on INERROR — we want a ROLLBACK TO
+# SAVEPOINT instead, which preserves the surrounding transaction.
+_in_savepoint = False
 
 
 def get_connection():
@@ -22,8 +28,11 @@ def get_connection():
         if _conn.closed:
             logger.info("DB connection closed, reconnecting")
             _conn = None
-        else:
-            # Reset if in error or aborted transaction state.
+        elif not _in_savepoint:
+            # Reset if in error or aborted transaction state. Skipped
+            # while inside a savepoint block — there the caller will
+            # issue ROLLBACK TO SAVEPOINT itself, and we must not
+            # discard the outer transaction's already-committed work.
             status = _conn.get_transaction_status()
             if status == psycopg2.extensions.TRANSACTION_STATUS_INERROR:
                 logger.info("DB connection in error state, rolling back")
@@ -84,3 +93,38 @@ def rollback():
     conn = get_connection()
     if not conn.closed:
         conn.rollback()
+
+
+@contextmanager
+def savepoint(name):
+    """Per-row error containment via Postgres SAVEPOINTs.
+
+    On exception inside the block, rolls back to the savepoint and
+    re-raises — preserving every prior write in the surrounding
+    transaction. The caller is expected to catch the exception, log
+    it, and continue processing the next row. Without this, a single
+    failing INSERT (e.g. a unique-constraint violation) would put
+    the connection into INERROR state and the next get_connection()
+    would discard the entire batch.
+
+    Names must be valid identifiers. Caller's responsibility to make
+    them unique within a single transaction (typical pattern: append
+    a loop counter).
+    """
+    global _in_savepoint
+    sp = sql.Identifier(name)
+    execute(sql.SQL("SAVEPOINT {}").format(sp))
+    _in_savepoint = True
+    try:
+        yield
+    except Exception:
+        # The connection is in INERROR — but with _in_savepoint True,
+        # get_connection() won't auto-rollback on us. ROLLBACK TO
+        # SAVEPOINT clears the error and leaves the outer transaction
+        # intact for the next iteration.
+        execute(sql.SQL("ROLLBACK TO SAVEPOINT {}").format(sp))
+        raise
+    else:
+        execute(sql.SQL("RELEASE SAVEPOINT {}").format(sp))
+    finally:
+        _in_savepoint = False

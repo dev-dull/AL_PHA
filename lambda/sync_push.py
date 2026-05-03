@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from psycopg2 import sql
 
 from shared.auth import ensure_user
-from shared.db import commit, execute, execute_one, rollback
+from shared.db import commit, execute, execute_one, rollback, savepoint
 from shared.response import error, server_time, success
 
 # Columns that are timestamps — values from SQLite may arrive
@@ -158,46 +158,46 @@ def lambda_handler(event, context):
                 rejected += 1
                 continue
 
-            if table == "task_tags":
-                if _upsert_junction(
-                    "task_tags", "task_id", "tag_id",
-                    data, ts, deleted, user_id,
-                ):
-                    accepted += 1
-                else:
-                    rejected += 1
-            elif table == "series_tags":
-                if _upsert_junction(
-                    "series_tags", "series_id", "tag_id",
-                    data, ts, deleted, user_id,
-                ):
-                    accepted += 1
-                else:
-                    rejected += 1
-            else:
-                pg_table, id_col, has_user_id = SYNCABLE_TABLES[table]
-                logger.info("  → upsert %s.%s = %s (user_id=%s)",
-                            pg_table, id_col, str(row_id)[:8],
-                            "yes" if has_user_id else "no")
-                try:
-                    if _upsert_row(
-                        pg_table, id_col, row_id, data, ts,
-                        deleted, user_id if has_user_id else None,
-                        table,
-                    ):
-                        accepted += 1
-                        logger.info("  → accepted")
+            # Each row is wrapped in a SAVEPOINT so that a single
+            # failure (e.g. a marker INSERT tripping the
+            # (task_id, column_id) UNIQUE constraint) only discards
+            # that row's writes — not every change pushed alongside
+            # it in the same batch.
+            try:
+                with savepoint(f"sp_{i}"):
+                    if table == "task_tags":
+                        ok = _upsert_junction(
+                            "task_tags", "task_id", "tag_id",
+                            data, ts, deleted, user_id,
+                        )
+                    elif table == "series_tags":
+                        ok = _upsert_junction(
+                            "series_tags", "series_id", "tag_id",
+                            data, ts, deleted, user_id,
+                        )
                     else:
-                        rejected += 1
-                        logger.info("  → rejected (server wins)")
-                except Exception as row_err:
-                    logger.warning("  → skipped: %s", row_err)
+                        pg_table, id_col, has_user_id = SYNCABLE_TABLES[table]
+                        logger.info(
+                            "  → upsert %s.%s = %s (user_id=%s)",
+                            pg_table, id_col, str(row_id)[:8],
+                            "yes" if has_user_id else "no",
+                        )
+                        ok = _upsert_row(
+                            pg_table, id_col, row_id, data, ts,
+                            deleted, user_id if has_user_id else None,
+                            table,
+                        )
+                if ok:
+                    accepted += 1
+                    logger.info("  → accepted")
+                else:
                     rejected += 1
-                    # Roll back just this statement so the
-                    # transaction can continue with the rest.
-                    rollback()
-                    # Re-create the user row (lost in rollback).
-                    ensure_user(event)
+                    logger.info("  → rejected (server wins)")
+            except Exception as row_err:
+                # Savepoint already rolled back this row's writes;
+                # the surrounding transaction is intact.
+                logger.warning("  → skipped: %s", row_err)
+                rejected += 1
 
         # Update sync cursor for this device.
         now = datetime.now(timezone.utc)
@@ -236,6 +236,18 @@ _TIMESTAMP_COL = {
     # board_columns has no timestamp — always upsert.
 }
 
+# Tables with a UNIQUE secondary key alongside the uuid PK. When a
+# client pushes a row whose `id` doesn't exist server-side but whose
+# natural key DOES (typically because two devices independently
+# generated different uuids for the same logical cell), we treat
+# them as the same row: switch to the cloud's existing id and
+# UPDATE in place (preserving stable references and applying LWW).
+# Without this, the INSERT trips the secondary UNIQUE constraint and
+# the row — plus everything pushed alongside it — fails to land.
+_NATURAL_KEY = {
+    "markers": ("task_id", "column_id"),
+}
+
 
 def _upsert_row(table, id_col, row_id, data, updated_at,
                  deleted, user_id, client_table):
@@ -244,22 +256,65 @@ def _upsert_row(table, id_col, row_id, data, updated_at,
 
     if ts_col:
         existing = execute_one(
-            sql.SQL("SELECT {ts} AS ts, {da} FROM {tbl} WHERE {idc} = %s").format(
+            sql.SQL(
+                "SELECT {idc} AS row_id, {ts} AS ts, {da} "
+                "FROM {tbl} WHERE {idc} = %s"
+            ).format(
+                idc=_ident(id_col),
                 ts=_ident(ts_col),
                 da=_ident("deleted_at"),
                 tbl=_ident(table),
-                idc=_ident(id_col),
             ),
             (row_id,),
         )
     else:
         existing = execute_one(
-            sql.SQL("SELECT 1 AS ts FROM {tbl} WHERE {idc} = %s").format(
-                tbl=_ident(table),
+            sql.SQL(
+                "SELECT {idc} AS row_id FROM {tbl} WHERE {idc} = %s"
+            ).format(
                 idc=_ident(id_col),
+                tbl=_ident(table),
             ),
             (row_id,),
         )
+
+    # Natural-key fallback: when the incoming uuid doesn't match a
+    # server row but the table has a UNIQUE secondary key (e.g.
+    # markers' (task_id, column_id)), find the server row by that
+    # key and switch our `row_id` to its uuid for the rest of the
+    # operation. Two devices can independently mint different uuids
+    # for the same logical cell; this is what reconciles them.
+    if not existing and client_table in _NATURAL_KEY:
+        nat_cols = _NATURAL_KEY[client_table]
+        nat_vals = [data.get(c) for c in nat_cols]
+        if all(v is not None for v in nat_vals):
+            where_parts = sql.SQL(" AND ").join(
+                sql.SQL("{} = %s").format(_ident(c)) for c in nat_cols
+            )
+            select_cols = (
+                sql.SQL("{idc} AS row_id, {ts} AS ts, {da}").format(
+                    idc=_ident(id_col),
+                    ts=_ident(ts_col),
+                    da=_ident("deleted_at"),
+                )
+                if ts_col
+                else sql.SQL("{idc} AS row_id").format(idc=_ident(id_col))
+            )
+            existing = execute_one(
+                sql.SQL(
+                    "SELECT {cols} FROM {tbl} WHERE {where}"
+                ).format(
+                    cols=select_cols,
+                    tbl=_ident(table),
+                    where=where_parts,
+                ),
+                tuple(nat_vals),
+            )
+            if existing:
+                # Use the cloud's id from here on so the UPDATE
+                # targets the existing row instead of trying to
+                # INSERT and tripping the UNIQUE constraint.
+                row_id = existing["row_id"]
 
     if deleted:
         if existing:
