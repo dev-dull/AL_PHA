@@ -112,24 +112,34 @@ The app includes:
 - CocoaPods (for macOS/iOS): `brew install cocoapods`
 - Java 17 (for Android builds)
 
-### Quick Start
+### Common commands (use the Makefile)
+
+The repo's `Makefile` is the source of truth for build/test/run
+commands. Run `make help` for the full list. The ones you'll use
+most:
+
+```bash
+make apk           # release APKs split per Android ABI; dogfood
+                   # build is build/app/outputs/flutter-apk/
+                   # app-arm64-v8a-release.apk (~22 MB).
+                   # Use --split-per-abi format consistently — DO
+                   # NOT mix in plain `flutter build apk` (fat APK
+                   # at app-release.apk, different filename + size,
+                   # confuses the user's reinstall flow).
+make macos         # release .app bundle.
+make analyze       # flutter analyze --fatal-infos.
+make test          # full test suite.
+make codegen       # build_runner; run after touching @freezed,
+                   # @riverpod, or Drift tables.
+make clean-local-db  # wipe macOS dev container's planyr.db so the
+                     # next launch re-pulls from cloud (DR step).
+```
+
+### Quick Start (first time)
 ```bash
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs
+make codegen
 flutter run -d macos    # or: flutter run -d chrome, flutter run -d <device>
-```
-
-### Code Generation
-After modifying Freezed models, Drift tables, or Riverpod providers:
-```bash
-dart run build_runner build --delete-conflicting-outputs
-```
-
-### Running Tests
-```bash
-flutter test                    # all tests
-flutter test test/models/       # unit tests only
-flutter test test/widget/       # widget tests only
 ```
 
 ### Linting
