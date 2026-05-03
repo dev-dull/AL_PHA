@@ -1,14 +1,17 @@
 import 'package:drift/drift.dart';
+import 'package:planyr/features/sync/data/tombstone_repository.dart';
 import 'package:planyr/shared/database.dart';
 import 'package:planyr/features/board/domain/board.dart';
 import 'package:planyr/features/board/domain/board_type.dart';
 
 class BoardRepository {
   final PlanyrDatabase _db;
+  final TombstoneRepository? _tombstones;
 
-  BoardRepository(this._db);
+  BoardRepository(this._db, [this._tombstones]);
 
   Board _boardDataToBoard(dynamic row) {
+    final rawWeekStart = row.weekStart as DateTime?;
     return Board(
       id: row.id as String,
       name: row.name as String,
@@ -16,11 +19,24 @@ class BoardRepository {
       createdAt: row.createdAt as DateTime,
       updatedAt: row.updatedAt as DateTime,
       archived: row.archived as bool,
-      weekStart: row.weekStart as DateTime?,
+      // Drift reads DateTime as local — re-stamp as UTC so the
+      // weekStart contract (always UTC midnight, #56) survives the
+      // round-trip. Same absolute instant, just `isUtc=true`.
+      weekStart: rawWeekStart?.toUtc(),
     );
   }
 
+  /// Normalizes a [DateTime] to UTC midnight of its calendar date.
+  /// Anything passed as a board's weekStart goes through this so the
+  /// stored value is TZ-stable: lookup from a different timezone
+  /// still finds the same board (issue #56).
+  static DateTime? _normalizeWeekStart(DateTime? d) {
+    if (d == null) return null;
+    return DateTime.utc(d.year, d.month, d.day);
+  }
+
   Future<Board> create(Board board) async {
+    final normalized = _normalizeWeekStart(board.weekStart);
     await _db
         .into(_db.boards)
         .insert(
@@ -31,10 +47,10 @@ class BoardRepository {
             createdAt: board.createdAt,
             updatedAt: board.updatedAt,
             archived: Value(board.archived),
-            weekStart: Value(board.weekStart),
+            weekStart: Value(normalized),
           ),
         );
-    return board;
+    return board.copyWith(weekStart: normalized);
   }
 
   /// Looks up a weekly board that overlaps the week starting at
@@ -48,12 +64,13 @@ class BoardRepository {
   /// [weekStart]. Handles boards created under a different
   /// first-day-of-week convention by checking ±1 day.
   Future<Board?> getByWeekStart(DateTime weekStart) async {
-    final exact = await getByPeriodStart(weekStart, BoardType.weekly);
+    // Normalize to UTC midnight before any equality lookup so
+    // callers passing a local DateTime still find the canonical row.
+    final ws = _normalizeWeekStart(weekStart)!;
+    final exact = await getByPeriodStart(ws, BoardType.weekly);
 
-    final dayBefore = DateTime(
-      weekStart.year, weekStart.month, weekStart.day - 1);
-    final dayAfter = DateTime(
-      weekStart.year, weekStart.month, weekStart.day + 1);
+    final dayBefore = DateTime.utc(ws.year, ws.month, ws.day - 1);
+    final dayAfter = DateTime.utc(ws.year, ws.month, ws.day + 1);
     final neighbor =
         await getByPeriodStart(dayBefore, BoardType.weekly) ??
         await getByPeriodStart(dayAfter, BoardType.weekly);
@@ -80,7 +97,26 @@ class BoardRepository {
   }
 
   /// Removes a board and all its columns, markers, and tasks.
+  /// Tombstones every row so the cloud propagates the deletes.
   Future<void> _deleteBoardCascade(String boardId) async {
+    final tombs = _tombstones;
+    if (tombs != null) {
+      for (final m in await (_db.select(_db.markers)
+            ..where((m) => m.boardId.equals(boardId)))
+          .get()) {
+        await tombs.record('markers', m.id);
+      }
+      for (final t in await (_db.select(_db.tasks)
+            ..where((t) => t.boardId.equals(boardId)))
+          .get()) {
+        await tombs.record('tasks', t.id);
+      }
+      for (final c in await (_db.select(_db.boardColumns)
+            ..where((c) => c.boardId.equals(boardId)))
+          .get()) {
+        await tombs.record('board_columns', c.id);
+      }
+    }
     await (_db.delete(_db.markers)
           ..where((m) => m.boardId.equals(boardId)))
         .go();
@@ -93,16 +129,21 @@ class BoardRepository {
     await (_db.delete(_db.boards)
           ..where((b) => b.id.equals(boardId)))
         .go();
+    await tombs?.record('boards', boardId);
   }
 
   Future<Board?> getByPeriodStart(
     DateTime periodStart,
     BoardType type,
   ) async {
+    // Stored weekStart is always UTC midnight (#56). Normalize the
+    // lookup key the same way so callers passing a local DateTime
+    // still match.
+    final ws = _normalizeWeekStart(periodStart)!;
     final query = _db.select(_db.boards)
       ..where(
         (b) =>
-            b.weekStart.equals(periodStart) &
+            b.weekStart.equals(ws) &
             b.type.equals(type.name) &
             b.archived.equals(false),
       );
@@ -150,6 +191,7 @@ class BoardRepository {
 
   Future<void> delete(String id) async {
     await (_db.delete(_db.boards)..where((b) => b.id.equals(id))).go();
+    await _tombstones?.record('boards', id);
   }
 
   Stream<List<Board>> watchAll({bool includeArchived = false}) {

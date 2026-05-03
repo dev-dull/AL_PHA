@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AuthTokens {
 
- String get accessToken; String get idToken; String get refreshToken; DateTime get expiresAt;
+ String get accessToken; String get idToken; String get refreshToken;@_UtcEpochConverter() DateTime get expiresAt;
 /// Create a copy of AuthTokens
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $AuthTokensCopyWith<$Res>  {
   factory $AuthTokensCopyWith(AuthTokens value, $Res Function(AuthTokens) _then) = _$AuthTokensCopyWithImpl;
 @useResult
 $Res call({
- String accessToken, String idToken, String refreshToken, DateTime expiresAt
+ String accessToken, String idToken, String refreshToken,@_UtcEpochConverter() DateTime expiresAt
 });
 
 
@@ -156,7 +156,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String accessToken,  String idToken,  String refreshToken,  DateTime expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String accessToken,  String idToken,  String refreshToken, @_UtcEpochConverter()  DateTime expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AuthTokens() when $default != null:
 return $default(_that.accessToken,_that.idToken,_that.refreshToken,_that.expiresAt);case _:
@@ -177,7 +177,7 @@ return $default(_that.accessToken,_that.idToken,_that.refreshToken,_that.expires
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String accessToken,  String idToken,  String refreshToken,  DateTime expiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String accessToken,  String idToken,  String refreshToken, @_UtcEpochConverter()  DateTime expiresAt)  $default,) {final _that = this;
 switch (_that) {
 case _AuthTokens():
 return $default(_that.accessToken,_that.idToken,_that.refreshToken,_that.expiresAt);case _:
@@ -197,7 +197,7 @@ return $default(_that.accessToken,_that.idToken,_that.refreshToken,_that.expires
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String accessToken,  String idToken,  String refreshToken,  DateTime expiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String accessToken,  String idToken,  String refreshToken, @_UtcEpochConverter()  DateTime expiresAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AuthTokens() when $default != null:
 return $default(_that.accessToken,_that.idToken,_that.refreshToken,_that.expiresAt);case _:
@@ -212,13 +212,13 @@ return $default(_that.accessToken,_that.idToken,_that.refreshToken,_that.expires
 @JsonSerializable()
 
 class _AuthTokens extends AuthTokens {
-  const _AuthTokens({required this.accessToken, required this.idToken, required this.refreshToken, required this.expiresAt}): super._();
+  const _AuthTokens({required this.accessToken, required this.idToken, required this.refreshToken, @_UtcEpochConverter() required this.expiresAt}): super._();
   factory _AuthTokens.fromJson(Map<String, dynamic> json) => _$AuthTokensFromJson(json);
 
 @override final  String accessToken;
 @override final  String idToken;
 @override final  String refreshToken;
-@override final  DateTime expiresAt;
+@override@_UtcEpochConverter() final  DateTime expiresAt;
 
 /// Create a copy of AuthTokens
 /// with the given fields replaced by the non-null parameter values.
@@ -253,7 +253,7 @@ abstract mixin class _$AuthTokensCopyWith<$Res> implements $AuthTokensCopyWith<$
   factory _$AuthTokensCopyWith(_AuthTokens value, $Res Function(_AuthTokens) _then) = __$AuthTokensCopyWithImpl;
 @override @useResult
 $Res call({
- String accessToken, String idToken, String refreshToken, DateTime expiresAt
+ String accessToken, String idToken, String refreshToken,@_UtcEpochConverter() DateTime expiresAt
 });
 
 

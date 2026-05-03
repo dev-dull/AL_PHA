@@ -10,7 +10,7 @@ _AuthTokens _$AuthTokensFromJson(Map<String, dynamic> json) => _AuthTokens(
   accessToken: json['accessToken'] as String,
   idToken: json['idToken'] as String,
   refreshToken: json['refreshToken'] as String,
-  expiresAt: DateTime.parse(json['expiresAt'] as String),
+  expiresAt: const _UtcEpochConverter().fromJson(json['expiresAt'] as Object),
 );
 
 Map<String, dynamic> _$AuthTokensToJson(_AuthTokens instance) =>
@@ -18,7 +18,7 @@ Map<String, dynamic> _$AuthTokensToJson(_AuthTokens instance) =>
       'accessToken': instance.accessToken,
       'idToken': instance.idToken,
       'refreshToken': instance.refreshToken,
-      'expiresAt': instance.expiresAt.toIso8601String(),
+      'expiresAt': const _UtcEpochConverter().toJson(instance.expiresAt),
     };
 
 _AuthUser _$AuthUserFromJson(Map<String, dynamic> json) =>

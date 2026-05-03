@@ -55,9 +55,20 @@ Future<Map<DateTime, DaySummary>> daySummaries(
 
   final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
 
+  // Normalize range bounds to UTC midnight of the same calendar
+  // date so the comparisons below are between equivalent UTC
+  // values. weekStart from startOfWeek is already UTC midnight
+  // (#56); without normalizing the bounds, mixing UTC and local
+  // DateTimes in isBefore() shifted the entire range by the host
+  // offset and dropped the first day's summary on the floor.
+  final rangeStartUtc =
+      DateTime.utc(rangeStart.year, rangeStart.month, rangeStart.day);
+  final rangeEndUtc =
+      DateTime.utc(rangeEnd.year, rangeEnd.month, rangeEnd.day);
+
   // Find all week starts that overlap with the date range.
   var weekStart = startOfWeek(rangeStart, firstDay: firstDay);
-  while (weekStart.isBefore(rangeEnd)) {
+  while (weekStart.isBefore(rangeEndUtc)) {
     final board = await boardRepo.getByWeekStart(weekStart);
 
     if (board != null) {
@@ -68,7 +79,10 @@ Future<Map<DateTime, DaySummary>> daySummaries(
         if (col.type != ColumnType.date) continue;
 
         final date = weekStart.add(Duration(days: col.position));
-        if (date.isBefore(rangeStart) || !date.isBefore(rangeEnd)) continue;
+        if (date.isBefore(rangeStartUtc) ||
+            !date.isBefore(rangeEndUtc)) {
+          continue;
+        }
 
         final dayKey = DateTime(date.year, date.month, date.day);
         var completed = 0;

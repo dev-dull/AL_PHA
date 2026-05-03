@@ -112,7 +112,13 @@ class AuthRepository {
       if (session == null) return null;
 
       final result = _sessionToResult(session, user.email);
-      return result.tokens;
+      // Cognito's REFRESH_TOKEN_AUTH response only contains the new
+      // access + ID tokens — it never returns a new refresh token.
+      // [_sessionToResult] therefore reads back as empty string and
+      // would overwrite the user's working refresh token, signing
+      // them out as soon as the new access token expires (~1 hour).
+      // Preserve the original refresh token across refreshes.
+      return result.tokens.copyWith(refreshToken: tokens.refreshToken);
     } catch (_) {
       return null;
     }
@@ -133,7 +139,11 @@ class AuthRepository {
       accessToken: accessToken,
       idToken: idToken,
       refreshToken: refreshToken,
-      expiresAt: DateTime.fromMillisecondsSinceEpoch(expiry * 1000),
+      // UTC at the source so isExpired and JSON round-trip are
+      // independent of the host's current TZ. See auth_state.dart
+      // for why the persisted format is also UTC milliseconds.
+      expiresAt:
+          DateTime.fromMillisecondsSinceEpoch(expiry * 1000, isUtc: true),
     );
 
     final user = _parseIdToken(idToken) ??

@@ -195,7 +195,7 @@ class PlanyrDatabase extends _$PlanyrDatabase {
   PlanyrDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -283,6 +283,30 @@ class PlanyrDatabase extends _$PlanyrDatabase {
         await customStatement(
           'UPDATE tags SET updated_at = created_at '
           'WHERE updated_at IS NULL',
+        );
+      }
+      if (from < 12) {
+        // Re-stamp boards.week_start to UTC midnight of the same
+        // calendar date. Previously, startOfWeek returned a local
+        // DateTime, which Drift stored as the local-midnight
+        // instant. After traveling to a new TZ, the next lookup
+        // computed a different epoch for the same calendar Monday
+        // and missed the existing board entirely — tasks looked
+        // like they had disappeared. Storing UTC midnight makes
+        // the value TZ-stable.
+        //
+        // SQLite arithmetic: divide ms by 1000 for unixepoch,
+        // interpret in 'localtime' to extract the user's perceived
+        // calendar date, then re-encode that date as UTC midnight
+        // (strftime defaults to UTC for plain 'YYYY-MM-DD' input).
+        await customStatement(
+          'UPDATE boards SET week_start = '
+          "strftime('%s', "
+          "  strftime('%Y-%m-%d', "
+          "    datetime(week_start / 1000, 'unixepoch', 'localtime')"
+          '  )'
+          ') * 1000 '
+          'WHERE week_start IS NOT NULL',
         );
       }
     },

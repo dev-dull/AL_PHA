@@ -81,7 +81,7 @@ void main() {
       DateTime(2026, 3, 18),
       firstDay: DateTime.sunday,
     );
-    expect(sunday, DateTime(2026, 3, 15));
+    expect(sunday, DateTime.utc(2026, 3, 15));
 
     final sundayBoardId = await container.read(
       weeklyBoardProvider(sunday).future,
@@ -301,7 +301,7 @@ void main() {
       DateTime(2026, 3, 18),
       firstDay: DateTime.sunday,
     );
-    expect(sunday, DateTime(2026, 3, 15));
+    expect(sunday, DateTime.utc(2026, 3, 15));
 
     final sundayBoardId = await container.read(
       weeklyBoardProvider(sunday).future,
