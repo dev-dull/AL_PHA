@@ -94,26 +94,39 @@ String _htmlToPlainText(String html) {
   return text.trim();
 }
 
-/// Converts an iCal-parsed [DateTime] to UTC, honoring [tzId] when
-/// present.
+/// Converts an iCal-parsed [DateTime] to UTC, honoring whatever
+/// timezone information the source provides.
 ///
 /// `enough_icalendar` returns DTSTART as a naive `DateTime` whose
 /// wall-clock fields (year/month/day/hour/minute) match the source
-/// — but with `isUtc=false`. The TZID parameter (`America/New_York`
-/// etc.) is exposed separately on the property. Three cases:
+/// — but with `isUtc=false`. The relevant zone information lives
+/// on the property's TZID parameter and/or on the calendar-level
+/// `X-WR-TIMEZONE` property. Resolution order, picking the first
+/// that succeeds:
 ///
-/// 1. Parsed value is already UTC (DTSTART had a `Z` suffix) → use
-///    as-is.
-/// 2. [tzId] is provided → look it up in IANA tzdata and convert
-///    the wall-clock to that location, then to UTC. Falls through
-///    to the host-local interpretation if the zone is unknown.
-/// 3. No TZID and no `Z` → treat as floating local; `.toUtc()`
-///    matches existing behavior for naive DateTimes.
-DateTime _resolveToUtc(DateTime parsed, String? tzId) {
+/// 1. **Already UTC** (DTSTART had a `Z` suffix) → use as-is.
+/// 2. **[tzId]** (per-property `TZID`, e.g.
+///    `DTSTART;TZID=America/New_York:…`) → IANA lookup + convert.
+/// 3. **[calendarTzId]** (calendar-level `X-WR-TIMEZONE`) → IANA
+///    lookup + convert. Many Outlook / older Google exports emit
+///    floating-local DTSTARTs alongside this calendar-level
+///    declaration; without honoring it the import lands at the
+///    host's offset, which is wrong for any user not in the
+///    source zone (#60).
+/// 4. **Host-local fallback** → `.toUtc()` interprets the naive
+///    DateTime in the host's current zone. Last resort; matches
+///    RFC 5545's "floating local time" semantics for ICS files
+///    that genuinely have no zone information at all.
+DateTime _resolveToUtc(
+  DateTime parsed,
+  String? tzId, {
+  String? calendarTzId,
+}) {
   if (parsed.isUtc) return parsed;
-  if (tzId != null) {
+  for (final candidate in [tzId, calendarTzId]) {
+    if (candidate == null) continue;
     try {
-      final loc = tz.getLocation(tzId);
+      final loc = tz.getLocation(candidate);
       final tzDt = tz.TZDateTime(
         loc,
         parsed.year, parsed.month, parsed.day,
@@ -122,7 +135,7 @@ DateTime _resolveToUtc(DateTime parsed, String? tzId) {
       );
       return tzDt.toUtc();
     } catch (_) {
-      // Unknown zone — fall through to host-local interpretation.
+      // Unknown zone — try the next candidate.
     }
   }
   return parsed.toUtc();
@@ -132,6 +145,13 @@ DateTime _resolveToUtc(DateTime parsed, String? tzId) {
 List<ParsedEvent> parseICalString(String icsContent) {
   final calendar = VComponent.parse(icsContent);
   final events = <ParsedEvent>[];
+
+  // Calendar-level X-WR-TIMEZONE (#60). Used as a fallback zone for
+  // any DTSTART without its own TZID. Lots of Outlook / older
+  // Google exports rely on this — they emit floating-local
+  // wall-clocks here and put the source zone in X-WR-TIMEZONE.
+  final calendarTzId =
+      calendar is VCalendar ? calendar.timezoneId : null;
 
   final components = calendar is VCalendar
       ? calendar.children
@@ -160,7 +180,11 @@ List<ParsedEvent> parseICalString(String icsContent) {
       final tzId = (dtStartProp is DateTimeProperty)
           ? dtStartProp.timezoneId
           : null;
-      final utc = _resolveToUtc(dtStart, tzId);
+      final utc = _resolveToUtc(
+        dtStart,
+        tzId,
+        calendarTzId: calendarTzId,
+      );
       startDate = utc;
       final hour = utc.hour.toString().padLeft(2, '0');
       final minute = utc.minute.toString().padLeft(2, '0');

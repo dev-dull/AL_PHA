@@ -41,4 +41,43 @@ void main() {
       expect(e.scheduledTime, isNotNull);
     });
   });
+
+  group('parseICalString — X-WR-TIMEZONE fallback (#60)', () {
+    late List<ParsedEvent> events;
+
+    setUpAll(() {
+      final ics =
+          File('test/fixtures/event_with_x_wr_timezone.ics')
+              .readAsStringSync();
+      events = parseICalString(ics);
+    });
+
+    test('floating-local DTSTART picks up calendar-level '
+        'X-WR-TIMEZONE as the source zone', () {
+      // Pre-fix: 14:30 with no per-event TZID fell through to
+      // host-local interpretation, so on a Pacific test runner the
+      // user saw 21:30 UTC stored, displaying as 2:30 PM PDT
+      // instead of the source's intended 14:30 EDT = 18:30 UTC.
+      // Outlook / older Google exports routinely look like this.
+      final e = events.firstWhere(
+        (e) => e.title == 'Floating local with calendar-level TZ',
+      );
+      // 14:30 EDT (May 7 2026 → UTC-4) = 18:30 UTC, regardless of
+      // host TZ.
+      expect(e.scheduledTime, '18:30');
+    });
+
+    test('per-event TZID overrides calendar-level X-WR-TIMEZONE', () {
+      // The calendar declares X-WR-TIMEZONE = America/New_York,
+      // but this event's DTSTART explicitly says
+      // TZID=Europe/London:20260507T100000. The per-event TZID
+      // must win. 10:00 BST (London on May 7 = UTC+1) = 09:00 UTC.
+      // (If we mis-applied the calendar zone instead, we'd compute
+      // 14:00 UTC.)
+      final e = events.firstWhere(
+        (e) => e.title == 'Per-event TZID overrides calendar X-WR-TIMEZONE',
+      );
+      expect(e.scheduledTime, '09:00');
+    });
+  });
 }
