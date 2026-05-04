@@ -10,6 +10,7 @@ import 'package:planyr/features/column/domain/column_type.dart';
 import 'package:planyr/features/marker/domain/marker.dart';
 import 'package:planyr/features/marker/domain/marker_symbol.dart';
 import 'package:planyr/features/marker/providers/marker_providers.dart';
+import 'package:planyr/features/task/domain/task.dart';
 import 'package:planyr/shared/database.dart';
 import 'package:planyr/shared/providers.dart';
 
@@ -56,7 +57,9 @@ void main() {
     final labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S', '>'];
     final columnIds = <String>[];
     for (var i = 0; i < labels.length; i++) {
-      final id = 'col-$i';
+      // Prefix by board id so multi-board tests don't collide on
+      // the board_columns.id PRIMARY KEY.
+      final id = '$boardId-col-$i';
       columnIds.add(id);
       await columnRepo.create(
         BoardColumn(
@@ -529,6 +532,221 @@ void main() {
 
       expect(mon!.symbol, MarkerSymbol.x);
       expect(wed!.symbol, MarkerSymbol.slash);
+    });
+
+    test('current-week missed dot rolls forward to today, no '
+        'migration-column flag', () async {
+      // Regression for the user-reported scenario on 2026-04-29:
+      // dot on Tuesday, today is Wednesday, current-week board.
+      // Used to set > in the migration column AND duplicate the
+      // task to next week's board. New behavior: convert Tuesday's
+      // dot to >, add a fresh dot on today's column, leave the
+      // migration column empty.
+      const boardId = 'board-1';
+      const taskId = 'test-task';
+
+      final now = DateTime.now();
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final colIds = await seedWeeklyBoard(boardId: boardId, createdAt: monday);
+
+      // Need a task row — autoFillMissedDays only adds the carry-
+      // forward dot if it can resolve the task to determine
+      // dot/event symbol.
+      final taskRepo = container.read(taskRepositoryProvider);
+      await taskRepo.create(Task(
+        id: taskId,
+        boardId: boardId,
+        title: 'test',
+        position: 0,
+        createdAt: now,
+      ));
+
+      // Need at least one past day on the current week and at least
+      // one future day for the test to be meaningful — skip if
+      // today is Mon (no past) or Sun (no future).
+      if (now.weekday <= 1 || now.weekday >= 7) return;
+      const pastPos = 0; // Mon
+      final todayPos = (now.weekday - 1); // Mon=0..Sun=6
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[pastPos],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      await actions.autoFillMissedDays(boardId: boardId);
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      // Past-day dot flipped to >.
+      final past = await markerRepo.get(taskId, colIds[pastPos]);
+      expect(past!.symbol, MarkerSymbol.migratedForward);
+      // Today gets a fresh dot.
+      final today = await markerRepo.get(taskId, colIds[todayPos]);
+      expect(today, isNotNull,
+          reason: 'today should pick up a carry-forward dot');
+      expect(today!.symbol, MarkerSymbol.dot);
+      // Migration column (position 7) stays empty.
+      final migCol = await markerRepo.get(taskId, colIds[7]);
+      expect(migCol, isNull,
+          reason: 'mid-week catch-up must not write the migration column');
+    });
+
+    test('past-week board still sets the migration-column > '
+        '(existing behavior preserved)', () async {
+      const boardId = 'board-1';
+      const taskId = 'test-task';
+
+      final lastWeek = DateTime.now().subtract(const Duration(days: 7));
+      final colIds = await seedWeeklyBoard(
+        boardId: boardId,
+        createdAt: lastWeek,
+      );
+
+      final taskRepo = container.read(taskRepositoryProvider);
+      await taskRepo.create(Task(
+        id: taskId,
+        boardId: boardId,
+        title: 'test',
+        position: 0,
+        createdAt: lastWeek,
+      ));
+
+      // A dot somewhere in the past week with no future dot — the
+      // task should be flagged for migration to the current week.
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[0],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      await actions.autoFillMissedDays(boardId: boardId);
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      final migCol = await markerRepo.get(taskId, colIds[7]);
+      expect(migCol, isNotNull,
+          reason: 'past-week boards still flag the migration column');
+      expect(migCol!.symbol, MarkerSymbol.migratedForward);
+    });
+  });
+
+  group('cold-launch catch-up (#69)', () {
+    test('autofill on the previous-week board (BoardGridBody catch-up) '
+        'migrates a dotted-but-not-completed task forward to the '
+        'current week', () async {
+      // The user-reported bug: cold-launch on Monday into the new
+      // week never visits last week's board, so its dots-on-past-
+      // days stay as dots and the corresponding tasks never reach
+      // the new week's board. The fix in BoardGridBody runs
+      // autoFillMissedDays against the previous-week board on
+      // mount; this test verifies the underlying actions-layer
+      // behavior the catch-up depends on.
+      const lastBoardId = 'last-week';
+      const newBoardId = 'this-week';
+      const taskId = 'rochester-tickets';
+
+      final lastWeek =
+          DateTime.now().subtract(const Duration(days: 7));
+      final lastColIds = await seedWeeklyBoard(
+        boardId: lastBoardId,
+        createdAt: lastWeek,
+      );
+      // Current week board exists and is empty (the cold-launch
+      // shape — user mounts the new week, never visits the old).
+      await seedWeeklyBoard(
+        boardId: newBoardId,
+        createdAt: DateTime.now(),
+      );
+
+      final taskRepo = container.read(taskRepositoryProvider);
+      await taskRepo.create(Task(
+        id: taskId,
+        boardId: lastBoardId,
+        title: 'Buy tickets to Rochester',
+        position: 0,
+        createdAt: lastWeek,
+      ));
+      // Dot on Wednesday, never marked done.
+      await seedMarker(
+        taskId: taskId,
+        columnId: lastColIds[2],
+        boardId: lastBoardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      // The catch-up: autofill against last week's board.
+      await container
+          .read(markerActionsProvider)
+          .autoFillMissedDays(boardId: lastBoardId);
+
+      // Last week: dot → >.
+      final markerRepo = container.read(markerRepositoryProvider);
+      final lastWedMarker =
+          await markerRepo.get(taskId, lastColIds[2]);
+      expect(lastWedMarker?.symbol, MarkerSymbol.migratedForward);
+
+      // The migrated task arrived on the current week's board
+      // (the carry-forward target for past-week autofill).
+      final newTasks = await taskRepo.getByBoard(newBoardId);
+      expect(
+        newTasks.any((t) => t.title == 'Buy tickets to Rochester'),
+        isTrue,
+        reason: 'Catch-up autofill on last week must create the '
+            'forward-migrated task on this week',
+      );
+    });
+
+    test('catch-up is idempotent: running autofill twice on the '
+        'same past board does not duplicate the migrated task',
+        () async {
+      // BoardGridBody re-runs _runDailyMaintenance on every
+      // AppLifecycleState.resumed, so the catch-up may fire many
+      // times. The carry-forward must dedupe by
+      // (migratedFromBoardId, migratedFromTaskId) — proving that
+      // here so future regressions get caught at unit-test speed.
+      const lastBoardId = 'last-week';
+      const newBoardId = 'this-week';
+      const taskId = 'task-x';
+
+      final lastWeek =
+          DateTime.now().subtract(const Duration(days: 7));
+      final lastColIds = await seedWeeklyBoard(
+        boardId: lastBoardId,
+        createdAt: lastWeek,
+      );
+      await seedWeeklyBoard(
+        boardId: newBoardId,
+        createdAt: DateTime.now(),
+      );
+
+      final taskRepo = container.read(taskRepositoryProvider);
+      await taskRepo.create(Task(
+        id: taskId,
+        boardId: lastBoardId,
+        title: 'task-x',
+        position: 0,
+        createdAt: lastWeek,
+      ));
+      await seedMarker(
+        taskId: taskId,
+        columnId: lastColIds[1],
+        boardId: lastBoardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      final actions = container.read(markerActionsProvider);
+      await actions.autoFillMissedDays(boardId: lastBoardId);
+      await actions.autoFillMissedDays(boardId: lastBoardId);
+      await actions.autoFillMissedDays(boardId: lastBoardId);
+
+      final newTasks = await taskRepo.getByBoard(newBoardId);
+      final matches =
+          newTasks.where((t) => t.title == 'task-x').toList();
+      expect(matches, hasLength(1),
+          reason: 'autoFillMissedDays must dedupe by '
+              'migratedFromBoardId + migratedFromTaskId');
     });
   });
 

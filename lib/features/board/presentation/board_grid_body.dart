@@ -102,7 +102,22 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody>
   Future<void> _runDailyMaintenance() async {
     if (!mounted) return;
     final actions = ref.read(markerActionsProvider);
-    // Auto-fill missed days and migrate incomplete tasks.
+
+    // Catch-up pass on past-week boards (#69). Cold-launching into
+    // a new week mounts only the current week's BoardGridBody, so
+    // without this the *previous* week's dots-on-past-days never
+    // get converted to migratedForward markers and their tasks
+    // never reach the new week. Walk back N weeks and run autofill
+    // on each existing past board. Bounded so a months-long absence
+    // doesn't spike on launch — anything older the user can scroll
+    // back to manually, which fires the same autofill via
+    // `_changeWeek`. autoFillMissedDays is idempotent (deduplicates
+    // by migratedFromBoardId+taskId), so running again on a
+    // previously-visited prev-week board is a no-op.
+    await _runCatchUpOnPastWeeks(actions);
+
+    // Auto-fill missed days and migrate incomplete tasks for the
+    // currently mounted board.
     await actions.autoFillMissedDays(boardId: widget.boardId);
     // Sweep stale > markers left behind by pre-fix auto-migration:
     // for any task that's now done in this week, convert past >
@@ -114,6 +129,43 @@ class _BoardGridBodyState extends ConsumerState<BoardGridBody>
     // are real tasks with full interactivity (drag, markers).
     await _materializeVirtualInstances();
   }
+
+  /// Runs `autoFillMissedDays` on each existing weekly board for
+  /// the past [_catchUpWeeks] weeks (relative to `now`), oldest
+  /// first so any task chained from week N-2 → N-1 → N gets its
+  /// chance to reach the current week in a single pass.
+  Future<void> _runCatchUpOnPastWeeks(MarkerActions actions) async {
+    final firstDay = ref.read(preferencesProvider).firstDayOfWeek;
+    final boardRepo = ref.read(boardRepositoryProvider);
+    final currentWeekStart = startOfWeek(DateTime.now(), firstDay: firstDay);
+
+    // Walk oldest → newest so a task migrating across multiple
+    // weeks lands on each intermediate board's > column on the
+    // way through. (Within a single weekly autoFill pass, past
+    // boards migrate to currentWeekStart directly, so ordering is
+    // mostly defensive — but it costs nothing and avoids surprise
+    // if the migration target ever becomes "next week" instead of
+    // "current week".)
+    for (var i = _catchUpWeeks; i >= 1; i--) {
+      // UTC arithmetic (currentWeekStart is UTC midnight, #56) so
+      // no DST shift across the subtraction.
+      final prevWeekStart = DateTime.utc(
+        currentWeekStart.year,
+        currentWeekStart.month,
+        currentWeekStart.day - 7 * i,
+      );
+      final prevBoard = await boardRepo.getByWeekStart(prevWeekStart);
+      if (prevBoard == null) continue;
+      if (prevBoard.id == widget.boardId) continue;
+      await actions.autoFillMissedDays(boardId: prevBoard.id);
+    }
+  }
+
+  /// How many weeks back the cold-launch catch-up sweep walks.
+  /// 4 covers the common "closed app over the weekend / a week off"
+  /// case; deeper gaps the user can resolve manually by navigating
+  /// back, which fires the same autofill via `_changeWeek`.
+  static const _catchUpWeeks = 4;
 
   /// Creates real task rows for any active series that should
   /// appear on this board but don't have a materialized instance.
