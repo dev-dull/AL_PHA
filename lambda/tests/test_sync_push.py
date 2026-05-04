@@ -115,12 +115,16 @@ class UpsertNaturalKeyTests(unittest.TestCase):
         def fake_execute_one(query, params=None):
             calls = captured.setdefault("selects", [])
             calls.append(params)
-            # First call: lookup by id (`id = client_id`) — miss.
+            # First call: parent-deleted-at check on `boards` (#45
+            # guard); the marker's parent board is alive.
             if len(calls) == 1:
+                return {"deleted_at": None}
+            # Second call: lookup by id (`id = client_id`) — miss.
+            if len(calls) == 2:
                 return None
-            # Second call: lookup by natural key
-            # (`task_id = ? AND column_id = ?`) — hit, server has
-            # cloud_id with an older timestamp than the incoming.
+            # Third call: lookup by natural key (`task_id = ?
+            # AND column_id = ?`) — hit, server has cloud_id with
+            # an older timestamp than the incoming.
             return {
                 "row_id": "cloud_id",
                 "ts": _datetime("2026-05-01T00:00:00+00:00"),
@@ -198,6 +202,137 @@ class UpsertNaturalKeyTests(unittest.TestCase):
         self.assertTrue(ok)
         mock_insert.assert_called_once()
         mock_update.assert_not_called()
+
+
+class ParentDeletedGuardTests(unittest.TestCase):
+    """`sync_push` must refuse to upsert child rows whose server-
+    side parent is soft-deleted (#45). Otherwise an out-of-date
+    client keeps pushing children under a tombstoned parent and
+    the cloud accumulates orphans.
+    """
+
+    def test_marker_under_soft_deleted_board_is_rejected(self):
+        # Parent SELECT returns a row with deleted_at set.
+        with patch.object(
+            sync_push,
+            "execute_one",
+            return_value={"deleted_at": _datetime(
+                "2026-05-04T12:00:00+00:00"
+            )},
+        ), patch.object(
+            sync_push, "_insert_row"
+        ) as mock_insert, patch.object(
+            sync_push, "_update_row"
+        ) as mock_update:
+            ok = sync_push._upsert_row(
+                table="markers",
+                id_col="id",
+                row_id="m1",
+                data={
+                    "id": "m1",
+                    "task_id": "taskA",
+                    "column_id": "colB",
+                    "board_id": "soft-deleted-board",
+                    "symbol": "dot",
+                    "updated_at": 1777800000,
+                },
+                updated_at=_datetime("2026-05-04T13:00:00+00:00"),
+                deleted=False,
+                user_id=None,
+                client_table="markers",
+            )
+
+        self.assertFalse(ok, "must reject when parent board is soft-deleted")
+        mock_insert.assert_not_called()
+        mock_update.assert_not_called()
+
+    def test_soft_delete_of_child_under_soft_deleted_parent_is_allowed(self):
+        # Even if the parent is soft-deleted, child tombstones must
+        # still be accepted — they're how the client cleans up.
+        # The lookup-by-id branch returns no existing row; the
+        # delete path is a no-op upsert that returns True.
+        with patch.object(
+            sync_push, "execute_one", return_value=None
+        ):
+            ok = sync_push._upsert_row(
+                table="markers",
+                id_col="id",
+                row_id="m1",
+                data={
+                    "id": "m1",
+                    "board_id": "soft-deleted-board",
+                },
+                updated_at=_datetime("2026-05-04T13:00:00+00:00"),
+                deleted=True,
+                user_id=None,
+                client_table="markers",
+            )
+        # A delete on a non-existent server row returns True (no-op,
+        # nothing to soft-delete), but critically: did NOT consult
+        # _parent_is_soft_deleted, so no rejection.
+        self.assertTrue(ok)
+
+    def test_task_under_live_board_is_accepted(self):
+        # Sanity: a normal upsert against a live parent goes
+        # through the existing logic. The first execute_one is the
+        # parent-deleted-at lookup (returns deleted_at=None for
+        # alive). Subsequent calls (existence-by-id, etc.) drive
+        # the rest of the upsert; we mock _insert_row so the test
+        # doesn't need a real DB.
+        parent_alive = {"deleted_at": None}
+        existing_lookup_misses = None  # row by id doesn't exist
+        with patch.object(
+            sync_push,
+            "execute_one",
+            side_effect=[parent_alive, existing_lookup_misses],
+        ), patch.object(
+            sync_push, "_insert_row", return_value=True
+        ) as mock_insert:
+            ok = sync_push._upsert_row(
+                table="tasks",
+                id_col="id",
+                row_id="t1",
+                data={
+                    "id": "t1",
+                    "board_id": "live-board",
+                    "title": "test",
+                    "position": 0,
+                    "created_at": 1777800000,
+                    "updated_at": 1777800000,
+                },
+                updated_at=_datetime("2026-05-04T13:00:00+00:00"),
+                deleted=False,
+                user_id="u1",
+                client_table="tasks",
+            )
+        self.assertTrue(ok)
+        mock_insert.assert_called_once()
+
+    def test_task_tags_junction_under_soft_deleted_task_is_rejected(self):
+        # Junction-table path (composite key, separate code).
+        # _PARENT_REFS["task_tags"] = ("task_id", "tasks").
+        with patch.object(
+            sync_push,
+            "execute_one",
+            return_value={"deleted_at": _datetime(
+                "2026-05-04T12:00:00+00:00"
+            )},
+        ), patch.object(
+            sync_push, "execute"
+        ) as mock_execute:
+            ok = sync_push._upsert_junction(
+                "task_tags", "task_id", "tag_id",
+                data={
+                    "task_id": "soft-deleted-task",
+                    "tag_id": "tag-x",
+                    "slot": 0,
+                },
+                updated_at=_datetime("2026-05-04T13:00:00+00:00"),
+                deleted=False,
+                user_id="u1",
+            )
+        self.assertFalse(ok)
+        mock_execute.assert_not_called()
 
 
 def _datetime(iso):

@@ -248,10 +248,66 @@ _NATURAL_KEY = {
     "markers": ("task_id", "column_id"),
 }
 
+# Parent reference per child table: (column on child, parent table).
+# Used by the parent-deleted-at guard (#45). When a client pushes a
+# child row whose server-side parent has `deleted_at` set, we reject
+# rather than silently leaving an orphan in the cloud — the device
+# is out of date and needs to pull. Soft-deletes (`deleted=True`) on
+# the child still go through; rejecting those would leave dangling
+# tombstones unable to clean up.
+_PARENT_REFS = {
+    "tasks":         ("board_id",  "boards"),
+    "markers":       ("board_id",  "boards"),
+    "board_columns": ("board_id",  "boards"),
+    "task_notes":    ("task_id",   "tasks"),
+    "task_tags":     ("task_id",   "tasks"),
+    "series_tags":   ("series_id", "recurring_series"),
+}
+
+
+def _parent_is_soft_deleted(client_table, data):
+    """Returns True if [data]'s parent row exists server-side AND
+    has `deleted_at` set. Returns False if the table has no parent
+    in [_PARENT_REFS], the data lacks the parent reference column,
+    the parent row doesn't exist (handled separately by FK check),
+    or the parent is alive.
+    """
+    ref = _PARENT_REFS.get(client_table)
+    if ref is None:
+        return False
+    parent_col, parent_table = ref
+    parent_id = data.get(parent_col)
+    if not parent_id:
+        return False
+    row = execute_one(
+        sql.SQL(
+            "SELECT {da} FROM {tbl} WHERE {idc} = %s"
+        ).format(
+            da=_ident("deleted_at"),
+            tbl=_ident(parent_table),
+            idc=_ident("id"),
+        ),
+        (parent_id,),
+    )
+    return row is not None and row.get("deleted_at") is not None
+
 
 def _upsert_row(table, id_col, row_id, data, updated_at,
                  deleted, user_id, client_table):
     """Upsert a single row. Returns True if accepted."""
+    # Parent-deleted-at guard (#45). A device whose local DB still
+    # thinks a soft-deleted parent (board / task / series) is alive
+    # would otherwise keep pushing children under its id, leaving
+    # the cloud with permanent orphans. Reject the upsert and let
+    # the next pull catch the device up. Soft-deletes
+    # (deleted=True) on children always go through — they're how
+    # the client cleans up ahead of the parent's tombstone landing.
+    if not deleted and _parent_is_soft_deleted(client_table, data):
+        logger.info(
+            "  → rejected: parent %s row is soft-deleted",
+            _PARENT_REFS[client_table][1],
+        )
+        return False
     ts_col = _TIMESTAMP_COL.get(client_table)
 
     if ts_col:
@@ -445,6 +501,16 @@ def _upsert_junction(table, key1, key2, data, updated_at, deleted, user_id):
     k1 = data.get(key1)
     k2 = data.get(key2)
     if not k1 or not k2:
+        return False
+    # Parent-deleted-at guard (#45). For task_tags, parent is the
+    # task; for series_tags, parent is the recurring_series. Reject
+    # upserts under a soft-deleted parent so we don't accumulate
+    # orphan junction rows. Deletes still go through.
+    if not deleted and _parent_is_soft_deleted(table, data):
+        logger.info(
+            "  → rejected: parent %s row is soft-deleted",
+            _PARENT_REFS[table][1],
+        )
         return False
 
     existing = execute_one(
