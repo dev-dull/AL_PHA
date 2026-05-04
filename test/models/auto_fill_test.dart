@@ -474,6 +474,17 @@ void main() {
         createdAt: lastWeek,
       );
 
+      // Real task row required — autoFillMissedDays defensively
+      // skips markers whose task isn't on the board (#42 fix).
+      final taskRepo = container.read(taskRepositoryProvider);
+      await taskRepo.create(Task(
+        id: taskId,
+        boardId: boardId,
+        title: 'task-1',
+        position: 0,
+        createdAt: lastWeek,
+      ));
+
       // Put dots on Mon and Fri
       await seedMarker(
         taskId: taskId,
@@ -497,6 +508,96 @@ void main() {
 
       expect(mon!.symbol, MarkerSymbol.migratedForward);
       expect(fri!.symbol, MarkerSymbol.migratedForward);
+    });
+
+    test('one-time event markers are NEVER migrated to > (#42)',
+        () async {
+      // Spec: one-time events are date-specific and don't migrate.
+      // Pre-fix, autoFillMissedDays filtered markers by
+      // m.symbol.isScheduled which included MarkerSymbol.event,
+      // and the task-level skip used `task != null && ...` so a
+      // missing task lookup let the migration through. Audit
+      // script "scripts/cloud_audit.py" was emitting the warning
+      // "events with migratedForward markers (auto-fill bug)" on
+      // every run.
+      const boardId = 'board-1';
+      const taskId = 'jackson-hewitt';
+      final lastWeek =
+          DateTime.now().subtract(const Duration(days: 7));
+      final colIds = await seedWeeklyBoard(
+        boardId: boardId,
+        createdAt: lastWeek,
+      );
+
+      final taskRepo = container.read(taskRepositoryProvider);
+      await taskRepo.create(Task(
+        id: taskId,
+        boardId: boardId,
+        title: 'Jackson Hewitt - Drop off and Go',
+        position: 0,
+        createdAt: lastWeek,
+        isEvent: true,
+        scheduledTime: '23:00',
+      ));
+
+      // Open-circle event marker on a past day.
+      await seedMarker(
+        taskId: taskId,
+        columnId: colIds[1],
+        boardId: boardId,
+        symbol: MarkerSymbol.event,
+      );
+
+      await container
+          .read(markerActionsProvider)
+          .autoFillMissedDays(boardId: boardId);
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      final tueMarker = await markerRepo.get(taskId, colIds[1]);
+      expect(tueMarker?.symbol, MarkerSymbol.event,
+          reason: 'event markers must stay event, never become >');
+
+      // Migration column on the past board must NOT have flagged
+      // this event for next-week carry-forward either.
+      final migCol = await markerRepo.get(taskId, colIds[7]);
+      expect(migCol, isNull,
+          reason: 'one-time events do not migrate to next week');
+    });
+
+    test('orphan dot marker (task missing from board) is NOT migrated '
+        '(defensive — covers stale data after re-FK / migration)',
+        () async {
+      // If a marker references a task that no longer exists on
+      // this board (e.g. the task was moved by a previous merge or
+      // the row was deleted directly), the autofill must skip it
+      // rather than blindly converting to >. Same family of "don't
+      // migrate something we can't identify" defensiveness as #62.
+      const boardId = 'board-1';
+      const orphanTaskId = 'gone-task';
+      final lastWeek =
+          DateTime.now().subtract(const Duration(days: 7));
+      final colIds = await seedWeeklyBoard(
+        boardId: boardId,
+        createdAt: lastWeek,
+      );
+
+      // Marker whose task_id has no corresponding row.
+      await seedMarker(
+        taskId: orphanTaskId,
+        columnId: colIds[2],
+        boardId: boardId,
+        symbol: MarkerSymbol.dot,
+      );
+
+      await container
+          .read(markerActionsProvider)
+          .autoFillMissedDays(boardId: boardId);
+
+      final markerRepo = container.read(markerRepositoryProvider);
+      final wedMarker = await markerRepo.get(orphanTaskId, colIds[2]);
+      expect(wedMarker?.symbol, MarkerSymbol.dot,
+          reason: 'orphan markers must stay as-is (no migration '
+              'path can identify the right next-week target)');
     });
 
     test('does not touch non-dot symbols', () async {

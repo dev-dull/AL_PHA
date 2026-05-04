@@ -556,21 +556,37 @@ class MarkerActions {
     final taskDotPositions = <String, Set<int>>{};
 
     for (final col in pastDayColumns) {
+      // Only DOT markers migrate. Event markers (the open-circle ○
+      // for scheduled events) are date-specific by spec and must
+      // never auto-roll forward — see CLAUDE.md "one-time events
+      // don't migrate." Filtering at the marker-symbol layer here
+      // (instead of relying on a task-level skip below) means we
+      // can't accidentally migrate an event marker even if its
+      // parent task lookup returns null or has surprising fields
+      // (#42).
       final dotsInCol = allMarkers.where(
         (m) =>
             m.columnId == col.id &&
-            m.symbol.isScheduled,
+            m.symbol == MarkerSymbol.dot,
       );
       for (final marker in dotsInCol) {
-        // Skip recurring tasks — the virtual instance system
-        // handles their carry-forward automatically.
-        // Skip non-recurring events — they are date-specific
-        // and should not migrate to the next week.
         final task = allTasks
             .where((t) => t.id == marker.taskId)
             .firstOrNull;
-        if (task != null && task.isRecurring) continue;
-        if (task != null && task.isEvent && !task.isRecurring) continue;
+        // Defensive: an orphan marker (task missing from this
+        // board, possibly migrated elsewhere) — skip rather than
+        // converting to >. Migrating something we can't identify
+        // is exactly the class of footgun that bit us in #62.
+        if (task == null) continue;
+        // Skip recurring tasks — the virtual instance system
+        // handles their carry-forward automatically.
+        if (task.isRecurring) continue;
+        // Belt-and-braces: events would already be filtered at
+        // the marker-symbol layer above, but the data path could
+        // also reach here via a task that's `isEvent = true` with
+        // a stray `dot` marker (legacy / corrupt data). Skip any
+        // such case for the same "events don't migrate" rule.
+        if (task.isEvent) continue;
 
         await markerRepo.set(
           marker.copyWith(
@@ -611,7 +627,40 @@ class MarkerActions {
       }
     }
 
-    // Mark the migration column for missed tasks.
+    // For a CURRENT-week board, "missed Tuesday, today is Wednesday"
+    // doesn't mean "migrate to next week" — the user just wants the
+    // task to roll forward to today. Add a fresh dot on today's
+    // column for each task that had no later dot this week, then
+    // bail out before the migration-column / next-week-duplicate
+    // path that's only correct for past-week boards.
+    if (!isPastWeek) {
+      final todayCol = dayColumns
+          .where((c) => c.position == todayOffset)
+          .firstOrNull;
+      if (todayCol == null) return;
+      for (final taskId in tasksToMigrate) {
+        final existing = await markerRepo.get(taskId, todayCol.id);
+        if (existing != null) continue;
+        final task =
+            allTasks.where((t) => t.id == taskId).firstOrNull;
+        if (task == null) continue;
+        await markerRepo.set(
+          Marker(
+            id: _uuid.v4(),
+            taskId: taskId,
+            columnId: todayCol.id,
+            boardId: boardId,
+            symbol: MarkerSymbol.defaultFor(isEvent: task.isEvent),
+            updatedAt: now,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Past-week board only: mark the migration column for missed
+    // tasks. (Mid-week catch-up never sets the migration column —
+    // see the early return above.)
     final migrationCol = columns
         .where((c) => c.type != ColumnType.date)
         .firstOrNull;
@@ -633,13 +682,7 @@ class MarkerActions {
       }
     }
 
-    final targetWeekStart = isPastWeek
-        ? currentWeekStart
-        : DateTime(
-            currentWeekStart.year,
-            currentWeekStart.month,
-            currentWeekStart.day + 7,
-          );
+    final targetWeekStart = currentWeekStart;
 
     final targetBoardId =
         await _getOrCreateWeeklyBoard(targetWeekStart);
