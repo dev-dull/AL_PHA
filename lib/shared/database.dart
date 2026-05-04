@@ -100,6 +100,11 @@ class RecurringSeriesTable extends Table {
       boolean().withDefault(const Constant(false))();
   TextColumn get scheduledTime => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
+  // Bumped on every mutation (rename, recolor of tags, recurrence
+  // rule change, etc.). The sync change-tracker scans series_tags
+  // through recurring_series — relying on createdAt for that scan
+  // means tag edits to existing series never push (#52).
+  DateTimeColumn get updatedAt => dateTime().nullable()();
   DateTimeColumn get endedAt => dateTime().nullable()();
 
   @override
@@ -195,7 +200,7 @@ class PlanyrDatabase extends _$PlanyrDatabase {
   PlanyrDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -333,6 +338,26 @@ class PlanyrDatabase extends _$PlanyrDatabase {
         await customStatement(
           "UPDATE sync_meta SET value = '1970-01-01T00:00:00.000Z' "
           "WHERE key = 'last_sync_time'",
+        );
+      }
+      if (from < 14) {
+        // recurring_series gets updated_at so series mutations
+        // (rename, recurrence change, tag-set edit) actually push
+        // — the change tracker's series_tags scan was joining
+        // through recurring_series.created_at, which never moves
+        // after row creation. Same shape as the v11 fix that gave
+        // tags an updated_at column (#55, #52).
+        //
+        // Backfill = created_at so the next sync emits each series
+        // exactly once. After this migration, ChangeTracker scans
+        // series_tags by recurring_series.updated_at; existing tag
+        // assignments propagate one more time, then quiesce.
+        await customStatement(
+          'ALTER TABLE recurring_series ADD COLUMN updated_at INTEGER',
+        );
+        await customStatement(
+          'UPDATE recurring_series SET updated_at = created_at '
+          'WHERE updated_at IS NULL',
         );
       }
     },

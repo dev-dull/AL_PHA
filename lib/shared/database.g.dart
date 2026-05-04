@@ -3357,6 +3357,17 @@ class $RecurringSeriesTableTable extends RecurringSeriesTable
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _endedAtMeta = const VerificationMeta(
     'endedAt',
   );
@@ -3378,6 +3389,7 @@ class $RecurringSeriesTableTable extends RecurringSeriesTable
     isEvent,
     scheduledTime,
     createdAt,
+    updatedAt,
     endedAt,
   ];
   @override
@@ -3454,6 +3466,12 @@ class $RecurringSeriesTableTable extends RecurringSeriesTable
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
     if (data.containsKey('ended_at')) {
       context.handle(
         _endedAtMeta,
@@ -3501,6 +3519,10 @@ class $RecurringSeriesTableTable extends RecurringSeriesTable
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
       endedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}ended_at'],
@@ -3524,6 +3546,7 @@ class RecurringSeriesRow extends DataClass
   final bool isEvent;
   final String? scheduledTime;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   final DateTime? endedAt;
   const RecurringSeriesRow({
     required this.id,
@@ -3534,6 +3557,7 @@ class RecurringSeriesRow extends DataClass
     required this.isEvent,
     this.scheduledTime,
     required this.createdAt,
+    this.updatedAt,
     this.endedAt,
   });
   @override
@@ -3549,6 +3573,9 @@ class RecurringSeriesRow extends DataClass
       map['scheduled_time'] = Variable<String>(scheduledTime);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
     if (!nullToAbsent || endedAt != null) {
       map['ended_at'] = Variable<DateTime>(endedAt);
     }
@@ -3567,6 +3594,9 @@ class RecurringSeriesRow extends DataClass
           ? const Value.absent()
           : Value(scheduledTime),
       createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
       endedAt: endedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(endedAt),
@@ -3587,6 +3617,7 @@ class RecurringSeriesRow extends DataClass
       isEvent: serializer.fromJson<bool>(json['isEvent']),
       scheduledTime: serializer.fromJson<String?>(json['scheduledTime']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
       endedAt: serializer.fromJson<DateTime?>(json['endedAt']),
     );
   }
@@ -3602,6 +3633,7 @@ class RecurringSeriesRow extends DataClass
       'isEvent': serializer.toJson<bool>(isEvent),
       'scheduledTime': serializer.toJson<String?>(scheduledTime),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
       'endedAt': serializer.toJson<DateTime?>(endedAt),
     };
   }
@@ -3615,6 +3647,7 @@ class RecurringSeriesRow extends DataClass
     bool? isEvent,
     Value<String?> scheduledTime = const Value.absent(),
     DateTime? createdAt,
+    Value<DateTime?> updatedAt = const Value.absent(),
     Value<DateTime?> endedAt = const Value.absent(),
   }) => RecurringSeriesRow(
     id: id ?? this.id,
@@ -3627,6 +3660,7 @@ class RecurringSeriesRow extends DataClass
         ? scheduledTime.value
         : this.scheduledTime,
     createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
     endedAt: endedAt.present ? endedAt.value : this.endedAt,
   );
   RecurringSeriesRow copyWithCompanion(RecurringSeriesTableCompanion data) {
@@ -3645,6 +3679,7 @@ class RecurringSeriesRow extends DataClass
           ? data.scheduledTime.value
           : this.scheduledTime,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       endedAt: data.endedAt.present ? data.endedAt.value : this.endedAt,
     );
   }
@@ -3660,6 +3695,7 @@ class RecurringSeriesRow extends DataClass
           ..write('isEvent: $isEvent, ')
           ..write('scheduledTime: $scheduledTime, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('endedAt: $endedAt')
           ..write(')'))
         .toString();
@@ -3675,6 +3711,7 @@ class RecurringSeriesRow extends DataClass
     isEvent,
     scheduledTime,
     createdAt,
+    updatedAt,
     endedAt,
   );
   @override
@@ -3689,6 +3726,7 @@ class RecurringSeriesRow extends DataClass
           other.isEvent == this.isEvent &&
           other.scheduledTime == this.scheduledTime &&
           other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
           other.endedAt == this.endedAt);
 }
 
@@ -3702,6 +3740,7 @@ class RecurringSeriesTableCompanion
   final Value<bool> isEvent;
   final Value<String?> scheduledTime;
   final Value<DateTime> createdAt;
+  final Value<DateTime?> updatedAt;
   final Value<DateTime?> endedAt;
   final Value<int> rowid;
   const RecurringSeriesTableCompanion({
@@ -3713,6 +3752,7 @@ class RecurringSeriesTableCompanion
     this.isEvent = const Value.absent(),
     this.scheduledTime = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -3725,6 +3765,7 @@ class RecurringSeriesTableCompanion
     this.isEvent = const Value.absent(),
     this.scheduledTime = const Value.absent(),
     required DateTime createdAt,
+    this.updatedAt = const Value.absent(),
     this.endedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -3740,6 +3781,7 @@ class RecurringSeriesTableCompanion
     Expression<bool>? isEvent,
     Expression<String>? scheduledTime,
     Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
     Expression<DateTime>? endedAt,
     Expression<int>? rowid,
   }) {
@@ -3752,6 +3794,7 @@ class RecurringSeriesTableCompanion
       if (isEvent != null) 'is_event': isEvent,
       if (scheduledTime != null) 'scheduled_time': scheduledTime,
       if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
       if (endedAt != null) 'ended_at': endedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -3766,6 +3809,7 @@ class RecurringSeriesTableCompanion
     Value<bool>? isEvent,
     Value<String?>? scheduledTime,
     Value<DateTime>? createdAt,
+    Value<DateTime?>? updatedAt,
     Value<DateTime?>? endedAt,
     Value<int>? rowid,
   }) {
@@ -3778,6 +3822,7 @@ class RecurringSeriesTableCompanion
       isEvent: isEvent ?? this.isEvent,
       scheduledTime: scheduledTime ?? this.scheduledTime,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
       endedAt: endedAt ?? this.endedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -3810,6 +3855,9 @@ class RecurringSeriesTableCompanion
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
     if (endedAt.present) {
       map['ended_at'] = Variable<DateTime>(endedAt.value);
     }
@@ -3830,6 +3878,7 @@ class RecurringSeriesTableCompanion
           ..write('isEvent: $isEvent, ')
           ..write('scheduledTime: $scheduledTime, ')
           ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
           ..write('endedAt: $endedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -8043,6 +8092,7 @@ typedef $$RecurringSeriesTableTableCreateCompanionBuilder =
       Value<bool> isEvent,
       Value<String?> scheduledTime,
       required DateTime createdAt,
+      Value<DateTime?> updatedAt,
       Value<DateTime?> endedAt,
       Value<int> rowid,
     });
@@ -8056,6 +8106,7 @@ typedef $$RecurringSeriesTableTableUpdateCompanionBuilder =
       Value<bool> isEvent,
       Value<String?> scheduledTime,
       Value<DateTime> createdAt,
+      Value<DateTime?> updatedAt,
       Value<DateTime?> endedAt,
       Value<int> rowid,
     });
@@ -8144,6 +8195,11 @@ class $$RecurringSeriesTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get endedAt => $composableBuilder(
     column: $table.endedAt,
     builder: (column) => ColumnFilters(column),
@@ -8224,6 +8280,11 @@ class $$RecurringSeriesTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get endedAt => $composableBuilder(
     column: $table.endedAt,
     builder: (column) => ColumnOrderings(column),
@@ -8268,6 +8329,9 @@ class $$RecurringSeriesTableTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
   GeneratedColumn<DateTime> get endedAt =>
       $composableBuilder(column: $table.endedAt, builder: (column) => column);
@@ -8342,6 +8406,7 @@ class $$RecurringSeriesTableTableTableManager
                 Value<bool> isEvent = const Value.absent(),
                 Value<String?> scheduledTime = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecurringSeriesTableCompanion(
@@ -8353,6 +8418,7 @@ class $$RecurringSeriesTableTableTableManager
                 isEvent: isEvent,
                 scheduledTime: scheduledTime,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 endedAt: endedAt,
                 rowid: rowid,
               ),
@@ -8366,6 +8432,7 @@ class $$RecurringSeriesTableTableTableManager
                 Value<bool> isEvent = const Value.absent(),
                 Value<String?> scheduledTime = const Value.absent(),
                 required DateTime createdAt,
+                Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> endedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RecurringSeriesTableCompanion.insert(
@@ -8377,6 +8444,7 @@ class $$RecurringSeriesTableTableTableManager
                 isEvent: isEvent,
                 scheduledTime: scheduledTime,
                 createdAt: createdAt,
+                updatedAt: updatedAt,
                 endedAt: endedAt,
                 rowid: rowid,
               ),

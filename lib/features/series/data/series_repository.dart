@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
+import 'package:planyr/features/sync/data/tombstone_repository.dart';
 import 'package:planyr/shared/database.dart';
 import 'package:planyr/features/series/domain/recurring_series.dart';
 
 class SeriesRepository {
   final PlanyrDatabase _db;
+  final TombstoneRepository? _tombstones;
 
-  SeriesRepository(this._db);
+  SeriesRepository(this._db, [this._tombstones]);
 
   RecurringSeries _rowToSeries(dynamic row) {
     return RecurringSeries(
@@ -32,6 +34,9 @@ class SeriesRepository {
         isEvent: Value(series.isEvent),
         scheduledTime: Value(series.scheduledTime),
         createdAt: series.createdAt,
+        // Bumped on every mutation so series_tags edits push (#52).
+        // Set on create to match createdAt for consistency.
+        updatedAt: Value(series.createdAt),
         endedAt: Value(series.endedAt),
       ),
     );
@@ -50,6 +55,7 @@ class SeriesRepository {
         isEvent: Value(series.isEvent),
         scheduledTime: Value(series.scheduledTime),
         endedAt: Value(series.endedAt),
+        updatedAt: Value(DateTime.now().toUtc()),
       ),
     );
     return series;
@@ -86,14 +92,26 @@ class SeriesRepository {
   }
 
   Future<void> end(String id) async {
+    final now = DateTime.now().toUtc();
     await (_db.update(_db.recurringSeriesTable)
           ..where((s) => s.id.equals(id)))
         .write(
-      RecurringSeriesTableCompanion(endedAt: Value(DateTime.now().toUtc())),
+      RecurringSeriesTableCompanion(
+        endedAt: Value(now),
+        updatedAt: Value(now),
+      ),
     );
   }
 
   Future<void> delete(String id) async {
+    final tombs = _tombstones;
+    if (tombs != null) {
+      for (final st in await (_db.select(_db.seriesTags)
+            ..where((st) => st.seriesId.equals(id)))
+          .get()) {
+        await tombs.recordComposite('series_tags', st.seriesId, st.tagId);
+      }
+    }
     // Delete series tags first.
     await (_db.delete(_db.seriesTags)
           ..where((st) => st.seriesId.equals(id)))
@@ -101,5 +119,6 @@ class SeriesRepository {
     await (_db.delete(_db.recurringSeriesTable)
           ..where((s) => s.id.equals(id)))
         .go();
+    await tombs?.record('recurring_series', id);
   }
 }

@@ -84,14 +84,17 @@ class ChangeTracker {
       ));
     }
 
-    // Recurring series.
+    // Recurring series. Scan by updated_at (#52). Using created_at
+    // means rename / recurrence-rule / tag-set edits never push
+    // because the timestamp doesn't move after the row is created.
     changes.addAll(await _queryTable(
       tableName: 'recurring_series',
-      timestampColumn: 'created_at',
+      timestampColumn: 'updated_at',
       sinceEpoch: sinceEpoch,
       columns: [
         'id', 'title', 'description', 'priority', 'recurrence_rule',
-        'is_event', 'scheduled_time', 'created_at', 'ended_at',
+        'is_event', 'scheduled_time', 'created_at', 'updated_at',
+        'ended_at',
       ],
     ));
 
@@ -150,11 +153,16 @@ class ChangeTracker {
       ));
     }
 
-    // Series tags (use series's created_at via join).
+    // Series tags — use series's updated_at via join (#52).
+    // recurring_series.updated_at is bumped by SeriesTagRepository
+    // on every set/delete, so this picks up tag-set edits to
+    // existing series. Pre-fix used created_at, which never moves
+    // after row creation, so series_tags edits silently never
+    // pushed.
     final stRows = await _db.customSelect(
       'SELECT st.* FROM series_tags st '
       'JOIN recurring_series rs ON st.series_id = rs.id '
-      'WHERE rs.created_at > ?',
+      'WHERE rs.updated_at > ?',
       variables: [Variable(sinceEpoch)],
     ).get();
     for (final row in stRows) {

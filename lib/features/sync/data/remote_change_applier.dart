@@ -41,7 +41,7 @@ class RemoteChangeApplier {
     'markers': 'updated_at',
     'task_notes': 'updated_at',
     'tags': 'updated_at',
-    'recurring_series': 'created_at',
+    'recurring_series': 'updated_at',
   };
 
   /// Apply [changes] to the local DB and notify Drift watchers.

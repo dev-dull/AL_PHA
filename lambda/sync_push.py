@@ -63,7 +63,8 @@ TABLE_COLUMNS = {
     ],
     "recurring_series": [
         "id", "title", "description", "priority", "recurrence_rule",
-        "is_event", "scheduled_time", "created_at", "ended_at",
+        "is_event", "scheduled_time", "created_at", "updated_at",
+        "ended_at",
     ],
 }
 
@@ -232,7 +233,7 @@ _TIMESTAMP_COL = {
     "markers": "updated_at",
     "task_notes": "updated_at",
     "tags": "updated_at",
-    "recurring_series": "created_at",
+    "recurring_series": "updated_at",
     # board_columns has no timestamp — always upsert.
 }
 

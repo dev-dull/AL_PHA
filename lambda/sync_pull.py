@@ -52,8 +52,8 @@ PULL_TABLES = [
         "name": "recurring_series",
         "query": """
             SELECT id, title, description, priority, recurrence_rule,
-                   is_event, scheduled_time, created_at, ended_at,
-                   deleted_at
+                   is_event, scheduled_time, created_at, updated_at,
+                   ended_at, deleted_at
             FROM recurring_series
             WHERE user_id = %s AND synced_at > %s
         """,
